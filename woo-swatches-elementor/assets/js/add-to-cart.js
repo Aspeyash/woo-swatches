@@ -102,6 +102,19 @@
 				return;
 			}
 
+			// v1.1.1 — Variation-required guard. If this is a variations form
+			// and no variation_id is set, bail and let WC's native validator
+			// surface its "Please select options" notice. Without this guard
+			// my submit handler would fire AJAX with variation_id=0 → empty
+			// payload → "Something went wrong" on a click that should have
+			// just shown a validation message.
+			if ( $form.hasClass( 'variations_form' ) ) {
+				var matched = parseInt( $form.find( 'input.variation_id' ).val(), 10 );
+				if ( ! matched || isNaN( matched ) ) {
+					return;
+				}
+			}
+
 			e.preventDefault();
 			submitAtcForm( $btn, $form );
 		} );
@@ -110,39 +123,162 @@
 		// form submission — no AJAX intercept (matches v1.0.5 behaviour).
 	}
 
+	/**
+	 * v1.1.1 — Robust payload assembly.
+	 *
+	 * v1.1.0 relied on $form.serializeArray() alone. That breaks if the
+	 * canonical form is unexpectedly empty (nested inside another form,
+	 * orphan-presenter synthesis edge cases, third-party plugins that
+	 * mangle the form structure). v1.1.1 builds the payload from explicit
+	 * sources so the AJAX request always has the fields WC needs:
+	 *   - product_id        (form data attr OR hidden input)
+	 *   - variation_id      (input.variation_id OR input[name=variation_id])
+	 *   - quantity          (canonical qty OR matching presenter qty)
+	 *   - attribute_*       (canonical selects + form= linked selects)
+	 *   - serializeArray fields filled in last as a backup
+	 */
+	function buildAtcPayload( $form ) {
+		var productId = $form.attr( 'data-product_id' )
+		             || $form.find( 'input[name=product_id]' ).val()
+		             || '';
+		var variationId = $form.find( 'input.variation_id' ).val()
+		             || $form.find( 'input[name=variation_id]' ).val()
+		             || 0;
+
+		var quantity = $form.find( 'input.qty:not(.wse-presenter-qty)' ).first().val();
+		if ( ! quantity ) {
+			// Fallback to a presenter qty input for this product.
+			quantity = $( '.wse-presenter-qty[data-product-id="' + productId + '"]' ).first().val();
+		}
+		if ( ! quantity ) {
+			quantity = 1;
+		}
+
+		var data = {
+			action       : 'woocommerce_add_to_cart',
+			'add-to-cart': productId,
+			product_id   : productId,
+			variation_id : variationId,
+			quantity     : quantity,
+		};
+
+		// Canonical-form attribute selects.
+		$form.find( 'select[name^="attribute_"]' ).each( function () {
+			data[ this.name ] = $( this ).val() || '';
+		} );
+
+		// HTML5 form="..."-linked selects (e.g. on a presenter widget that
+		// targets this canonical form).
+		var formId = $form.attr( 'id' );
+		if ( formId ) {
+			$( 'select[form="' + formId + '"][name^="attribute_"]' ).each( function () {
+				data[ this.name ] = $( this ).val() || '';
+			} );
+		}
+
+		// Backstop: anything else $form.serializeArray() returns that we
+		// haven't already captured.
+		$form.serializeArray().forEach( function ( field ) {
+			if ( ! ( field.name in data ) ) {
+				data[ field.name ] = field.value;
+			}
+		} );
+
+		return data;
+	}
+
 	function submitAtcForm( $btn, $form ) {
 		setBtnState( $btn, BTN_LOADING );
 
-		var formData = $form.serializeArray();
-		formData.push( { name: 'action', value: 'woocommerce_add_to_cart' } );
+		// v1.1.1 — Capture cart hash BEFORE the request so multi-vendor
+		// verification can detect whether the cart actually changed even
+		// if WC reports {error:true}.
+		var hashBefore = readCartHash();
+
+		var data = buildAtcPayload( $form );
 
 		$.ajax( {
 			type : 'POST',
 			url  : WSEParams.wc_ajax_url.replace( '%%endpoint%%', 'add_to_cart' ),
-			data : formData,
+			data : data,
 
 			success : function ( response ) {
-				// v1.1.0 (B8) — Deterministic. WC's add_to_cart endpoint
-				// returns { error: true, product_url: ... } on validation
-				// failure (Dokan etc) and { fragments, cart_hash, ... } on
-				// success. We trust this strictly.
-				if ( ! response || response.error ) {
-					handleAddToCartError( $btn, $form, response );
+				// v1.1.1 — Honest path first: if WC reports success, treat as success.
+				if ( response && ! response.error ) {
+					onAddToCartSuccess( $btn, $form, response );
 					return;
 				}
-				onAddToCartSuccess( $btn, $form, response );
+
+				// WC reports error. If multi-vendor compat is on, verify
+				// whether the cart actually changed (Dokan / WCFM pipelines
+				// frequently report error while having added the item).
+				if ( isMultivendorCompatActive() ) {
+					verifyMultivendorCart( $btn, $form, response, hashBefore );
+					return;
+				}
+
+				// Otherwise surface the real error.
+				handleAddToCartError( $btn, $form, response );
 			},
 
 			error : function ( xhr, textStatus ) {
-				// Only network/parse errors fall through here. Verify the
-				// cart actually changed before showing failure (handles
-				// proxy / CDN response corruption).
 				if ( textStatus === 'abort' ) {
 					setBtnState( $btn, BTN_DEFAULT );
 					return;
 				}
-				verifyCartChangeFallback( $btn, $form );
+				// Network / parse errors → fragment-fetch fallback.
+				verifyCartChangeFallback( $btn, $form, hashBefore );
 			},
+		} );
+	}
+
+	/**
+	 * v1.1.1 — Reads the current wc_cart_hash from localStorage. WooCommerce's
+	 * cart-fragments.js maintains this, so it's the most reliable indicator
+	 * of "did the cart change?" we have client-side.
+	 */
+	function readCartHash() {
+		try {
+			return ( window.localStorage && localStorage.getItem( 'wc_cart_hash' ) ) || '';
+		} catch ( e ) {
+			return '';
+		}
+	}
+
+	/**
+	 * v1.1.1 — Multi-vendor compat is active when:
+	 *   - WSEParams.multivendor_compat is true, OR
+	 *   - the user explicitly forced it on via WC settings (server already
+	 *     resolves "auto" → boolean before the param reaches us).
+	 */
+	function isMultivendorCompatActive() {
+		return !! ( window.WSEParams && WSEParams.multivendor_compat );
+	}
+
+	/**
+	 * v1.1.1 — Verifies the cart state when WC returns {error:true} on a
+	 * multi-vendor stack. Fetches fresh fragments, compares cart hashes,
+	 * and treats a hash change as success (i.e. the item was added by
+	 * Dokan/WCFM/etc. server-side even though their validation pipeline
+	 * marked the AJAX request as failed).
+	 */
+	function verifyMultivendorCart( $btn, $form, originalResponse, hashBefore ) {
+		$.get(
+			WSEParams.wc_ajax_url.replace( '%%endpoint%%', 'get_refreshed_fragments' ),
+			function ( fragsResponse ) {
+				var hashAfter = ( fragsResponse && fragsResponse.cart_hash ) || readCartHash() || '';
+
+				if ( hashAfter && hashAfter !== hashBefore ) {
+					// Cart genuinely changed. Treat as success.
+					onAddToCartSuccess( $btn, $form, fragsResponse );
+				} else {
+					// Cart didn't change — surface the real error.
+					handleAddToCartError( $btn, $form, originalResponse );
+				}
+			}
+		).fail( function () {
+			// Couldn't verify — fall back to honest error.
+			handleAddToCartError( $btn, $form, originalResponse );
 		} );
 	}
 
@@ -166,14 +302,17 @@
 
 	/**
 	 * Network-error fallback: hits get_refreshed_fragments and infers
-	 * success from cart_hash divergence. Only for true network failures —
-	 * NOT used for explicit { error: true } responses (B8).
+	 * success from cart_hash divergence. Used only on network failures.
+	 *
+	 * v1.1.1 — takes hashBefore so it can compare against a known
+	 * pre-request value rather than relying on fragment.cart_hash alone.
 	 */
-	function verifyCartChangeFallback( $btn, $form ) {
+	function verifyCartChangeFallback( $btn, $form, hashBefore ) {
 		$.get(
 			WSEParams.wc_ajax_url.replace( '%%endpoint%%', 'get_refreshed_fragments' ),
 			function ( fragsResponse ) {
-				if ( fragsResponse && fragsResponse.fragments ) {
+				var hashAfter = ( fragsResponse && fragsResponse.cart_hash ) || readCartHash() || '';
+				if ( hashAfter && hashAfter !== hashBefore ) {
 					onAddToCartSuccess( $btn, $form, fragsResponse );
 				} else {
 					setBtnState( $btn, BTN_ERROR );
@@ -207,6 +346,10 @@
 			$form   : $form,
 			response: response,
 		} ] );
+
+		// v1.1.1 — toast is fired once via the wse:addedToCart event listener
+		// in init() so archive-page adds and canonical-form adds use the
+		// same single code path. (Avoids duplicate toasts on canonical adds.)
 
 		setTimeout( function () { setBtnState( $btn, BTN_DEFAULT ); }, 3000 );
 	}
@@ -442,8 +585,67 @@
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
-	// Bootstrap
+	// 7.1  v1.1.1 — "Added to cart" toast notification
 	// ─────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Shows a small bottom-right toast confirming that the product was
+	 * added to the cart. Auto-dismisses after ~3.5 seconds. Toggleable
+	 * server-side via the wse_show_added_toast option (Display tab).
+	 *
+	 * Respects the View Cart link toggle: when "Show View Cart Link" is
+	 * disabled, the toast is just the message; when enabled, a small
+	 * "View cart" link is appended.
+	 */
+	function showAddedToast() {
+		// Server-side toggle off → do nothing.
+		if ( window.WSEParams && WSEParams.show_added_toast === false ) {
+			return;
+		}
+
+		var i18n = ( window.WSEParams && WSEParams.i18n ) ? WSEParams.i18n : {};
+		var msg  = i18n.toast_added || 'Added to cart';
+
+		// Remove any existing toast so we don't stack them on rapid clicks.
+		$( '.wse-toast' ).remove();
+
+		var $toast = $( '<div/>', {
+			'class'    : 'wse-toast',
+			'role'     : 'status',
+			'aria-live': 'polite',
+		} );
+
+		$( '<span/>', { 'class': 'wse-toast-icon', 'aria-hidden': 'true' } )
+			.text( '\u2713' )
+			.appendTo( $toast );
+
+		$( '<span/>', { 'class': 'wse-toast-message' } )
+			.text( msg )
+			.appendTo( $toast );
+
+		// Optional View Cart link — respects the existing wse_show_view_cart_link toggle.
+		if ( shouldShowViewCart() && window.WSEParams && WSEParams.cart_url ) {
+			$( '<a/>', {
+				'class' : 'wse-toast-link',
+				'href'  : WSEParams.cart_url,
+				'text'  : i18n.view_cart || 'View cart',
+			} ).appendTo( $toast );
+		}
+
+		$( 'body' ).append( $toast );
+
+		// Force reflow before adding the visible class so the CSS transition fires.
+		$toast[0].offsetHeight; // eslint-disable-line no-unused-expressions
+		$toast.addClass( 'wse-toast--visible' );
+
+		// Auto-dismiss after 3.5s.
+		setTimeout( function () {
+			$toast.removeClass( 'wse-toast--visible' );
+			setTimeout( function () { $toast.remove(); }, 400 );
+		}, 3500 );
+	}
+
+
 
 	function init() {
 		initCrossWidgetSync();
@@ -452,6 +654,17 @@
 		initPresenterQtySync();
 		initQuantityStepper();
 		initStickyBodyPadding();
+
+		// v1.1.1 — Toast on archive add-to-cart success.
+		// onAddToCartSuccess() calls showAddedToast() directly for the
+		// canonical-form path. The archive path also fires wse:addedToCart
+		// (via class-archive-swatches.php inline JS), so we listen to it
+		// here to reach the toast for archive adds too. Idempotent off/on.
+		$( document.body )
+			.off( 'wse:addedToCart.wse-toast' )
+			.on( 'wse:addedToCart.wse-toast', function () {
+				showAddedToast();
+			} );
 	}
 
 	$( document ).ready( init );

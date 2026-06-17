@@ -87,11 +87,16 @@ class WSE_Activator {
 			'wse_delete_on_uninstall' => 'no',
 
 			// v1.1.0 (Feature A) — Show "View Cart" link in success message.
-			// When disabled, the wc_add_to_cart_message_html filter strips the
-			// <a class="wc-forward"> from add-to-cart success notices and the
-			// View Cart button from cart fragments. Default 'yes' preserves
-			// v1.0.5 behaviour.
 			'wse_show_view_cart_link' => 'yes',
+
+			// v1.1.1 — Multi-vendor compatibility mode.
+			// 'auto' = on when Dokan / WCFM / WC Vendors is detected, otherwise off.
+			// 'on'   = always run cart-state verification on AJAX errors.
+			// 'off'  = never run verification (v1.1.0 behaviour).
+			'wse_multivendor_compat' => 'auto',
+
+			// v1.1.1 — Show toast notification on successful AJAX add-to-cart.
+			'wse_show_added_toast' => 'yes',
 		);
 
 		foreach ( $defaults as $key => $value ) {
@@ -159,6 +164,8 @@ class WSE_Activator {
 			'wse_delete_on_uninstall',
 			'wse_show_view_cart_link', // v1.1.0
 			'wse_template_override_acks', // v1.1.0 — hard-cut migration notice acks
+			'wse_multivendor_compat', // v1.1.1
+			'wse_show_added_toast', // v1.1.1
 			'wse_version',
 			'wse_regen_notice_dismissed',
 		);

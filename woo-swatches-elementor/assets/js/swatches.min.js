@@ -90,59 +90,68 @@
 
 	// ─────────────────────────────────────────────────────────────────────
 	// Step 1 — Dedupe swatch UI between Widget 1 and the canonical form
+	//
+	// v1.1.1 — FOUC fix. The canonical form's swatches now ship with
+	// `display:none` baked into the CSS. This step REVEALS them (by
+	// toggling the `wse-show-canonical-swatches` class on the form) only
+	// when no Widget 1 exists for the product — i.e. the canonical-only
+	// "Widget 2 alone" scenario. The common Widget 1 + Widget 2 case
+	// keeps the default hidden state, so there is zero flash of duplicate
+	// swatches on first paint.
 	// ─────────────────────────────────────────────────────────────────────
 
-	/**
-	 * When both Widget 1 swatches and a canonical-form swatch block exist
-	 * for the same (product, attribute), the canonical form's visible UI is
-	 * hidden — its hidden <select> remains as the source of truth.
-	 *
-	 * Widget 1's swatches stay visible and are wired to update the
-	 * canonical form's selects via Step 4 (cross-widget click sync).
-	 */
 	function dedupeSwatchUI() {
-		$( '.wse-widget-swatches[data-product-id]' ).each( function () {
-			var $widget1   = $( this );
-			var productId  = String( $widget1.attr( 'data-product-id' ) || '' );
-			var $canonical = $( '.wse-canonical-form[data-product_id="' + productId + '"]' );
-
-			if ( ! productId || ! $canonical.length ) {
+		$( '.wse-canonical-form[data-product_id]' ).each( function () {
+			var $canonical = $( this );
+			var productId  = String( $canonical.attr( 'data-product_id' ) || '' );
+			if ( ! productId ) {
 				return;
 			}
 
-			// Walk each attribute Widget 1 owns and hide the duplicate
-			// inside the canonical form (keep the hidden select).
-			$widget1.find( '.wse-attr-block[data-attribute]' ).each( function () {
-				var attr = $( this ).attr( 'data-attribute' );
-				if ( ! attr ) {
-					return;
-				}
-				$canonical
-					.find( '.wse-swatch-wrap[data-attribute="' + attr + '"] .wse-fieldset' )
-					.attr( 'aria-hidden', 'true' )
-					.css( 'display', 'none' )
-					.addClass( 'wse-deduped' );
-			} );
+			var hasWidget1 = $( '.wse-widget-swatches[data-product-id="' + productId + '"]' ).length > 0;
+
+			if ( ! hasWidget1 ) {
+				// Widget 2 is alone for this product — show its swatches.
+				$canonical.addClass( 'wse-show-canonical-swatches' );
+			}
+			// else: leave default hidden state in place. Widget 1 owns the visible UI.
 		} );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
 	// Step 2 — Wrap orphan Widget 1 (no canonical form on page → scenario c)
+	//         Plus orphan Presenter (v1.1.1)
 	// ─────────────────────────────────────────────────────────────────────
 
 	/**
-	 * Builds a synthetic hidden canonical form for a Widget 1 wrapper that
-	 * has no Widget 2 on the page. The form contains:
+	 * Builds a synthetic hidden canonical form for either:
+	 *   • A Widget 1 (Swatches) wrapper that has no Widget 2 on the page
+	 *   • A presenter Widget 2 whose data-form-id target form doesn't exist
+	 *     (v1.1.1 — orphan presenter scenario)
+	 *
+	 * The form contains:
 	 *   - hidden <select> per attribute (built from variation data)
 	 *   - data-product_variations attribute populated from the script tag
 	 * so wc-add-to-cart-variation.js can bind and the click-sync (Step 4)
 	 * has selects to update.
 	 */
 	function wrapOrphanWidget1() {
+
+		// Collect orphan candidates — Widget 1 wrappers + orphan presenter Widget 2s.
+		var $orphans = $();
 		$( '.wse-widget-swatches[data-product-id]' ).each( function () {
-			var $widget1  = $( this );
-			var productId = String( $widget1.attr( 'data-product-id' ) || '' );
-			var formId    = String( $widget1.attr( 'data-form-id' ) || ( 'wse-form-' + productId ) );
+			$orphans = $orphans.add( this );
+		} );
+		$( '.wse-widget-add-to-cart.wse-presenter[data-product-id]' ).each( function () {
+			$orphans = $orphans.add( this );
+		} );
+
+		var seenProducts = {};
+
+		$orphans.each( function () {
+			var $orphan   = $( this );
+			var productId = String( $orphan.attr( 'data-product-id' ) || '' );
+			var formId    = String( $orphan.attr( 'data-form-id' ) || ( 'wse-form-' + productId ) );
 
 			if ( ! productId ) {
 				return;
@@ -152,6 +161,12 @@
 			if ( document.getElementById( formId ) ) {
 				return;
 			}
+
+			// Don't synthesise twice for the same product.
+			if ( seenProducts[ productId ] ) {
+				return;
+			}
+			seenProducts[ productId ] = true;
 
 			var variations = getVariationsForProduct( productId );
 			if ( ! variations || ! variations.length ) {
@@ -183,16 +198,24 @@
 				var $select = $( '<select/>' )
 					.attr( 'name', name )
 					.attr( 'data-attribute_name', name );
-				// One blank option for "Choose"; values are set by click-sync.
 				$( '<option/>' ).val( '' ).text( '' ).appendTo( $select );
 				$form.append( $select );
 			} );
 
-			// Append after Widget 1 so it lives in the same DOM scope.
-			$widget1.after( $form );
+			// Required hidden inputs so wc-ajax/add_to_cart receives the
+			// right product_id / variation_id even on orphan presenter setups.
+			$form.append( '<input type="hidden" name="add-to-cart" value="' + productId + '"/>' );
+			$form.append( '<input type="hidden" name="product_id"  value="' + productId + '"/>' );
+			$form.append( '<input type="hidden" name="variation_id" class="variation_id" value=""/>' );
 
-			// Re-read from data() now that data-product_variations was set
-			// via attr() — jQuery caches data(), so prime it explicitly.
+			// Quantity input — a hidden mirror so $form.serializeArray() picks
+			// up a value when the user only has presenter qty input.
+			$form.append( '<input type="hidden" name="quantity" class="qty wse-canonical-qty" value="1"/>' );
+
+			// Append at the same DOM level as the orphan so it's reachable
+			// via standard delegated handlers.
+			$( 'body' ).append( $form );
+
 			$form.data( 'product_variations', variations );
 		} );
 	}

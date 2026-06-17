@@ -199,22 +199,25 @@
 
 
 
-/* ─── v1.1.0 (Feature B) — Sticky presenter (per-device toggles) ─────────── */
+/* ─── v1.1.0 (Feature B) + v1.1.1 — Sticky wrapper (per-device toggles) ─── */
 /*                                                                            */
-/* The presenter wrapper picks up wse-sticky-{desktop,tablet,mobile} classes  */
-/* server-side based on user toggles. CSS only applies sticky positioning    */
-/* when the corresponding breakpoint matches, so a wrapper with               */
-/* wse-sticky-mobile only sticks on viewports ≤ 767px.                        */
+/* Sticky classes apply to BOTH the canonical Add-to-Cart wrapper AND the    */
+/* presenter wrapper (v1.1.1 change — previously scoped to .wse-presenter    */
+/* only, which broke single-widget sticky setups).                           */
 /*                                                                            */
 /* Body padding-bottom is managed by add-to-cart.js so content is never      */
 /* obscured by the pinned bar (handler reads outerHeight per breakpoint).    */
 /* ────────────────────────────────────────────────────────────────────────── */
 
+.wse-widget-add-to-cart.wse-sticky-desktop,
+.wse-widget-add-to-cart.wse-sticky-tablet,
+.wse-widget-add-to-cart.wse-sticky-mobile,
 .wse-presenter {
 	background-color: #ffffff;
 }
 
 @media (min-width: 1025px) {
+	.wse-widget-add-to-cart.wse-sticky-desktop,
 	.wse-presenter.wse-sticky-desktop {
 		position:    fixed;
 		bottom:      0;
@@ -227,6 +230,7 @@
 }
 
 @media (min-width: 768px) and (max-width: 1024px) {
+	.wse-widget-add-to-cart.wse-sticky-tablet,
 	.wse-presenter.wse-sticky-tablet {
 		position:    fixed;
 		bottom:      0;
@@ -239,6 +243,7 @@
 }
 
 @media (max-width: 767px) {
+	.wse-widget-add-to-cart.wse-sticky-mobile,
 	.wse-presenter.wse-sticky-mobile {
 		position:    fixed;
 		bottom:      0;
@@ -282,4 +287,126 @@ body.wse-has-sticky-presenter {
 	padding:       6px 10px;
 	border-radius: 4px;
 	margin-bottom: 8px;
+}
+
+
+
+/* ─── v1.1.1 — FOUC fix: hide canonical-form swatch UI by default ───────── */
+/*                                                                            */
+/* When a Widget 1 (Swatches) is on the same page as a Widget 2 (canonical), */
+/* both end up emitting visible swatches. Previously we deduped via JS at    */
+/* DOMReady, which created a flash of duplicate swatches during the first    */
+/* paint. v1.1.1 hides the canonical form's swatches with CSS by default;   */
+/* swatches.js reveals them only when no Widget 1 wrapper exists for the     */
+/* product (Widget-2-alone scenario).                                        */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+.wse-canonical-form .wse-swatch-wrap > fieldset.wse-fieldset {
+	display: none;
+}
+
+.wse-canonical-form.wse-show-canonical-swatches .wse-swatch-wrap > fieldset.wse-fieldset {
+	display: block;
+}
+
+/* ─── v1.1.1 — Variation-not-selected button state ───────────────────────── */
+/*                                                                            */
+/* WooCommerce's wc-add-to-cart-variation.js adds the .disabled class to     */
+/* .single_add_to_cart_button until a valid variation is found. Some themes  */
+/* and Elementor button styles override the default greyed-out look. These  */
+/* rules enforce the disabled state visually so shoppers can't visually     */
+/* "click" a button that won't add to cart.                                  */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+.wse-canonical-form .single_add_to_cart_button.disabled,
+.wse-canonical-form .single_add_to_cart_button.wc-variation-selection-needed,
+.wse-canonical-form .single_add_to_cart_button[disabled],
+.wse-presenter-btn.disabled,
+.wse-presenter-btn[disabled] {
+	opacity:        0.55;
+	cursor:         not-allowed;
+	pointer-events: none;
+}
+
+/* ─── v1.1.1 — "Added to cart" toast notification ─────────────────────────── */
+/*                                                                            */
+/* Pinned bottom-right on desktop, full-width bottom on mobile. Auto-bumped  */
+/* up when a sticky presenter is also active so the two don't overlap.       */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+.wse-toast {
+	position:        fixed;
+	bottom:          24px;
+	right:           24px;
+	left:            auto;
+	background:      #1d2433;
+	color:           #ffffff;
+	padding:         14px 20px;
+	border-radius:   8px;
+	box-shadow:      0 8px 24px rgba(19, 27, 46, 0.18);
+	display:         flex;
+	align-items:     center;
+	gap:             10px;
+	z-index:         99999;
+	transform:       translateY(20px);
+	opacity:         0;
+	transition:      opacity 250ms ease, transform 250ms ease;
+	max-width:       360px;
+	font-size:       14px;
+	line-height:     1.4;
+}
+
+.wse-toast--visible {
+	transform: translateY(0);
+	opacity:   1;
+}
+
+.wse-toast-icon {
+	background:      #16a34a;
+	color:           #ffffff;
+	width:           22px;
+	height:          22px;
+	border-radius:   50%;
+	display:         flex;
+	align-items:     center;
+	justify-content: center;
+	font-size:       13px;
+	font-weight:     bold;
+	flex-shrink:     0;
+}
+
+.wse-toast-message {
+	flex: 1;
+}
+
+.wse-toast-link {
+	color:           #93c5fd;
+	text-decoration: underline;
+	margin-left:     8px;
+}
+
+.wse-toast-link:hover,
+.wse-toast-link:focus {
+	color: #ffffff;
+}
+
+@media (max-width: 767px) {
+	.wse-toast {
+		left:      16px;
+		right:     16px;
+		bottom:    16px;
+		max-width: none;
+	}
+}
+
+/* When a sticky presenter is active, lift the toast above it so they don't
+   overlap. The 100px offset matches the typical presenter bar height. */
+body.wse-has-sticky-presenter .wse-toast {
+	bottom: calc(24px + 80px);
+}
+
+@media (max-width: 767px) {
+	body.wse-has-sticky-presenter .wse-toast {
+		bottom: calc(16px + 80px);
+	}
 }

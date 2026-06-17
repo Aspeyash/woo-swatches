@@ -374,12 +374,67 @@ class WSE_Plugin {
 	 * so add-to-cart.js can also strip on the client when stale page-cache
 	 * fragments arrive.
 	 *
+	 * v1.1.1 — also propagates multivendor compat + added-to-cart toast +
+	 * the i18n string for the toast.
+	 *
 	 * @param array $params Existing WSEParams payload.
 	 * @return array
 	 */
 	public function inject_view_cart_param( array $params ): array {
 		$params['show_view_cart_link'] = 'yes' === get_option( 'wse_show_view_cart_link', 'yes' );
+
+		// v1.1.1 — Multi-vendor compatibility mode.
+		$mvc_setting = (string) get_option( 'wse_multivendor_compat', 'auto' );
+		$mvc_active  = false;
+		if ( 'on' === $mvc_setting ) {
+			$mvc_active = true;
+		} elseif ( 'auto' === $mvc_setting ) {
+			$mvc_active = $this->detect_multivendor_plugin();
+		}
+		$params['multivendor_compat'] = $mvc_active;
+
+		// v1.1.1 — Added-to-cart toast.
+		$params['show_added_toast'] = 'yes' === get_option( 'wse_show_added_toast', 'yes' );
+		$params['cart_url']         = $params['cart_url'] ?? esc_url( wc_get_cart_url() );
+
+		// i18n strings for the toast.
+		$params['i18n']               = (array) ( $params['i18n'] ?? array() );
+		$params['i18n']['toast_added'] = esc_html__( 'Added to cart', 'woo-swatches-elementor' );
+		$params['i18n']['view_cart']   = esc_html__( 'View cart', 'woo-swatches-elementor' );
+
 		return $params;
+	}
+
+	/**
+	 * v1.1.1 — Returns true when Dokan / WCFM / WC Vendors is active.
+	 *
+	 * Used to decide whether the AJAX add-to-cart cart-hash verification
+	 * should kick in when WC returns {error: true}. These plugins are known
+	 * to filter `woocommerce_add_to_cart_validation` to false on AJAX
+	 * requests for vendor products even though the cart has been updated
+	 * by a parallel server-side mechanism.
+	 */
+	private function detect_multivendor_plugin(): bool {
+		$markers = array(
+			// Dokan free + Pro
+			'WeDevs_Dokan',
+			'Dokan_Pro',
+			// WCFM Marketplace
+			'WCFM',
+			'WCFMmp',
+			// WC Vendors
+			'WC_Vendors',
+			'WCVendors_Pro',
+			// MultiVendorX (formerly WC Marketplace)
+			'WCMp',
+			'MultiVendorX',
+		);
+		foreach ( $markers as $class ) {
+			if ( class_exists( $class ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

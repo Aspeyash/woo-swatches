@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,48 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 
 == Changelog ==
 
+= 1.1.1 =
+**Hotfix release: Dokan/multi-vendor compatibility, FOUC fix, sticky-without-presenter, "Added to cart" toast.**
+
+This release addresses live-site issues reported on a Dokan Pro / Astra / Pantheon stack and refines three v1.1.0 design choices that proved problematic in real-world usage.
+
+**New: "Added to cart" toast notification**
+* Small bottom-right toast confirms successful add-to-cart on every code path (canonical Add to Cart widget, archive AJAX, presenter sticky bar). Auto-dismisses in ~3.5 seconds. Mobile-aware (full-width on ≤ 767px, lifts above the sticky presenter when one is active).
+* Toggleable via WooCommerce → Settings → WooSwatches → Display → "Show 'Added to Cart' Toast" (default ON).
+* Respects the existing "View Cart" link toggle: shows the link when enabled, omits it when not.
+
+**New: Multi-vendor compatibility mode (Dokan / WCFM / WC Vendors / MultiVendorX)**
+* New setting: WooCommerce → Settings → WooSwatches → Display → "Multi-vendor Compatibility Mode" (default Auto).
+  * Auto: enabled when one of these multi-vendor plugins is active server-side.
+  * On: always run cart-state verification on AJAX errors.
+  * Off: never run verification (v1.1.0 behaviour).
+* When active, the AJAX add-to-cart re-checks the cart hash whenever WooCommerce returns `error: true`. If the cart actually changed, the request is treated as success and the toast fires. Fixes the long-standing "Something went wrong (but the product is in the cart)" issue on Dokan stacks.
+* Re-introduces the v1.0.5 cart-hash heuristic, but smarter: only kicks in when WC reports an error AND a multi-vendor plugin is detected, so non-vendor stores still see real errors honestly.
+
+**Fix: Sticky add-to-cart works on a single widget**
+* v1.1.0 only exposed the Sticky toggles when Presenter Mode was on, which required two widgets and broke single-widget setups. v1.1.1 makes the Sticky on Desktop / Tablet / Mobile toggles always available on the Add to Cart widget.
+* The sticky CSS classes now apply to the canonical Add to Cart wrapper too, not just `.wse-presenter`. A single Add to Cart widget with Sticky on Mobile = On now correctly pins the entire form to the viewport bottom on mobile.
+* Presenter Mode moves under an "Advanced" heading with clearer guidance — it's only meant for secondary widgets on pages that already have a primary Add to Cart elsewhere.
+
+**Fix: Orphan presenter auto-synthesis**
+* Anyone who enables Presenter Mode on a page without a canonical Add to Cart widget would previously get a broken button (form="wse-form-X" pointing at a non-existent form, AJAX request with no payload, "Something went wrong"). v1.1.1 detects this at DOMReady and synthesises a hidden canonical form with all required hidden inputs and selects so the button still works.
+* Editor warning added: when Presenter Mode is toggled on, the widget shows an inline notice explaining that it requires a primary Add to Cart elsewhere on the page (or the auto-synthesis will kick in as a fallback).
+
+**Fix: No more flash of duplicate swatches on page load**
+* When both Widget 1 (Swatches) and Widget 2 canonical (Add to Cart) were on the same page, both rendered visible swatches and the JS dedup at DOMReady caused a brief flash of two swatch sets. v1.1.1 hides the canonical form's swatches by default via CSS, and JS only reveals them when no Widget 1 is on the page (Widget 2-alone scenario). Result: zero flash on first paint.
+
+**Fix: Variation-required guard**
+* The submit handler now bails when a variations form has no resolved `variation_id`, letting WooCommerce's native validator surface its "Please select options" notice instead of firing an empty AJAX request that produces "Something went wrong".
+* CSS now enforces the disabled visual state of the Add to Cart button when WC's variation engine has marked it disabled or `wc-variation-selection-needed`, so themes that override button styling can't accidentally make a non-functional button look enabled.
+
+**Fix: Robust AJAX payload assembly**
+* `submitAtcForm()` now builds the request payload from explicit sources (form `data-product_id`, `input.variation_id`, `input.qty`, `select[name^=attribute_]`, HTML5 `form="..."`-linked selects) rather than relying on `$form.serializeArray()` alone. Survives nested-form HTML, orphan-presenter setups, and third-party plugins that mangle form structure.
+
+**Migration**
+* Drop-in replacement for v1.1.0. No DB migration required.
+* If you toggled Presenter Mode in v1.1.0 expecting it to give you a sticky add-to-cart, switch back: turn Presenter Mode OFF and turn the Sticky toggles ON directly on your single Add to Cart widget.
+* Multi-vendor sites: the default Auto setting will detect Dokan/WCFM/WC Vendors and turn on cart verification automatically. Override via WC → Settings → WooSwatches → Display if you want explicit control.
+
 = 1.1.0 =
 **Major release: B3 architecture refactor + 23 bug fixes + 2 new features**
 
@@ -182,6 +224,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Full WCAG AA keyboard accessibility.
 
 == Upgrade Notice ==
+
+= 1.1.1 =
+Hotfix: Dokan multi-vendor compatibility (no more "Something went wrong" on successful adds), single-widget sticky add-to-cart, "Added to cart" toast notification, FOUC fix for double swatches, robust AJAX payload assembly. Drop-in replacement for v1.1.0.
 
 = 1.1.0 =
 Major release: single-canonical-form architecture (B3), 23 bug fixes, Presenter Mode for sticky add-to-cart bars, and a global "View Cart" link toggle. Flush the swatch cache once after upgrade. Child-theme template overrides MUST be re-synced — an admin notice will list any stale ones.

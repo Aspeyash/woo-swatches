@@ -361,6 +361,14 @@ class WSE_Archive_Swatches {
                                 $btn,
                             ] );
                             $( document.body ).trigger( 'wc_fragment_refresh' );
+
+                            // v1.1.1 — fire wse:addedToCart so the toast
+                            // notification handler in add-to-cart.js surfaces
+                            // a confirmation on archive-page adds too.
+                            $( document.body ).trigger( 'wse:addedToCart', [ {
+                                $btn    : $btn,
+                                response: response.data,
+                            } ] );
                         }
                     },
                     error   : function () {

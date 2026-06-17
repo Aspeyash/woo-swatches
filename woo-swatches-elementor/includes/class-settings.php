@@ -118,6 +118,25 @@ class WSE_Settings extends WC_Settings_Page {
 				'desc_tip' => esc_html__( 'Disable to hide the "View Cart" link in success messages, the snackbar, and the mini-cart fragment so shoppers stay on the product page.', 'woo-swatches-elementor' ),
 			),
 			array(
+				'title'    => esc_html__( 'Show "Added to Cart" Toast', 'woo-swatches-elementor' ),
+				'id'       => 'wse_show_added_toast',
+				'type'     => 'checkbox',
+				'default'  => 'yes',
+				'desc'     => esc_html__( 'Show a small toast notification at the bottom of the screen when a product is successfully added to the cart.', 'woo-swatches-elementor' ),
+			),
+			array(
+				'title'    => esc_html__( 'Multi-vendor Compatibility Mode', 'woo-swatches-elementor' ),
+				'id'       => 'wse_multivendor_compat',
+				'type'     => 'select',
+				'default'  => 'auto',
+				'options'  => array(
+					'auto' => esc_html__( 'Auto (detect Dokan / WCFM / WC Vendors)', 'woo-swatches-elementor' ),
+					'on'   => esc_html__( 'Always on',  'woo-swatches-elementor' ),
+					'off'  => esc_html__( 'Always off', 'woo-swatches-elementor' ),
+				),
+				'desc_tip' => esc_html__( 'When on, the AJAX add-to-cart re-checks the cart hash whenever WooCommerce returns an error response. If the cart actually changed, the request is treated as a success — handles Dokan / WCFM vendor-validation pipelines that mark AJAX requests as failed even though the item was added. Auto enables this only when a multi-vendor plugin is detected.', 'woo-swatches-elementor' ),
+			),
+			array(
 				'type' => 'sectionend',
 				'id'   => 'wse_display_section',
 			),

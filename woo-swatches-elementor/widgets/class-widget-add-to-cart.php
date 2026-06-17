@@ -132,7 +132,10 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 
 		$this->end_controls_section();
 
-		// ── v1.1.0 — Behavior section (Presenter Mode + Sticky toggles) ──
+		// ── v1.1.0 — Behavior section (Sticky toggles + Presenter Mode) ──
+		// v1.1.1: sticky toggles always available so single-widget setups
+		// (one canonical Add to Cart, sticky-on-mobile) just work. Presenter
+		// Mode lives further down for advanced multi-widget setups.
 		$this->start_controls_section(
 			'section_behavior',
 			array(
@@ -142,25 +145,18 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 		);
 
 		$this->add_control(
-			'presenter_mode',
+			'sticky_heading',
 			array(
-				'label'        => esc_html__( 'Presenter Mode', 'woo-swatches-elementor' ),
-				'description'  => esc_html__( 'Enable on a secondary instance (sticky bar / quick-view). The widget will share the form of the primary Add-to-Cart widget on the same page instead of rendering its own.', 'woo-swatches-elementor' ),
-				'type'         => \Elementor\Controls_Manager::SWITCHER,
-				'label_on'     => esc_html__( 'On',  'woo-swatches-elementor' ),
-				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
-				'return_value' => 'yes',
-				'default'      => 'no',
+				'label' => esc_html__( 'Sticky Behavior (per device)', 'woo-swatches-elementor' ),
+				'type'  => \Elementor\Controls_Manager::HEADING,
 			)
 		);
 
 		$this->add_control(
-			'sticky_heading',
+			'sticky_intro',
 			array(
-				'label'     => esc_html__( 'Sticky Behavior (per device)', 'woo-swatches-elementor' ),
-				'type'      => \Elementor\Controls_Manager::HEADING,
-				'separator' => 'before',
-				'condition' => array( 'presenter_mode' => 'yes' ),
+				'type' => \Elementor\Controls_Manager::RAW_HTML,
+				'raw'  => '<div style="font-size:11px;color:#475569;margin-bottom:6px;">' . esc_html__( 'When enabled for a device, this widget pins to the bottom of the viewport on that breakpoint. The Add to Cart button stays functional.', 'woo-swatches-elementor' ) . '</div>',
 			)
 		);
 
@@ -173,7 +169,6 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
 				'return_value' => 'yes',
 				'default'      => 'no',
-				'condition'    => array( 'presenter_mode' => 'yes' ),
 			)
 		);
 
@@ -186,7 +181,6 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
 				'return_value' => 'yes',
 				'default'      => 'no',
-				'condition'    => array( 'presenter_mode' => 'yes' ),
 			)
 		);
 
@@ -199,7 +193,40 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
 				'return_value' => 'yes',
 				'default'      => 'no',
-				'condition'    => array( 'presenter_mode' => 'yes' ),
+			)
+		);
+
+		$this->add_control(
+			'advanced_heading',
+			array(
+				'label'     => esc_html__( 'Advanced', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_control(
+			'presenter_mode',
+			array(
+				'label'        => esc_html__( 'Presenter Mode', 'woo-swatches-elementor' ),
+				'description'  => esc_html__( 'Only enable when this is a SECONDARY Add to Cart widget on a page that already has a primary one (e.g. main button + a separate sticky bar widget). Leave OFF for single-widget setups — turn the Sticky toggles above on instead.', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'On',  'woo-swatches-elementor' ),
+				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
+				'return_value' => 'yes',
+				'default'      => 'no',
+			)
+		);
+
+		$this->add_control(
+			'presenter_warning',
+			array(
+				'type'      => \Elementor\Controls_Manager::RAW_HTML,
+				'raw'       => '<div style="background:#fff3cd;border:1px solid #ffe69c;padding:10px 12px;border-radius:4px;font-size:11px;color:#664d03;line-height:1.45;">' .
+					'<strong>' . esc_html__( 'Heads up:', 'woo-swatches-elementor' ) . '</strong> ' .
+					esc_html__( 'Presenter Mode requires another Add to Cart widget (with Presenter Mode = Off) elsewhere on the same page to act as the canonical form. If only this single widget exists, the plugin will auto-synthesize a hidden form so the cart still works — but for most use cases turn this OFF and use the Sticky toggles above instead.', 'woo-swatches-elementor' ) .
+					'</div>',
+				'condition' => array( 'presenter_mode' => 'yes' ),
 			)
 		);
 
@@ -518,17 +545,19 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 		}
 		if ( $is_presenter ) {
 			$wrapper_class .= ' wse-presenter';
+		}
 
-			// Feature B — per-device sticky classes
-			if ( 'yes' === ( $settings['sticky_desktop'] ?? 'no' ) ) {
-				$wrapper_class .= ' wse-sticky-desktop';
-			}
-			if ( 'yes' === ( $settings['sticky_tablet']  ?? 'no' ) ) {
-				$wrapper_class .= ' wse-sticky-tablet';
-			}
-			if ( 'yes' === ( $settings['sticky_mobile']  ?? 'no' ) ) {
-				$wrapper_class .= ' wse-sticky-mobile';
-			}
+		// Feature B (v1.1.0) + v1.1.1 — sticky classes apply to BOTH presenter
+		// AND canonical wrappers. v1.1.0 originally scoped these to presenter
+		// only; v1.1.1 lets a single-widget canonical setup go sticky directly.
+		if ( 'yes' === ( $settings['sticky_desktop'] ?? 'no' ) ) {
+			$wrapper_class .= ' wse-sticky-desktop';
+		}
+		if ( 'yes' === ( $settings['sticky_tablet']  ?? 'no' ) ) {
+			$wrapper_class .= ' wse-sticky-tablet';
+		}
+		if ( 'yes' === ( $settings['sticky_mobile']  ?? 'no' ) ) {
+			$wrapper_class .= ' wse-sticky-mobile';
 		}
 
 		$this->add_render_attribute( 'wrapper', array(
