@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.0.5
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -95,6 +95,60 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 
 == Changelog ==
 
+= 1.1.0 =
+**Major release: B3 architecture refactor + 23 bug fixes + 2 new features**
+
+This release replaces the dual-form architecture with a single canonical form per product, eliminating duplicate variation engines and fixing a long list of real-world bugs. It also introduces a Presenter Mode for sticky add-to-cart bars and a global toggle to hide the View Cart link.
+
+**Architecture (B3) — single canonical form per product**
+* Widget 1 (Swatches) no longer renders its own `<form class="variations_form">`. It registers with a new per-page form registry and emits swatch UI only.
+* Widget 2 (Add to Cart) renders the canonical `<form id="wse-form-{product_id}">`. Multiple instances of Widget 2 on the same page (sticky bar + main button) coordinate automatically — the first becomes canonical, others become presenters that target its form via the HTML5 `form=` attribute.
+* Variation JSON is emitted exactly once per product per page.
+* Result: one `wc-add-to-cart-variation.js` engine per product instead of two; halved page weight on multi-attribute variable products.
+
+**New: Presenter Mode (sticky add-to-cart bar)**
+* New "Behavior" section on the Add to Cart widget with a Presenter Mode switcher.
+* When enabled, the widget renders a button + quantity input that targets another instance's canonical form. Quantity values are kept in bidirectional sync via JS.
+* Per-device sticky toggles: independent on/off switchers for Desktop (≥ 1025px), Tablet (768–1024px), and Mobile (≤ 767px). All default OFF — opt in per device.
+* When sticky is active for the current viewport, the body picks up matching padding-bottom so content is never obscured by the pinned bar.
+
+**New: "View Cart" link toggle (global)**
+* New WooCommerce Settings → WooSwatches → Display → "Show 'View Cart' link after Add to Cart" option. Default ON (matches v1.0.5 behaviour).
+* When OFF, strips the View Cart anchor from the success message and the cart fragments — applies everywhere (main button, sticky bar, archive AJAX, Astra snackbar).
+* Server-side filter is the primary path; client-side fragment sweep handles stale page-cache fragments.
+
+**Bug fixes (B1–B23)**
+* B1 — Operator-precedence bug fixed: the "Enable on Archive Pages" toggle now actually disables when set to "no". Previously `! 'yes' === get_option(...)` always evaluated to false.
+* B2 — WooCommerce Blocks integration is no longer dead. Added the `WSE_Archive_Swatches::render_for_product()` method that the All Products and Product Collection block paths actually call.
+* B4 — Mixed swatch + native dropdown attributes (e.g. Color swatch + Logo dropdown) now correctly enable Add to Cart. Cross-widget sync resolves through the canonical form's hidden selects regardless of input type.
+* B5 — Initial keyboard tabindex: when no default attribute is set, the first available swatch in each group now receives `tabindex="0"` so the swatch group is reachable via Tab. Previously every swatch had `tabindex="-1"` until something was selected.
+* B6 — Multi-attribute variable products on archive pages no longer fail with "Please select all options". Auto-falls back from AJAX-add-to-cart to "Go to product page" mode when the product has more than one attribute.
+* B7 — `wse_archive_max` setting is now enforced. Swatches above the limit collapse into a "+N more" link to the product page.
+* B8 — Add-to-Cart AJAX result is now deterministic. WooCommerce's `error: true` response is treated as a real error (not masked as success via cart-hash). Network errors still fall back to fragment verification, but explicit validation rejections (Dokan etc.) are surfaced honestly.
+* B9 — `wse_skip_renderer` bypass removed; replaced with the `wse_renderer_emit_select` and `wse_renderer_emit_swatches` filters that scope rendering cleanly without conflicting with third-party hooks.
+* B10 — Init storm fix: `updateAvailability` is now requestAnimationFrame-debounced per form. A product with N default attributes triggers exactly one availability scan at init instead of N.
+* B11 — `is_dynamic_content()` is now `public` on Widget 1 (was `protected`) for consistency with Widget 2 and Elementor 3.20+ direct method invocation.
+* B12 — Gallery image swap now uses an active-slide-aware selector chain (`.flex-active-slide` → `:not(.clone)` → `:first-child`). Themes with carousel galleries (Astra Pro, Flatsome, Hello+) now swap the visible slide.
+* B13 — Archive hook is registered conditionally — only when the toggle is on. No more wasted callback invocations on every shop loop item when the feature is disabled.
+* B14 — Activation gate hardening: removed redundant PHP version check (the plugin header `Requires PHP: 8.1` already gates this in WP 5.1+); WC version check uses `class_exists('WooCommerce')` for reliability across bulk-activation orders.
+* B15 — Swatch wrapper no longer announces the attribute label twice on screen readers (legend + aria-label duplication).
+* B17 — Cache flush is chunked (200 entries per call) and returns the remaining count so large-catalog stores don't time out on the admin Flush Cache button.
+* B18 — `WSEAdmin` JS object moved off the global `jquery` handle onto a dedicated `wse-admin` script handle to prevent collisions with other plugins.
+* B19 — Archive AJAX click handler only binds when the click behaviour is set to `ajax_add_to_cart`. No dead-code listeners on link-mode shops.
+* B20 — Archive AJAX flow audited for idempotency; binds via namespaced `.off()/.on()` pattern.
+* B21 — REST extension now also exposes the `zymarg_swatches` field on the public WC Store API (`/wc/store/v1/products`) for headless storefronts and the modern Cart & Checkout blocks.
+* B22 — Plugin description clarified: the widgets work with free Elementor; Elementor Pro is only required to use these widgets in Theme Builder templates.
+* B23 — Archive add-to-cart AJAX moved off `admin-ajax.php` onto the WC AJAX endpoint (`wc-ajax=wse_archive_add_to_cart`). LiteSpeed Cache, Hostinger Cache Manager, and other major page-cache plugins exclude `wc-ajax` from caching by default, fixing stale-nonce 403s.
+
+**Migration**
+* Existing stores: no database migration required. All v1.0.5 options keep their format. Cache should be flushed once after upgrade (Settings → WooSwatches → Performance → Flush Cache).
+* Child-theme template overrides of `templates/add-to-cart/variable.php`, `templates/swatches/wrapper.php`, `templates/swatches/color.php`, `templates/swatches/image.php`, or `templates/swatches/label.php` MUST be re-synced — the markup has changed. An admin notice will list any stale overrides detected on your install. Dismiss the notice once you've re-synced.
+
+**Performance**
+* Per-product page weight reduced ~40–50% on multi-attribute variable products (single variation JSON instead of two).
+* `wc-add-to-cart-variation.js` runs once per product per page instead of twice.
+* `updateAvailability` runs once per init regardless of default-attribute count.
+
 = 1.0.5 =
 * Fix: Add to Cart on variable products showed "Something went wrong" even though the item was successfully added to the cart. A server-side plugin (typically a multi-vendor plugin such as Dokan) was filtering woocommerce_add_to_cart_validation to false for AJAX-submitted variable product requests, causing WooCommerce's AJAX handler to return {error:true} — even though a parallel mechanism (WooCommerce's own variation form) had already added the item to the cart session. The Add to Cart engine now verifies the actual cart state via a follow-up get_refreshed_fragments call whenever an error response is received. If the cart hash changed (item was genuinely added), the widget correctly shows "Added ✓" and triggers the theme's Added to Cart notification; if the hash is unchanged (genuine failure), it shows "Something went wrong".
 * Fix: The "Adding…" button label was displaying the literal text "Adding\u2026" instead of "Adding…". PHP does not interpret \uXXXX Unicode escapes inside strings (that is JavaScript syntax); the sequence was being passed through as-is by wp_localize_script. Fixed by using the actual UTF-8 ellipsis character (…) in the PHP source for all three affected labels: the add-to-cart loading state, the cache-flush progress label, and the thumbnail regeneration progress label.
@@ -128,6 +182,9 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 * Full WCAG AA keyboard accessibility.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Major release: single-canonical-form architecture (B3), 23 bug fixes, Presenter Mode for sticky add-to-cart bars, and a global "View Cart" link toggle. Flush the swatch cache once after upgrade. Child-theme template overrides MUST be re-synced — an admin notice will list any stale ones.
 
 = 1.0.0 =
 Initial release — no upgrade steps required.
