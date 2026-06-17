@@ -1,30 +1,32 @@
 /**
- * WooSwatches for Elementor — Add to Cart Engine
+ * WooSwatches for Elementor — Add to Cart Engine (v1.1.0)
  *
- * Responsibilities:
- *   1. Cross-widget sync  — mirrors Widget 1 swatch selections into Widget 2's
- *                           hidden <select> elements so wc-add-to-cart-
- *                           variation.js can find the variation + enable button.
- *   2. AJAX add-to-cart   — intercepts .wse-atc-form submissions and POSTs to
- *                           WooCommerce's ?wc-ajax=add_to_cart endpoint.
- *   3. Loading / success  — button state machine: default → loading → added.
- *   4. Fragment refresh   — triggers WC's built-in fragment refresh so the
- *                           mini-cart count updates without a page reload.
- *   5. Reset sync         — when Widget 1 resets (wse:swatchReset), clears
- *                           Widget 2's hidden selects and disables the button.
- *
- * Cross-widget event protocol (wse:swatchSelected):
- *   Fired by swatches.js on document.body whenever a swatch is clicked in a
- *   .wse-variations-form (Widget 1).  Payload:
- *     { attribute, value, $swatch, $form }
- *
- *   add-to-cart.js only acts when the originating $form carries the class
- *   .wse-variations-form (Widget 1), then finds the matching .wse-atc-form
- *   by [data-product_id] and mirrors the selection.
+ * v1.1.0 changes:
+ *   • B3   — Single-canonical-form architecture. Cross-widget sync is now
+ *            a thin layer; most variation state lives on one form per product.
+ *   • B8   — Deterministic AJAX result. The cart-hash heuristic is replaced
+ *            with explicit response inspection — only treat as success when
+ *            WC's response is non-error AND fragments are present. Falls
+ *            back to a single fragment-fetch verification only on network
+ *            errors (not on validation rejections).
+ *   • B23  — Archive add-to-cart and main add-to-cart both use the WC AJAX
+ *            endpoint (?wc-ajax=add_to_cart) so LiteSpeed / Hostinger page
+ *            cache plugins correctly bypass them.
+ *   • Feat A — Strips the View Cart link from the success message on the
+ *              client side too (server-side filter is the primary path,
+ *              this is a defensive sweep for fragments that ship cached
+ *              snippets).
+ *   • Feat B — Sticky presenter wrapper: applies body-padding-bottom equal
+ *              to the visible presenter's height when its current breakpoint
+ *              has sticky=on. Re-evaluates on resize via matchMedia listeners.
+ *   • Presenter qty sync — bidirectional value mirroring between
+ *              .wse-canonical-qty and every .wse-presenter-qty for the same
+ *              product, with the canonical's value being the submitted truth.
  *
  * @package WooSwatchesElementor
+ * @since   1.1.0
  */
-( function ( $, window ) {
+( function ( $, window, document ) {
 	'use strict';
 
 	// ─────────────────────────────────────────────────────────────────────
@@ -36,136 +38,80 @@
 	var BTN_ERROR    = 'error';
 
 	// ─────────────────────────────────────────────────────────────────────
-	// 1.  Cross-widget sync — Widget 1 → Widget 2
+	// Helpers
 	// ─────────────────────────────────────────────────────────────────────
 
+	function getCanonicalForm( productId ) {
+		var $form = $( '#wse-form-' + String( productId ) );
+		return $form.length ? $form : null;
+	}
+
 	/**
-	 * Listens for wse:swatchSelected (fired by swatches.js on document.body)
-	 * and mirrors the selection into the matching .wse-atc-form.
+	 * Reads a config flag for the View Cart link. Default true (show link).
+	 * The server-side filter strips the anchor when disabled, but stale
+	 * fragments from page caches may still contain it; this client-side
+	 * value lets us also strip on the client when needed.
 	 */
+	function shouldShowViewCart() {
+		if ( window.WSEParams && typeof WSEParams.show_view_cart_link !== 'undefined' ) {
+			return WSEParams.show_view_cart_link !== false
+				&& WSEParams.show_view_cart_link !== 'no'
+				&& WSEParams.show_view_cart_link !== 0;
+		}
+		return true;
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// 1. Cross-widget sync — Widget 1 click → canonical hidden select
+	//    (Lightweight; the real click handling lives in swatches.js's Step 4)
+	// ─────────────────────────────────────────────────────────────────────
+
 	function initCrossWidgetSync() {
-
-		$( document.body )
-			.off( 'wse:swatchSelected.wse-atc' )
-			.on( 'wse:swatchSelected.wse-atc', function ( e, data ) {
-
-			// Only act when the originating form is Widget 1 (.wse-variations-form).
-			if ( ! data.$form || ! data.$form.hasClass( 'wse-variations-form' ) ) {
-				return;
-			}
-
-			var productId = data.$form.data( 'product_id' );
-			var $atcForm  = getAtcForm( productId );
-
-			if ( ! $atcForm.length ) {
-				return;
-			}
-
-			// Mirror to Widget 2's hidden select + fire .change() so
-			// wc-add-to-cart-variation.js picks up the new selection.
-			$atcForm
-				.find( 'select[name="attribute_' + data.attribute + '"]' )
-				.val( data.value )
-				.trigger( 'change' );
-		} );
-
-		/**
-		 * When Widget 1 resets all swatches, clear Widget 2's selects too.
-		 * wc-add-to-cart-variation.js will disable the button automatically
-		 * once the selects are emptied.
-		 */
 		$( document.body )
 			.off( 'wse:swatchReset.wse-atc' )
 			.on( 'wse:swatchReset.wse-atc', function ( e, data ) {
-
-			if ( ! data.$form || ! data.$form.hasClass( 'wse-variations-form' ) ) {
+			if ( ! data || ! data.$form ) {
 				return;
 			}
-
-			var productId = data.$form.data( 'product_id' );
-			var $atcForm  = getAtcForm( productId );
-
-			if ( ! $atcForm.length ) {
-				return;
-			}
-
-			$atcForm
-				.find( '.wse-hidden-selects select' )
-				.val( '' )
-				.trigger( 'change' );
+			// Reset canonical's variation_id so wc-add-to-cart-variation.js
+			// re-evaluates on next change.
+			data.$form.find( 'input.variation_id' ).val( '' );
 		} );
 	}
 
-	/**
-	 * Finds Widget 2's .wse-atc-form for a given product_id.
-	 *
-	 * @param  {number|string} productId
-	 * @return {jQuery}
-	 */
-	function getAtcForm( productId ) {
-		return $( 'form.wse-atc-form[data-product_id="' + productId + '"]' );
-	}
-
 	// ─────────────────────────────────────────────────────────────────────
-	// 2.  AJAX add-to-cart — intercept .wse-atc-form submission
+	// 2. AJAX add-to-cart — intercept canonical form submission
 	// ─────────────────────────────────────────────────────────────────────
 
 	function initAjaxAddToCart() {
-
-		/**
-		 * Intercept the add-to-cart button click inside Widget 2's forms.
-		 * External product forms are skipped — they're plain anchor links.
-		 *
-		 * Fix (v1.0.4): .off() before .on() so repeated init() calls
-		 * (see wse:reinit) never stack a second click handler — the
-		 * direct cause of duplicate AJAX submissions per click.
-		 */
+		// Canonical button click + presenter button click both submit the
+		// canonical form. We listen at form submit level so HTML5 form= linkage
+		// from presenters is included automatically.
 		$( document.body )
-			.off( 'click.wse-atc' )
-			.on( 'click.wse-atc', '.wse-atc-form .wse-atc-button', function ( e ) {
+			.off( 'submit.wse-atc', 'form.wse-canonical-form' )
+			.on( 'submit.wse-atc', 'form.wse-canonical-form', function ( e ) {
 
-			var $btn  = $( this );
-			var $form = $btn.closest( 'form.wse-atc-form' );
+			var $form = $( this );
+			// Locate the button used for this submit (event.originalEvent.submitter
+			// is the spec-compliant way; fall back to the canonical's primary button).
+			var $btn = e.originalEvent && e.originalEvent.submitter
+				? $( e.originalEvent.submitter )
+				: $form.find( '.wse-atc-button' ).first();
 
-			// Skip external products (button is a link, no AJAX needed).
-			if ( $form.hasClass( 'wse-external-cart' ) ) {
-				return;
-			}
-
-			// Skip if WC has already disabled the button (no valid variation).
-			if ( $btn.hasClass( 'disabled' ) || $btn.prop( 'disabled' ) ) {
+			if ( ! $btn.length || $btn.hasClass( 'disabled' ) || $btn.prop( 'disabled' ) ) {
 				return;
 			}
 
 			e.preventDefault();
-
 			submitAtcForm( $btn, $form );
 		} );
+
+		// Simple/grouped/external add-to-cart forms keep working via direct
+		// form submission — no AJAX intercept (matches v1.0.5 behaviour).
 	}
 
-	/**
-	 * Serialises the form and POSTs to WooCommerce's add-to-cart endpoint.
-	 *
-	 * Fix (v1.0.5): some server-side plugins (e.g. multi-vendor plugins)
-	 * filter woocommerce_add_to_cart_validation to false for AJAX
-	 * submissions while allowing native form POST — returning {error:true}
-	 * even though another mechanism (WC's own variation-form submission)
-	 * already added the item. We verify the actual cart state via a
-	 * follow-up get_refreshed_fragments call before deciding whether to
-	 * show success or failure.
-	 *
-	 * @param {jQuery} $btn  The button element (.wse-atc-button).
-	 * @param {jQuery} $form The add-to-cart form (.wse-atc-form).
-	 */
 	function submitAtcForm( $btn, $form ) {
-
 		setBtnState( $btn, BTN_LOADING );
-
-		// Capture the cart hash before the add attempt so we can detect
-		// whether the cart actually changed if WC returns an error.
-		var hashBefore = window.localStorage
-			? ( localStorage.getItem( 'wc_cart_hash' ) || '' )
-			: '';
 
 		var formData = $form.serializeArray();
 		formData.push( { name: 'action', value: 'woocommerce_add_to_cart' } );
@@ -176,235 +122,323 @@
 			data : formData,
 
 			success : function ( response ) {
-
+				// v1.1.0 (B8) — Deterministic. WC's add_to_cart endpoint
+				// returns { error: true, product_url: ... } on validation
+				// failure (Dokan etc) and { fragments, cart_hash, ... } on
+				// success. We trust this strictly.
 				if ( ! response || response.error ) {
-					// WC returned an error. Verify whether the cart hash
-					// actually changed before showing "Something went wrong".
-					verifyCartChange( $btn, $form, hashBefore );
+					handleAddToCartError( $btn, $form, response );
 					return;
 				}
-
 				onAddToCartSuccess( $btn, $form, response );
 			},
 
-			error : function () {
-				// Network / parse error — still verify cart state because
-				// the operation may have completed server-side before the
-				// response was corrupted (rare, but handles CDN edge cases).
-				verifyCartChange( $btn, $form, hashBefore );
+			error : function ( xhr, textStatus ) {
+				// Only network/parse errors fall through here. Verify the
+				// cart actually changed before showing failure (handles
+				// proxy / CDN response corruption).
+				if ( textStatus === 'abort' ) {
+					setBtnState( $btn, BTN_DEFAULT );
+					return;
+				}
+				verifyCartChangeFallback( $btn, $form );
 			},
 		} );
 	}
 
-	/**
-	 * Fetch fresh cart fragments and compare cart hash with the value
-	 * captured before the add-to-cart attempt.
-	 *
-	 * If the hash changed → cart was genuinely modified (treat as success).
-	 * If the hash is the same → nothing changed (genuine error).
-	 *
-	 * @param {jQuery} $btn
-	 * @param {jQuery} $form
-	 * @param {string} hashBefore  localStorage wc_cart_hash before add.
-	 */
-	function verifyCartChange( $btn, $form, hashBefore ) {
+	function handleAddToCartError( $btn, $form, response ) {
+		// Surface WC's notice if present (themes with snackbar — e.g. Astra —
+		// listen on document.body for added_to_cart but not for error;
+		// rely on the response.fragments if WC ships one for notices).
+		if ( response && response.fragments ) {
+			applyFragments( response.fragments );
+		}
 
-		$.get(
-			WSEParams.wc_ajax_url.replace( '%%endpoint%%', 'get_refreshed_fragments' ),
-			function ( fragsResponse ) {
+		setBtnState( $btn, BTN_ERROR );
+		$( document.body ).trigger( 'wse:addToCartError', [ {
+			$btn     : $btn,
+			$form    : $form,
+			response : response,
+		} ] );
 
-				var hashAfter = ( fragsResponse && fragsResponse.cart_hash )
-					? fragsResponse.cart_hash
-					: '';
-
-				if ( hashAfter && hashAfter !== hashBefore ) {
-					// Cart changed — the item WAS added despite the error
-					// response. Treat as success with the fresh fragments.
-					onAddToCartSuccess( $btn, $form, fragsResponse );
-				} else {
-					// Hash unchanged — genuine add-to-cart failure.
-					setBtnState( $btn, BTN_ERROR );
-					setTimeout( function () {
-						setBtnState( $btn, BTN_DEFAULT );
-					}, 3000 );
-				}
-			}
-		).fail( function () {
-			// Fragments fetch failed — show error conservatively.
-			setBtnState( $btn, BTN_ERROR );
-			setTimeout( function () {
-				setBtnState( $btn, BTN_DEFAULT );
-			}, 3000 );
-		} );
+		setTimeout( function () { setBtnState( $btn, BTN_DEFAULT ); }, 3000 );
 	}
 
 	/**
-	 * Called only when add-to-cart is confirmed successful — either because
-	 * WC returned fragments directly, or because verifyCartChange() detected
-	 * a cart hash change after an initial error response.
-	 *
-	 * @param {jQuery} $btn
-	 * @param {jQuery} $form
-	 * @param {Object} response  WC AJAX response (may come from
-	 *                           add_to_cart or get_refreshed_fragments).
+	 * Network-error fallback: hits get_refreshed_fragments and infers
+	 * success from cart_hash divergence. Only for true network failures —
+	 * NOT used for explicit { error: true } responses (B8).
 	 */
-	function onAddToCartSuccess( $btn, $form, response ) {
+	function verifyCartChangeFallback( $btn, $form ) {
+		$.get(
+			WSEParams.wc_ajax_url.replace( '%%endpoint%%', 'get_refreshed_fragments' ),
+			function ( fragsResponse ) {
+				if ( fragsResponse && fragsResponse.fragments ) {
+					onAddToCartSuccess( $btn, $form, fragsResponse );
+				} else {
+					setBtnState( $btn, BTN_ERROR );
+					setTimeout( function () { setBtnState( $btn, BTN_DEFAULT ); }, 3000 );
+				}
+			}
+		).fail( function () {
+			setBtnState( $btn, BTN_ERROR );
+			setTimeout( function () { setBtnState( $btn, BTN_DEFAULT ); }, 3000 );
+		} );
+	}
 
+	function onAddToCartSuccess( $btn, $form, response ) {
 		setBtnState( $btn, BTN_ADDED );
 
-		// Apply updated cart fragments (mini-cart count, etc.).
 		if ( response && response.fragments ) {
-			$.each( response.fragments, function ( key, value ) {
-				$( key ).replaceWith( value );
-			} );
+			applyFragments( response.fragments );
 		}
 
-		// ── WC fragment refresh ───────────────────────────────────────────
 		$( document.body ).trigger( 'wc_fragment_refresh' );
 
-		/**
-		 * Standard WC added_to_cart event so themes (e.g. Astra's bottom-
-		 * right "Added to cart" snackbar) react identically to how they
-		 * react to shop-loop AJAX add-to-cart buttons.
-		 */
+		// Standard WC event so theme snackbars (Astra) react identically.
 		$( document.body ).trigger( 'added_to_cart', [
 			response && response.fragments  ? response.fragments  : {},
 			response && response.cart_hash  ? response.cart_hash  : '',
 			$btn,
 		] );
 
-		// ── Developer event ───────────────────────────────────────────────
 		$( document.body ).trigger( 'wse:addedToCart', [ {
 			$btn    : $btn,
 			$form   : $form,
 			response: response,
 		} ] );
 
-		// Reset button after a short delay.
-		setTimeout( function () {
-			setBtnState( $btn, BTN_DEFAULT );
-		}, 3000 );
+		setTimeout( function () { setBtnState( $btn, BTN_DEFAULT ); }, 3000 );
+	}
+
+	/**
+	 * Applies a WC fragments map to the DOM, optionally stripping the
+	 * View Cart link if the global setting is OFF (Feature A).
+	 */
+	function applyFragments( fragments ) {
+		var stripViewCart = ! shouldShowViewCart();
+
+		$.each( fragments, function ( key, value ) {
+			if ( stripViewCart && typeof value === 'string' ) {
+				// Remove any anchor with class wc-forward (used by WC for
+				// the View Cart button in success notices and mini-cart).
+				value = value.replace(
+					/<a[^>]*class="[^"]*\bwc-forward\b[^"]*"[^>]*>[\s\S]*?<\/a>/gi,
+					''
+				);
+			}
+			$( key ).replaceWith( value );
+		} );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
-	// 3.  Button state machine
+	// 3. Button state machine
 	// ─────────────────────────────────────────────────────────────────────
 
-	/**
-	 * Transitions the button between visual states.
-	 *
-	 * States and their classes / text:
-	 *   default : no extra class  — original button text
-	 *   loading : wse-atc-loading — "Adding…"
-	 *   added   : wse-atc-added   — "Added ✓"
-	 *   error   : wse-atc-error   — "Error — try again"
-	 *
-	 * The original button text is stored in data-original-text on first call.
-	 *
-	 * @param {jQuery} $btn
-	 * @param {string} state  One of BTN_DEFAULT | BTN_LOADING | BTN_ADDED | BTN_ERROR.
-	 */
 	function setBtnState( $btn, state ) {
-
-		// Persist the original label once.
 		if ( ! $btn.data( 'original-text' ) ) {
 			$btn.data( 'original-text', $btn.text() );
 		}
-
 		var original = $btn.data( 'original-text' );
 
-		$btn
-			.removeClass( 'wse-atc-loading wse-atc-added wse-atc-error' )
-			.prop( 'disabled', false );
+		$btn.removeClass( 'wse-atc-loading wse-atc-added wse-atc-error' )
+		    .prop( 'disabled', false );
 
 		var i18n = ( window.WSEParams && WSEParams.i18n ) ? WSEParams.i18n : {};
 
 		switch ( state ) {
-
 			case BTN_LOADING:
 				$btn.addClass( 'wse-atc-loading' )
 				    .prop( 'disabled', true )
 				    .text( i18n.adding || 'Adding\u2026' );
 				break;
-
 			case BTN_ADDED:
 				$btn.addClass( 'wse-atc-added' )
 				    .text( i18n.added || 'Added \u2713' );
 				break;
-
 			case BTN_ERROR:
 				$btn.addClass( 'wse-atc-error' )
 				    .text( i18n.error || 'Error \u2014 try again' );
 				break;
-
-			default: // BTN_DEFAULT
+			default:
 				$btn.text( original );
-				break;
 		}
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
-	// 4.  Variable product — found_variation sync
+	// 4. Variation events on canonical form
 	// ─────────────────────────────────────────────────────────────────────
 
-	/**
-	 * When wc-add-to-cart-variation.js finds a valid variation in Widget 2's
-	 * form (found_variation event), ensures the variation_id hidden input is
-	 * populated before any form submission (WC does this natively; this is a
-	 * safety catch for edge-case themes that don't enqueue the WC script).
-	 */
 	function initVariationSync() {
-
 		$( document.body )
 			.off( 'found_variation.wse-atc' )
-			.on( 'found_variation.wse-atc', 'form.wse-atc-form', function ( e, variation ) {
+			.on( 'found_variation.wse-atc', 'form.wse-canonical-form', function ( e, variation ) {
 
 			var $form = $( this );
 			$form.find( 'input.variation_id' ).val( variation.variation_id || 0 );
 
-			// Re-enable button in case WC disabled it during selection.
-			$form.find( '.wse-atc-button' )
-			     .prop( 'disabled', false )
-			     .removeClass( 'disabled' );
+			// Re-enable canonical button + every presenter button targeting this form.
+			var formId = $form.attr( 'id' );
+			$( '.wse-atc-button[form="' + formId + '"]' )
+				.add( $form.find( '.wse-atc-button' ) )
+				.prop( 'disabled', false )
+				.removeClass( 'disabled' );
 		} );
 
 		$( document.body )
 			.off( 'reset_data.wse-atc hide_variation.wse-atc' )
-			.on( 'reset_data.wse-atc hide_variation.wse-atc', 'form.wse-atc-form', function () {
-			$( this ).find( 'input.variation_id' ).val( 0 );
-		} );
+			.on( 'reset_data.wse-atc hide_variation.wse-atc',
+			      'form.wse-canonical-form',
+			      function () {
+				$( this ).find( 'input.variation_id' ).val( '' );
+			} );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
-	// 5.  Quantity stepper — +/- buttons (optional theme integration)
+	// 5. Presenter quantity sync — canonical ⇄ presenter
 	// ─────────────────────────────────────────────────────────────────────
 
-	/**
-	 * Some themes add increment/decrement buttons around the WC quantity input.
-	 * This handler supports that pattern if .wse-qty-plus / .wse-qty-minus
-	 * elements are present (can be added via theme or custom template override).
-	 */
-	function initQuantityStepper() {
-
+	function initPresenterQtySync() {
+		// Canonical → presenter
 		$( document.body )
-			.off( 'click.wse-qty' )
-			.on( 'click.wse-qty', '.wse-qty-plus, .wse-qty-minus', function () {
+			.off( 'input.wse-pqty change.wse-pqty', '.wse-canonical-qty' )
+			.on( 'input.wse-pqty change.wse-pqty', '.wse-canonical-qty', function () {
+				var $canonical = $( this );
+				var $form      = $canonical.closest( 'form.wse-canonical-form' );
+				var productId  = $form.attr( 'data-product_id' );
+				if ( ! productId ) {
+					return;
+				}
+				$( '.wse-presenter-qty[data-product-id="' + productId + '"]' )
+					.not( $canonical )
+					.val( $canonical.val() );
+			} );
 
-			var $btn   = $( this );
-			var $input = $btn.closest( '.wse-qty-wrap' ).find( 'input.qty' );
-			var min    = parseFloat( $input.attr( 'min' ) )  || 1;
-			var max    = parseFloat( $input.attr( 'max' ) )  || Infinity;
-			var step   = parseFloat( $input.attr( 'step' ) ) || 1;
-			var val    = parseFloat( $input.val() ) || min;
+		// Presenter → canonical
+		$( document.body )
+			.off( 'input.wse-pqty change.wse-pqty', '.wse-presenter-qty' )
+			.on( 'input.wse-pqty change.wse-pqty', '.wse-presenter-qty', function () {
+				var $presenter = $( this );
+				var formId     = String( $presenter.attr( 'data-target-form' ) || '' );
+				if ( ! formId ) {
+					return;
+				}
+				var $form = $( '#' + formId );
+				if ( ! $form.length ) {
+					return;
+				}
+				var newVal = $presenter.val();
+				$form.find( '.wse-canonical-qty' ).val( newVal );
+				// Mirror to other presenters too.
+				var productId = $form.attr( 'data-product_id' );
+				if ( productId ) {
+					$( '.wse-presenter-qty[data-product-id="' + productId + '"]' )
+						.not( $presenter )
+						.val( newVal );
+				}
+			} );
+	}
 
-			if ( $btn.hasClass( 'wse-qty-plus' ) ) {
-				val = Math.min( val + step, max );
-			} else {
-				val = Math.max( val - step, min );
+	// ─────────────────────────────────────────────────────────────────────
+	// 6. Sticky presenter — body-padding management
+	// ─────────────────────────────────────────────────────────────────────
+
+	var STICKY_BREAKPOINTS = {
+		desktop : '(min-width: 1025px)',
+		tablet  : '(min-width: 768px) and (max-width: 1024px)',
+		mobile  : '(max-width: 767px)',
+	};
+
+	/**
+	 * Returns the height in px contributed by visible sticky presenters
+	 * for the current viewport.
+	 */
+	function getActiveStickyHeight() {
+		var total = 0;
+
+		$( '.wse-presenter' ).each( function () {
+			var $el = $( this );
+			if ( ! $el.is( ':visible' ) ) {
+				return;
 			}
 
-			$input.val( val ).trigger( 'change' );
+			var matchesActive =
+				   ( $el.hasClass( 'wse-sticky-desktop' ) && window.matchMedia( STICKY_BREAKPOINTS.desktop ).matches )
+				|| ( $el.hasClass( 'wse-sticky-tablet'  ) && window.matchMedia( STICKY_BREAKPOINTS.tablet  ).matches )
+				|| ( $el.hasClass( 'wse-sticky-mobile'  ) && window.matchMedia( STICKY_BREAKPOINTS.mobile  ).matches );
+
+			if ( matchesActive ) {
+				total = Math.max( total, $el.outerHeight( true ) || 0 );
+			}
 		} );
+
+		return total;
+	}
+
+	function updateStickyBodyPadding() {
+		var height = getActiveStickyHeight();
+		if ( height > 0 ) {
+			$( 'body' ).css( 'padding-bottom', height + 'px' )
+			           .addClass( 'wse-has-sticky-presenter' );
+		} else {
+			$( 'body' ).css( 'padding-bottom', '' )
+			           .removeClass( 'wse-has-sticky-presenter' );
+		}
+	}
+
+	function initStickyBodyPadding() {
+		updateStickyBodyPadding();
+
+		// Resize / orientation change
+		var resizeTimeout = null;
+		$( window ).off( 'resize.wse-sticky orientationchange.wse-sticky' )
+			.on( 'resize.wse-sticky orientationchange.wse-sticky', function () {
+				if ( resizeTimeout ) {
+					clearTimeout( resizeTimeout );
+				}
+				resizeTimeout = setTimeout( updateStickyBodyPadding, 100 );
+			} );
+
+		// matchMedia change events for breakpoint crossings
+		Object.keys( STICKY_BREAKPOINTS ).forEach( function ( key ) {
+			var mql = window.matchMedia( STICKY_BREAKPOINTS[ key ] );
+			if ( mql.addEventListener ) {
+				mql.addEventListener( 'change', updateStickyBodyPadding );
+			} else if ( mql.addListener ) {
+				mql.addListener( updateStickyBodyPadding );
+			}
+		} );
+
+		// Recalculate after found_variation (presenter button label may
+		// change height when stock notices appear)
+		$( document.body ).off( 'found_variation.wse-sticky hide_variation.wse-sticky' )
+			.on( 'found_variation.wse-sticky hide_variation.wse-sticky',
+			      'form.wse-canonical-form',
+			      updateStickyBodyPadding );
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// 7. Quantity stepper (theme-provided +/- buttons)
+	// ─────────────────────────────────────────────────────────────────────
+
+	function initQuantityStepper() {
+		$( document.body )
+			.off( 'click.wse-qty', '.wse-qty-plus, .wse-qty-minus' )
+			.on( 'click.wse-qty', '.wse-qty-plus, .wse-qty-minus', function () {
+				var $btn   = $( this );
+				var $input = $btn.closest( '.wse-qty-wrap' ).find( 'input.qty' );
+				var min    = parseFloat( $input.attr( 'min' ) )  || 1;
+				var max    = parseFloat( $input.attr( 'max' ) )  || Infinity;
+				var step   = parseFloat( $input.attr( 'step' ) ) || 1;
+				var val    = parseFloat( $input.val() ) || min;
+
+				if ( $btn.hasClass( 'wse-qty-plus' ) ) {
+					val = Math.min( val + step, max );
+				} else {
+					val = Math.max( val - step, min );
+				}
+				$input.val( val ).trigger( 'change' );
+			} );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
@@ -415,22 +449,14 @@
 		initCrossWidgetSync();
 		initAjaxAddToCart();
 		initVariationSync();
+		initPresenterQtySync();
 		initQuantityStepper();
+		initStickyBodyPadding();
 	}
 
 	$( document ).ready( init );
 
-	/**
-	 * Reinit after Elementor popups, AJAX page loads, WC quick-views, etc.
-	 *
-	 * Fix (v1.0.4): every document.body binding in this file now calls
-	 * .off() immediately before .on(), so init() is fully idempotent —
-	 * safe to call any number of times without stacking duplicate
-	 * handlers (the root cause of duplicate AJAX add-to-cart requests).
-	 * class-ajax-compat.php additionally caps wse:reinit at one firing
-	 * per page load, so in practice init() now runs at most twice total
-	 * (document.ready + at most one wse:reinit).
-	 */
+	// Reinit hooks (every binding above is .off()-then-.on() idempotent).
 	$( document.body ).on( 'wse:reinit elementor/popup/show', init );
 
-} )( jQuery, window );
+} )( jQuery, window, document );

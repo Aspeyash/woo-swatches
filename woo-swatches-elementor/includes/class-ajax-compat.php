@@ -140,47 +140,30 @@ class WSE_Ajax_Compat {
 		}
 		?>
 		<script id="wse-fragment-reinit">
-		/* WooSwatches — fragment reinit */
+		/* WooSwatches — fragment reinit (v1.1.0) */
 		( function ( $ ) {
 
 			/**
-			 * Fix (v1.0.4): wc_fragments_loaded AND wc_fragments_refreshed
-			 * both fire during a normal page load (WC's cart-fragments.js
-			 * fetches mini-cart data asynchronously shortly after
-			 * document.ready), and added_to_cart fires after every
-			 * successful add-to-cart. Each of these previously triggered
-			 * its own separate wse:reinit — 2-3 times on a single page load.
+			 * v1.1.0 (B11/B3) — wse:reinit cap removed.
 			 *
-			 * add-to-cart.js's init() responded to each wse:reinit by
-			 * re-binding ALL its document.body click/event handlers.
-			 * jQuery's .on() never deduplicates by namespace, so this
-			 * stacked 2-3 click handlers on the Add to Cart button. A
-			 * single click then fired 2-3 simultaneous AJAX requests:
-			 * the first succeeded (product genuinely added to cart), the
-			 * extras failed (e.g. stock already reserved by request #1),
-			 * and whichever response resolved last overwrote the button
-			 * with "Something went wrong" even though the add succeeded.
+			 * The v1.0.4 cap (wseReinitFired) was a workaround for the
+			 * duplicate-binding bug where init() stacked click handlers on
+			 * every wse:reinit. In v1.1.0 every document.body binding in
+			 * swatches.js and add-to-cart.js follows the strict
+			 * .off(ns).on(ns) idempotency pattern, so a wse:reinit fired
+			 * 10 times still results in exactly one handler per event.
 			 *
-			 * wse:reinit now fires AT MOST ONCE per page load. Combined
-			 * with add-to-cart.js's own .off()/.on() idempotency (added in
-			 * the same fix), this guarantees exactly one handler per event
-			 * regardless of how many of these WC events fire afterward.
+			 * Letting wse:reinit fire freely on wc_fragments_refreshed,
+			 * wc_fragments_loaded, and added_to_cart is now safe and
+			 * matches the lifecycle expectations of theme integrations
+			 * (Astra, Storefront) that listen for the same triggers.
 			 */
-			var wseReinitFired = false;
-
-			function wseReinitOnce() {
-				if ( wseReinitFired ) {
-					return;
+			$( document.body ).on(
+				'wc_fragments_refreshed wc_fragments_loaded added_to_cart',
+				function () {
+					$( document.body ).trigger( 'wse:reinit' );
 				}
-				wseReinitFired = true;
-				$( document.body ).trigger( 'wse:reinit' );
-			}
-
-			// WC finishes refreshing cart fragments (fires on normal page load)
-			$( document.body ).on( 'wc_fragments_refreshed wc_fragments_loaded', wseReinitOnce );
-
-			// After AJAX add-to-cart the product HTML may be replaced in loops
-			$( document.body ).on( 'added_to_cart', wseReinitOnce );
+			);
 
 		} )( jQuery );
 		</script>

@@ -1,45 +1,220 @@
 /**
- * WooSwatches for Elementor — Frontend Swatches Engine
+ * WooSwatches for Elementor — Frontend Swatches Engine (v1.1.0)
  *
- * One WSE_Swatches instance per .variations_form on the page.
- * All event handlers are namespaced to '.wse' so they can be cleanly
- * unbound on AJAX reinit without touching WooCommerce's own handlers.
+ * v1.1.0 (B3) — Single-canonical-form architecture.
  *
- * Responsibilities:
- *   - Swatch click → sync hidden <select> → fire .change() (Emran Ahmed pattern)
- *   - Keyboard navigation — WCAG 2.2 roving tabindex (Gap 14)
- *   - reset_data event → deselect all swatches (Gap 40)
- *   - Clear link click → trigger WC's own .reset_variations (Gap 40)
- *   - found_variation → safe gallery image swap (Gap 9, Gap 32)
- *   - hide_variation / reset_data → restore original gallery image
- *   - wc_update_variation_image trigger for theme sliders (Gap 56)
- *   - Gap 8 — AJAX reinit on Elementor popups, WC quick views, post-load
- *   - Gap 35 — All handlers scoped to their $form instance
- *   - Developer events: wse:swatchSelected, wse:swatchReset (API)
+ *   In v1.0.5 each widget rendered its own .variations_form, doubling the
+ *   wc-add-to-cart-variation.js engine and the variation JSON. v1.1.0
+ *   refactors so exactly ONE canonical form exists per product per page,
+ *   with widgets coordinating via the WSE_Form_Registry on the PHP side
+ *   and the reconciliation pipeline below on the JS side.
+ *
+ * 5-step DOMReady reconciliation pipeline:
+ *
+ *   1. Dedupe swatch UI: when both Widget 1 and Widget 2 emit a swatch
+ *      block for the same (product, attribute), keep the one inside
+ *      Widget 1's wrapper and hide the canonical-form duplicate
+ *      (preserving its hidden <select> as the form-state holder).
+ *
+ *   2. Wrap orphan Widget 1 swatches: if a Widget 1 wrapper exists for
+ *      product P but no canonical .wse-canonical-form is on the page,
+ *      synthesise a hidden <form id="wse-form-{P}"> from the
+ *      <script class="wse-variations-json"> payload so wc-add-to-cart-
+ *      variation.js still has a form to bind to.
+ *
+ *   3. Wire WSE_Swatches per canonical form (one instance per form,
+ *      idempotent — same selector match never re-creates).
+ *
+ *   4. Cross-widget click sync: clicks on Widget 1 swatches resolve
+ *      the canonical form via [data-form-id] and update its hidden
+ *      <select> via .val().trigger('change') — wc-add-to-cart-variation.js
+ *      then handles all variation matching, price updates, and stock checks.
+ *
+ *   5. Init / reinit handling: same pipeline runs on wse:reinit,
+ *      wc_variation_form, post-load, elementor/popup/show. Every binding
+ *      is namespaced and .off()-then-.on() idempotent.
+ *
+ * Other v1.1.0 changes:
+ *   • B12 — gallery image swap uses the active-slide-aware selector chain
+ *           (.flex-active-slide → :not(.flex-active-slide) → :first-child)
+ *           so themes with carousel galleries swap the visible slide.
  *
  * @package WooSwatchesElementor
+ * @since   1.1.0
  */
 ( function ( $, window, document ) {
 	'use strict';
 
 	// ─────────────────────────────────────────────────────────────────────
-	// WSE_Swatches constructor
-	// Gap 35 — one instance per form; all handlers scoped to this.$form
+	// Module-level utilities
 	// ─────────────────────────────────────────────────────────────────────
 
 	/**
-	 * @param {jQuery} $form The .variations_form element.
+	 * Returns the canonical form jQuery object for a product, or null.
+	 *
+	 * @param {number|string} productId
+	 * @returns {jQuery|null}
 	 */
-	function WSE_Swatches( $form ) {
-		this.$form   = $form;
-		/** @type {{src:string, srcset:string, href:string}|null} */
+	function getCanonicalForm( productId ) {
+		var $form = $( '#wse-form-' + String( productId ) );
+		return $form.length ? $form : null;
+	}
+
+	/**
+	 * Reads the variation JSON for a product from either the canonical form's
+	 * data-product_variations attribute (preferred — already attached by WC)
+	 * or from the <script class="wse-variations-json"> payload emitted by
+	 * Widget 1.
+	 *
+	 * @param {number|string} productId
+	 * @returns {Array|null}
+	 */
+	function getVariationsForProduct( productId ) {
+		var $form = getCanonicalForm( productId );
+		if ( $form ) {
+			var fromForm = $form.data( 'product_variations' );
+			if ( fromForm ) {
+				return fromForm;
+			}
+		}
+		var $script = $( 'script.wse-variations-json[data-product-id="' + String( productId ) + '"]' );
+		if ( ! $script.length ) {
+			return null;
+		}
+		try {
+			return JSON.parse( $script.text() );
+		} catch ( e ) {
+			return null;
+		}
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// Step 1 — Dedupe swatch UI between Widget 1 and the canonical form
+	// ─────────────────────────────────────────────────────────────────────
+
+	/**
+	 * When both Widget 1 swatches and a canonical-form swatch block exist
+	 * for the same (product, attribute), the canonical form's visible UI is
+	 * hidden — its hidden <select> remains as the source of truth.
+	 *
+	 * Widget 1's swatches stay visible and are wired to update the
+	 * canonical form's selects via Step 4 (cross-widget click sync).
+	 */
+	function dedupeSwatchUI() {
+		$( '.wse-widget-swatches[data-product-id]' ).each( function () {
+			var $widget1   = $( this );
+			var productId  = String( $widget1.attr( 'data-product-id' ) || '' );
+			var $canonical = $( '.wse-canonical-form[data-product_id="' + productId + '"]' );
+
+			if ( ! productId || ! $canonical.length ) {
+				return;
+			}
+
+			// Walk each attribute Widget 1 owns and hide the duplicate
+			// inside the canonical form (keep the hidden select).
+			$widget1.find( '.wse-attr-block[data-attribute]' ).each( function () {
+				var attr = $( this ).attr( 'data-attribute' );
+				if ( ! attr ) {
+					return;
+				}
+				$canonical
+					.find( '.wse-swatch-wrap[data-attribute="' + attr + '"] .wse-fieldset' )
+					.attr( 'aria-hidden', 'true' )
+					.css( 'display', 'none' )
+					.addClass( 'wse-deduped' );
+			} );
+		} );
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// Step 2 — Wrap orphan Widget 1 (no canonical form on page → scenario c)
+	// ─────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Builds a synthetic hidden canonical form for a Widget 1 wrapper that
+	 * has no Widget 2 on the page. The form contains:
+	 *   - hidden <select> per attribute (built from variation data)
+	 *   - data-product_variations attribute populated from the script tag
+	 * so wc-add-to-cart-variation.js can bind and the click-sync (Step 4)
+	 * has selects to update.
+	 */
+	function wrapOrphanWidget1() {
+		$( '.wse-widget-swatches[data-product-id]' ).each( function () {
+			var $widget1  = $( this );
+			var productId = String( $widget1.attr( 'data-product-id' ) || '' );
+			var formId    = String( $widget1.attr( 'data-form-id' ) || ( 'wse-form-' + productId ) );
+
+			if ( ! productId ) {
+				return;
+			}
+
+			// Skip if a canonical form already exists for this product.
+			if ( document.getElementById( formId ) ) {
+				return;
+			}
+
+			var variations = getVariationsForProduct( productId );
+			if ( ! variations || ! variations.length ) {
+				return; // no JSON available — cannot synthesise
+			}
+
+			// Collect every attribute key referenced by any variation.
+			var attrKeys = {};
+			variations.forEach( function ( v ) {
+				if ( v && v.attributes ) {
+					Object.keys( v.attributes ).forEach( function ( k ) {
+						attrKeys[ k ] = true;
+					} );
+				}
+			} );
+
+			// Build the form.
+			var $form = $( '<form/>' )
+				.attr( 'id', formId )
+				.attr( 'class', 'variations_form cart wse-canonical-form wse-canonical-form--synthetic' )
+				.attr( 'method', 'post' )
+				.attr( 'enctype', 'multipart/form-data' )
+				.attr( 'data-product_id', productId )
+				.attr( 'data-product_variations', JSON.stringify( variations ) )
+				.css( { position: 'absolute', left: '-9999px', width: 0, height: 0, overflow: 'hidden' } )
+				.attr( 'aria-hidden', 'true' );
+
+			Object.keys( attrKeys ).forEach( function ( name ) {
+				var $select = $( '<select/>' )
+					.attr( 'name', name )
+					.attr( 'data-attribute_name', name );
+				// One blank option for "Choose"; values are set by click-sync.
+				$( '<option/>' ).val( '' ).text( '' ).appendTo( $select );
+				$form.append( $select );
+			} );
+
+			// Append after Widget 1 so it lives in the same DOM scope.
+			$widget1.after( $form );
+
+			// Re-read from data() now that data-product_variations was set
+			// via attr() — jQuery caches data(), so prime it explicitly.
+			$form.data( 'product_variations', variations );
+		} );
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// Step 3 — One WSE_Swatches per canonical form
+	// ─────────────────────────────────────────────────────────────────────
+
+	/**
+	 * @param {jQuery} $form  The canonical form (real or synthetic).
+	 * @param {jQuery} $scope The DOM scope to listen for swatch clicks in.
+	 *                        For Widget 1 → its outer .wse-widget-swatches.
+	 *                        For canonical-form-only setups → the form itself.
+	 */
+	function WSE_Swatches( $form, $scope ) {
+		this.$form  = $form;
+		this.$scope = $scope || $form;
 		this._origGallery = null;
 		this._init();
 	}
 
 	WSE_Swatches.prototype = {
-
-		// ── Init ─────────────────────────────────────────────────────────
 
 		_init: function () {
 			this._bindSwatchClick();
@@ -50,86 +225,56 @@
 			this._syncInitialSelections();
 		},
 
-		// ── Swatch click ─────────────────────────────────────────────────
+		// ── Swatch click ────────────────────────────────────────────────
 
-		/**
-		 * Handles swatch click.
-		 * Disabled swatches (.disabled) silently absorb the click.
-		 * Clicking an already-selected swatch toggles it off (deselect).
-		 */
 		_bindSwatchClick: function () {
 			var self = this;
 
-			this.$form.on( 'click.wse', '.wse-swatch', function ( e ) {
-				e.preventDefault();
+			this.$scope.off( 'click.wse', '.wse-swatch' )
+				.on( 'click.wse', '.wse-swatch', function ( e ) {
 
+				e.preventDefault();
 				var $swatch   = $( this );
 				var attribute = $swatch.data( 'attribute' );
 				var value     = $swatch.data( 'value' );
 
-				// Silently ignore disabled (OOS) swatches
 				if ( $swatch.hasClass( 'disabled' ) ) {
 					return;
 				}
-
-				// Toggle off if already selected
 				if ( $swatch.hasClass( 'selected' ) ) {
 					self._deselectAttribute( attribute );
 					return;
 				}
-
 				self._selectSwatch( $swatch, attribute, value );
 			} );
 		},
 
-		/**
-		 * Selects a swatch:
-		 *   1. Marks it selected + updates ARIA + roving tabindex
-		 *   2. Syncs the hidden WC <select> (Emran Ahmed's confirmed approach)
-		 *   3. Fires WC's .change() so wc-add-to-cart-variation.js takes over
-		 *   4. Shows the clear link for this attribute
-		 *   5. Fires the developer wse:swatchSelected event
-		 *
-		 * @param {jQuery} $swatch   The clicked swatch element.
-		 * @param {string} attribute Attribute name e.g. 'pa_color'.
-		 * @param {string} value     Term slug / option value e.g. 'red'.
-		 */
 		_selectSwatch: function ( $swatch, attribute, value ) {
-			var self     = this;
-			var $wrap    = this.$form.find( '.wse-swatch-wrap[data-attribute="' + attribute + '"]' );
-			var $select  = this.$form.find( 'select[name="attribute_' + attribute + '"]' );
+			var self      = this;
+			var $wrap     = this.$scope.find( '.wse-swatch-wrap[data-attribute="' + attribute + '"]' );
+			var $select   = this.$form.find( 'select[name="attribute_' + attribute + '"]' );
 			var $siblings = $wrap.find( '.wse-swatch' );
 
-			// Deselect all siblings — remove selected, reset aria-checked + tabindex
 			$siblings
 				.removeClass( 'selected' )
 				.attr( 'aria-checked', 'false' )
 				.attr( 'tabindex', '-1' );
 
-			// Select this swatch
 			$swatch
 				.addClass( 'selected' )
 				.attr( 'aria-checked', 'true' )
 				.attr( 'tabindex', '0' );
 
-			// Gap 2 — Sync the hidden WC <select> and fire .change()
-			// wc-add-to-cart-variation.js listens for this .change() event
-			// and handles all variation matching, price updates, stock checks
 			$select.val( value ).trigger( 'change' );
-
-			// Show the clear link for this attribute wrap
 			$wrap.find( '.wse-reset-link' ).show();
 
-			// Update the visible selected-value label (Widget 1 label row — Phase 10)
-			var $selectedVal = self.$form.find(
+			var $selectedVal = self.$scope.find(
 				'.wse-attr-selected-val[data-attribute="' + attribute + '"]'
 			);
 			if ( $selectedVal.length ) {
-				// Prefer the swatch's title attribute (term label) over raw slug
 				$selectedVal.text( $swatch.attr( 'title' ) || value );
 			}
 
-			// Gap 53 / developer API — fire custom event on document.body
 			$( document.body ).trigger( 'wse:swatchSelected', [ {
 				attribute : attribute,
 				value     : value,
@@ -138,56 +283,46 @@
 			} ] );
 		},
 
-		/**
-		 * Fix (v1.0.3, Bug D): replays the wse:swatchSelected event on init
-		 * for every attribute that already has a non-empty value.
-		 *
-		 * WooCommerce pre-populates a .variations select with the product's
-		 * default attribute (selected="selected" on the matching <option>),
-		 * and wc-add-to-cart-variation.js's own init picks this up for THIS
-		 * form — but no 'change' event fires for that pre-selection, so the
-		 * wse:swatchSelected cross-widget bridge (normally fired only from
-		 * _selectSwatch on click) never runs. Widget 2's hidden selects stay
-		 * empty and its Add to Cart button remains permanently disabled for
-		 * any product with default attributes, even though Widget 1's
-		 * swatches already render with .selected applied.
-		 *
-		 * This brings Widget 2 into sync at load time, mirroring the exact
-		 * event payload _selectSwatch fires on click. No-op for attributes
-		 * with no default (select value is '' — "Choose an option").
-		 */
 		_syncInitialSelections: function () {
 			var self = this;
 
-			this.$form.find( '.wse-swatch-wrap[data-attribute]' ).each( function () {
+			// v1.1.0 (B10) — collect first, fire once at end so
+			// form-field-dependency.js runs updateAvailability ONCE
+			// per init regardless of how many default attributes exist.
+			var pending = [];
+
+			this.$scope.find( '.wse-swatch-wrap[data-attribute]' ).each( function () {
 				var $wrap     = $( this );
 				var attribute = $wrap.data( 'attribute' );
 				var $select   = self.$form.find( 'select[name="attribute_' + attribute + '"]' );
 				var value     = $select.val();
-
 				if ( ! value ) {
-					return; // No default for this attribute.
+					return;
 				}
-
-				var $swatch = $wrap.find( '.wse-swatch[data-value="' + value + '"]' );
-
-				$( document.body ).trigger( 'wse:swatchSelected', [ {
+				pending.push( {
 					attribute : attribute,
 					value     : value,
-					$swatch   : $swatch,
+					$swatch   : $wrap.find( '.wse-swatch[data-value="' + value + '"]' ),
 					$form     : self.$form,
-				} ] );
+				} );
 			} );
+
+			if ( ! pending.length ) {
+				return;
+			}
+
+			// Fire individual events so DOM stays in sync …
+			pending.forEach( function ( payload ) {
+				$( document.body ).trigger( 'wse:swatchSelected', [ payload ] );
+			} );
+
+			// … then a single batched event for availability recompute.
+			$( document.body ).trigger( 'wse:bulkSyncComplete', [ { $form: self.$form } ] );
 		},
 
-		/**
-		 * Deselects all swatches for one attribute and clears the hidden select.
-		 *
-		 * @param {string} attribute Attribute name.
-		 */
 		_deselectAttribute: function ( attribute ) {
 			var self    = this;
-			var $wrap   = this.$form.find( '.wse-swatch-wrap[data-attribute="' + attribute + '"]' );
+			var $wrap   = this.$scope.find( '.wse-swatch-wrap[data-attribute="' + attribute + '"]' );
 			var $select = this.$form.find( 'select[name="attribute_' + attribute + '"]' );
 
 			$wrap.find( '.wse-swatch' )
@@ -195,14 +330,12 @@
 				.attr( 'aria-checked', 'false' )
 				.attr( 'tabindex', '-1' );
 
-			// Make first available swatch tabbable (roving tabindex)
 			$wrap.find( '.wse-swatch:not(.disabled)' ).first().attr( 'tabindex', '0' );
 
 			$select.val( '' ).trigger( 'change' );
 			$wrap.find( '.wse-reset-link' ).hide();
 
-			// Clear the visible selected-value label (Widget 1 label row)
-			self.$form.find(
+			self.$scope.find(
 				'.wse-attr-selected-val[data-attribute="' + attribute + '"]'
 			).text( '' );
 
@@ -212,45 +345,35 @@
 			} ] );
 		},
 
-		// ── Keyboard navigation — WCAG 2.2 (Gap 14) ─────────────────────
+		// ── Keyboard navigation (WCAG 2.2) ──────────────────────────────
 
-		/**
-		 * Roving tabindex keyboard navigation within a swatch group.
-		 *
-		 * Arrow keys move focus between available swatches in the same group.
-		 * Enter / Space select the focused swatch (matching native radio behavior).
-		 * Keys wrap around (last → first, first → last).
-		 */
 		_bindKeyboardNav: function () {
 			var self = this;
 
-			this.$form.on( 'keydown.wse', '.wse-swatch', function ( e ) {
+			this.$scope.off( 'keydown.wse', '.wse-swatch' )
+				.on( 'keydown.wse', '.wse-swatch', function ( e ) {
+
 				var $current   = $( this );
 				var attribute  = $current.data( 'attribute' );
-				var $wrap      = self.$form.find( '.wse-swatch-wrap[data-attribute="' + attribute + '"]' );
-				// Only navigate between available (non-disabled) swatches
+				var $wrap      = self.$scope.find( '.wse-swatch-wrap[data-attribute="' + attribute + '"]' );
 				var $available = $wrap.find( '.wse-swatch:not(.disabled)' );
 				var idx        = $available.index( $current );
 				var last       = $available.length - 1;
 
 				switch ( e.key ) {
-
 					case 'Enter':
 					case ' ':
 						e.preventDefault();
 						$current.trigger( 'click.wse' );
 						break;
-
 					case 'ArrowRight':
 					case 'ArrowDown':
 						e.preventDefault();
-						// Update tabindex (roving tabindex pattern)
 						$available.attr( 'tabindex', '-1' );
 						$available.eq( idx < last ? idx + 1 : 0 )
 						         .attr( 'tabindex', '0' )
 						         .focus();
 						break;
-
 					case 'ArrowLeft':
 					case 'ArrowUp':
 						e.preventDefault();
@@ -263,113 +386,63 @@
 			} );
 		},
 
-		// ── Reset / clear (Gap 40) ────────────────────────────────────────
+		// ── Reset / clear ───────────────────────────────────────────────
 
-		/**
-		 * Wires reset_data (fired by WC when .reset_variations is clicked)
-		 * and our styled .wse-reset-link to the WC mechanism.
-		 */
 		_bindResetData: function () {
 			var self = this;
 
-			// WC fires this on $form when .reset_variations is clicked
-			this.$form.on( 'reset_data.wse', function () {
-				self._onResetData();
-			} );
+			this.$form.off( 'reset_data.wse' )
+				.on( 'reset_data.wse', function () { self._onResetData(); } );
 
-			/**
-			 * Fix (v1.0.3, Bug B): .reset_variations is part of WC core's
-			 * default <table class="variations"> template, which this
-			 * plugin never renders — so .reset_variations never exists and
-			 * .trigger('click') on it was a complete no-op, leaving Clear
-			 * permanently broken.
-			 *
-			 * Instead, directly reset every variation-bound <select> in this
-			 * form (both swatch-type hidden selects and, since v1.0.3,
-			 * passthrough native selects — both now carry .variations) and
-			 * trigger 'change' so wc-add-to-cart-variation.js recalculates
-			 * and disables Add to Cart. _onResetData() then handles our own
-			 * swatch UI (deselect, hide clear links, restore gallery) and
-			 * fires wse:swatchReset so Widget 2 clears in sync.
-			 */
-			this.$form.on( 'click.wse', '.wse-reset-link', function ( e ) {
-				e.preventDefault();
-				self.$form.find( '.variations select' ).val( '' ).trigger( 'change' );
-				self._onResetData();
-			} );
+			this.$scope.off( 'click.wse', '.wse-reset-link' )
+				.on( 'click.wse', '.wse-reset-link', function ( e ) {
+					e.preventDefault();
+					self.$form.find( '.variations select' ).val( '' ).trigger( 'change' );
+					self._onResetData();
+				} );
 		},
 
-		/**
-		 * Handles the WC reset_data event:
-		 * deselects all swatches, hides all clear links, restores gallery.
-		 */
 		_onResetData: function () {
-			// Deselect all swatches and reset ARIA states
-			this.$form.find( '.wse-swatch' )
+			this.$scope.find( '.wse-swatch' )
 				.removeClass( 'selected' )
 				.attr( 'aria-checked', 'false' )
 				.attr( 'tabindex', '-1' );
 
-			// Make first available swatch in each group tabbable
-			var self = this;
-			this.$form.find( '.wse-swatch-wrap' ).each( function () {
-				$( this ).find( '.wse-swatch:not(.disabled)' ).first()
-				         .attr( 'tabindex', '0' );
+			this.$scope.find( '.wse-swatch-wrap' ).each( function () {
+				$( this ).find( '.wse-swatch:not(.disabled)' ).first().attr( 'tabindex', '0' );
 			} );
 
-			// Hide all clear links
-			this.$form.find( '.wse-reset-link' ).hide();
-
-			// Clear all visible selected-value labels (Widget 1 label rows)
-			this.$form.find( '.wse-attr-selected-val' ).text( '' );
-
-			// Restore original gallery image
+			this.$scope.find( '.wse-reset-link' ).hide();
+			this.$scope.find( '.wse-attr-selected-val' ).text( '' );
 			this._restoreGallery();
 
-			// Developer API event
-			$( document.body ).trigger( 'wse:swatchReset', [ { $form: self.$form } ] );
+			$( document.body ).trigger( 'wse:swatchReset', [ { $form: this.$form } ] );
 		},
 
-		// ── Variation events + gallery (Gap 9, Gap 32, Gap 56) ───────────
+		// ── Variation events + gallery (B12 fix) ────────────────────────
 
 		_bindVariationEvents: function () {
 			var self = this;
 
-			// fired by WC when a full valid variation is found
-			this.$form.on( 'found_variation.wse', function ( e, variation ) {
-				self._onFoundVariation( variation );
-			} );
+			this.$form.off( 'found_variation.wse' )
+				.on( 'found_variation.wse', function ( e, variation ) {
+					self._onFoundVariation( variation );
+				} );
 
-			// fired when the current selection no longer matches any variation
-			this.$form.on( 'hide_variation.wse', function () {
-				self._restoreGallery();
-			} );
+			this.$form.off( 'hide_variation.wse' )
+				.on( 'hide_variation.wse', function () { self._restoreGallery(); } );
 		},
 
-		/**
-		 * Handles found_variation:
-		 *   - Swaps the main product gallery image (Gap 9)
-		 *   - Uses the safe src/srcset swap approach to avoid breaking
-		 *     Flexslider or PhotoSwipe (Gap 32)
-		 *   - Fires wc_update_variation_image for theme sliders (Gap 56)
-		 *
-		 * @param {Object} variation WooCommerce variation data object.
-		 */
 		_onFoundVariation: function ( variation ) {
-			if (
-				! variation.image ||
-				! variation.image.src ||
-				variation.image.src.length === 0
-			) {
+			if ( ! variation || ! variation.image || ! variation.image.src ) {
 				return;
 			}
 
-			var $img  = this._getGalleryImage();
+			var $img = this._getGalleryImage();
 			if ( ! $img.length ) {
 				return;
 			}
 
-			// Store original once (only before the very first swap)
 			if ( ! this._origGallery ) {
 				var $link = $img.closest( 'a' );
 				this._origGallery = {
@@ -379,30 +452,21 @@
 				};
 			}
 
-			// Gap 32 — safe swap: update src/srcset on the existing <img>
-			// DO NOT remove/replace the img or reinitialise the gallery slider
 			$img.attr( 'src',    variation.image.src );
 			$img.attr( 'srcset', variation.image.srcset || '' );
 
-			// Update lightbox anchor href
 			var $anchor = $img.closest( 'a' );
 			if ( $anchor.length ) {
 				$anchor.attr( 'href', variation.image.full_src || variation.image.src );
 			}
 
-			// Gap 56 — Notify theme sliders (Swiper, Flickity, Splide, etc.)
-			// so they can update their own internal state if needed
 			$( document.body ).trigger( 'wc_update_variation_image', [ variation ] );
 		},
 
-		/**
-		 * Restores the original gallery image when a variation is deselected.
-		 */
 		_restoreGallery: function () {
 			if ( ! this._origGallery ) {
 				return;
 			}
-
 			var $img    = this._getGalleryImage();
 			var $anchor = $img.closest( 'a' );
 
@@ -415,70 +479,113 @@
 		},
 
 		/**
-		 * Returns the first product gallery image jQuery object.
-		 * Targets WooCommerce's standard gallery markup.
+		 * v1.1.0 (B12) — Gallery selector chain.
 		 *
-		 * @return {jQuery}
+		 * Themes with carousel/slider galleries (Astra Pro, Flatsome, Hello+
+		 * builders) make a non-first-child slide visible. Try in order:
+		 *   1. WC FlexSlider's active slide image
+		 *   2. Any gallery image NOT marked as a clone duplicate
+		 *   3. First-child fallback (matches v1.0.5 behaviour)
 		 */
 		_getGalleryImage: function () {
-			// Standard WooCommerce gallery structure since v3.x
+			var $active = $( '.woocommerce-product-gallery__image.flex-active-slide img' );
+			if ( $active.length ) {
+				return $active.first();
+			}
+			var $visible = $( '.woocommerce-product-gallery__image:not(.clone) img' );
+			if ( $visible.length ) {
+				return $visible.first();
+			}
 			return $( '.woocommerce-product-gallery__image:first-child img' );
 		},
 
-		// ── Reset link visibility ─────────────────────────────────────────
+		// ── Reset link visibility ───────────────────────────────────────
 
-		/**
-		 * Updates the visible/hidden state of all .wse-reset-link elements
-		 * based on whether each attribute has a selected swatch.
-		 * Called after init so saved/default selections show the link.
-		 */
 		_updateAllResetLinks: function () {
-			this.$form.find( '.wse-swatch-wrap' ).each( function () {
-				var $wrap      = $( this );
+			this.$scope.find( '.wse-swatch-wrap' ).each( function () {
+				var $wrap       = $( this );
 				var hasSelected = $wrap.find( '.wse-swatch.selected' ).length > 0;
 				$wrap.find( '.wse-reset-link' ).toggle( hasSelected );
 			} );
 		},
-
-	}; // end WSE_Swatches.prototype
+	};
 
 	// ─────────────────────────────────────────────────────────────────────
-	// Init — create WSE_Swatches instance per form
-	// Gap 35 — each form gets its own isolated instance
+	// Step 4 — Cross-widget click sync (Widget 1 click → canonical select)
 	// ─────────────────────────────────────────────────────────────────────
 
-	function initAll() {
+	/**
+	 * When a swatch is clicked inside a .wse-widget-swatches (Widget 1)
+	 * wrapper that has a canonical form somewhere on the page, this handler
+	 * mirrors the value into the canonical form's hidden select. Idempotent
+	 * — safe to call repeatedly via wse:reinit.
+	 */
+	function bindCrossWidgetSync() {
+		$( document.body )
+			.off( 'click.wse-cross', '.wse-widget-swatches .wse-swatch' )
+			.on( 'click.wse-cross', '.wse-widget-swatches .wse-swatch', function () {
+				var $swatch    = $( this );
+				if ( $swatch.hasClass( 'disabled' ) ) {
+					return;
+				}
+				var $widget1   = $swatch.closest( '.wse-widget-swatches' );
+				var formId     = String( $widget1.attr( 'data-form-id' ) || '' );
+				var $form      = formId ? $( '#' + formId ) : $();
+				if ( ! $form.length ) {
+					return; // canonical form will be wired by Step 3 alone
+				}
+				var attribute  = $swatch.data( 'attribute' );
+				var value      = String( $swatch.data( 'value' ) || '' );
+				$form
+					.find( 'select[name="attribute_' + attribute + '"]' )
+					.val( value )
+					.trigger( 'change' );
+			} );
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// Step 5 — Init pipeline
+	// ─────────────────────────────────────────────────────────────────────
+
+	function initPipeline() {
+		// 1. Dedup before WC binds — wc_variation_form runs after .ready
+		dedupeSwatchUI();
+
+		// 2. Wrap orphans (Widget 1 alone)
+		wrapOrphanWidget1();
+
+		// 3. Wire WSE_Swatches per canonical form
 		$( 'form.variations_form' ).each( function () {
 			var $form = $( this );
-			// Prevent double-initialisation
 			if ( $form.data( 'wse-swatches' ) ) {
-				return;
+				return; // already initialised
 			}
-			$form.data( 'wse-swatches', new WSE_Swatches( $form ) );
+			// Scope: prefer Widget 1 wrapper for this product if present,
+			// else default to the form itself.
+			var productId = String( $form.attr( 'data-product_id' ) || '' );
+			var $widget1  = productId
+				? $( '.wse-widget-swatches[data-product-id="' + productId + '"]' )
+				: $();
+			var $scope    = $widget1.length ? $widget1 : $form;
+
+			$form.data( 'wse-swatches', new WSE_Swatches( $form, $scope ) );
 		} );
+
+		// 4. Cross-widget click sync (only effective when Widget 1 + canonical
+		//    are wired against different scopes)
+		bindCrossWidgetSync();
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
 	// Bootstrap
 	// ─────────────────────────────────────────────────────────────────────
 
-	$( document ).ready( initAll );
+	$( document ).ready( initPipeline );
 
-	/**
-	 * Gap 8 — AJAX reinit.
-	 *
-	 * All triggers that may add new .variations_form elements to the DOM:
-	 *   wc_variation_form           — WC fires this after AJAX variation load
-	 *   woocommerce_variation_has_changed — WC variation selection change
-	 *   added_to_cart               — WC after cart AJAX
-	 *   post-load                   — Jetpack infinite scroll
-	 *   elementor/popup/show        — Elementor Pro popup opens
-	 *   wse:reinit                  — Manual reinit (for custom integrations)
-	 */
 	$( document.body ).on(
 		'wc_variation_form woocommerce_variation_has_changed ' +
 		'post-load elementor/popup/show wse:reinit',
-		initAll
+		initPipeline
 	);
 
 } )( jQuery, window, document );
