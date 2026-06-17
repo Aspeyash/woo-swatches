@@ -25,6 +25,9 @@ class WSE_Rest_Extension {
 
 	public function __construct() {
 		add_action( 'rest_api_init', array( $this, 'register_fields' ) );
+		// v1.1.0 (B21) — extend the WC Store API too so headless storefronts
+		// and the modern Cart & Checkout blocks see swatch metadata.
+		add_action( 'woocommerce_init', array( $this, 'register_store_api_data' ) );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
@@ -155,6 +158,69 @@ class WSE_Rest_Extension {
 		}
 
 		return $result;
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// v1.1.0 (B21) — Store API extension
+	// ─────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Registers the same `zymarg_swatches` field on the public WC Store API
+	 * (/wc/store/v1/products) so headless storefronts and the modern Cart
+	 * & Checkout blocks can read swatch metadata without falling back to
+	 * the authenticated /wc/v3/* routes.
+	 *
+	 * Uses woocommerce_store_api_register_endpoint_data() which is the
+	 * official extension API for the Store API.
+	 */
+	public function register_store_api_data(): void {
+
+		if ( ! function_exists( 'woocommerce_store_api_register_endpoint_data' ) ) {
+			return;
+		}
+
+		woocommerce_store_api_register_endpoint_data(
+			array(
+				'endpoint'        => 'product',
+				'namespace'       => 'zymarg/swatches',
+				'data_callback'   => array( $this, 'store_api_data_callback' ),
+				'schema_callback' => array( $this, 'store_api_schema_callback' ),
+				'schema_type'     => ARRAY_A,
+			)
+		);
+	}
+
+	/**
+	 * Returns swatch data for a Store API product response.
+	 *
+	 * @param  mixed $product Product object passed by the Store API extension API.
+	 * @return array
+	 */
+	public function store_api_data_callback( $product ): array {
+
+		if ( ! $product instanceof WC_Product_Variable ) {
+			return array();
+		}
+
+		return $this->get_product_swatches(
+			array( 'id' => $product->get_id() ),
+			'zymarg_swatches',
+			new WP_REST_Request()
+		);
+	}
+
+	/**
+	 * Schema definition for the Store API zymarg/swatches namespace.
+	 *
+	 * @return array
+	 */
+	public function store_api_schema_callback(): array {
+		return array(
+			'description' => esc_html__( 'ZYMARG Variation Swatches data.', 'woo-swatches-elementor' ),
+			'type'        => array( 'object', 'array' ),
+			'context'     => array( 'view', 'edit' ),
+			'readonly'    => true,
+		);
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

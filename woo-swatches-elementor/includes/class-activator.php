@@ -19,26 +19,25 @@ class WSE_Activator {
 	/**
 	 * Runs on plugin activation.
 	 *
-	 * Checks PHP and WooCommerce version requirements, sets default options,
-	 * and flags the thumbnail regeneration notice.
+	 * v1.1.0 (B14) — gate hardening:
+	 *   • PHP version check removed — the plugin header `Requires PHP: 8.1`
+	 *     already prevents activation on lower PHP since WP 5.1+.
+	 *   • WC presence check uses class_exists('WooCommerce') as the
+	 *     authoritative gate (replaces the unreliable defined('WC_VERSION')
+	 *     check that silently passed during multi-plugin bulk activation).
+	 *   • If WC is absent at activation time, the plugin still activates
+	 *     and the missing-WC admin notice (in woo-swatches-elementor.php)
+	 *     handles UX — matches Emran Ahmed's pattern.
 	 */
 	public static function activate(): void {
 
-		// ── PHP version gate ──────────────────────────────────────────────
-		if ( version_compare( PHP_VERSION, '8.1', '<' ) ) {
-			deactivate_plugins( plugin_basename( WSE_FILE ) );
-			wp_die(
-				esc_html__(
-					'WooSwatches for Elementor requires PHP 8.1 or higher. Please upgrade your PHP version.',
-					'woo-swatches-elementor'
-				),
-				esc_html__( 'Plugin Activation Error', 'woo-swatches-elementor' ),
-				array( 'back_link' => true )
-			);
-		}
-
 		// ── WooCommerce version gate ──────────────────────────────────────
-		if ( defined( 'WC_VERSION' ) && version_compare( WC_VERSION, '8.0', '<' ) ) {
+		// Only enforce when WC is actually loaded; on bulk activation WC
+		// may not be loaded yet — the plugins_loaded gate in
+		// woo_swatches_elementor() will handle the runtime check.
+		if ( class_exists( 'WooCommerce' )
+			&& defined( 'WC_VERSION' )
+			&& version_compare( WC_VERSION, '8.0', '<' ) ) {
 			deactivate_plugins( plugin_basename( WSE_FILE ) );
 			wp_die(
 				esc_html__(
@@ -86,6 +85,13 @@ class WSE_Activator {
 
 			// Whether to wipe all plugin data on uninstall
 			'wse_delete_on_uninstall' => 'no',
+
+			// v1.1.0 (Feature A) — Show "View Cart" link in success message.
+			// When disabled, the wc_add_to_cart_message_html filter strips the
+			// <a class="wc-forward"> from add-to-cart success notices and the
+			// View Cart button from cart fragments. Default 'yes' preserves
+			// v1.0.5 behaviour.
+			'wse_show_view_cart_link' => 'yes',
 		);
 
 		foreach ( $defaults as $key => $value ) {
@@ -151,6 +157,8 @@ class WSE_Activator {
 			'wse_archive_click',
 			'wse_cache_ttl',
 			'wse_delete_on_uninstall',
+			'wse_show_view_cart_link', // v1.1.0
+			'wse_template_override_acks', // v1.1.0 — hard-cut migration notice acks
 			'wse_version',
 			'wse_regen_notice_dismissed',
 		);

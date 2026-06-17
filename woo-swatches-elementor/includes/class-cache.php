@@ -202,49 +202,71 @@ class WSE_Cache {
 	/**
 	 * Deletes ALL plugin swatch transients from the database.
 	 *
-	 * Queries for all option_names matching our prefix pattern,
-	 * then deletes each via delete_transient() so external object
-	 * caches (Redis/Memcached) are invalidated correctly too.
+	 * v1.1.0 (B17) — chunked batching.
+	 *   The previous version iterated delete_transient() over every match
+	 *   in a single loop. On stores with thousands of cached products this
+	 *   could exceed PHP's max_execution_time. v1.1.0 caps each invocation
+	 *   at WSE_FLUSH_BATCH_SIZE deletions and returns the number remaining
+	 *   so the admin AJAX flush can iterate via a follow-up call.
 	 *
-	 * Falls back to a direct bulk DELETE for large sites where
-	 * iterating thousands of delete_transient() calls would time out.
-	 *
-	 * @param bool $force_sql  When true, uses a single SQL DELETE instead
-	 *                         of the API loop. Used during plugin uninstall.
+	 * @param  bool $force_sql   When true, uses a single SQL DELETE instead
+	 *                           of the API loop. Used by uninstall.
+	 * @param  int  $batch_size  Max deletions per call (0 = no cap).
+	 * @return int               Number of transients still pending deletion.
 	 */
-	public static function flush_all( bool $force_sql = false ): void {
+	public static function flush_all( bool $force_sql = false, int $batch_size = 0 ): int {
 
 		global $wpdb;
 
 		if ( $force_sql ) {
-			// Fast bulk delete — used by the uninstall routine
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query(
 				"DELETE FROM {$wpdb->options}
 				 WHERE option_name LIKE '_transient_wse_swatches_%'
 				    OR option_name LIKE '_transient_timeout_wse_swatches_%'"
 			);
-			return;
+			return 0;
 		}
 
-		// API loop — handles external object cache correctly
+		$cap = $batch_size > 0 ? (int) $batch_size : 0;
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$transient_keys = $wpdb->get_col(
 			$wpdb->prepare(
 				"SELECT REPLACE(option_name, '_transient_', '')
 				 FROM {$wpdb->options}
-				 WHERE option_name LIKE %s",
+				 WHERE option_name LIKE %s
+				 ORDER BY option_id ASC"
+				 . ( $cap > 0 ? ' LIMIT ' . ( $cap + 1 ) : '' ),
 				$wpdb->esc_like( '_transient_' . self::PREFIX ) . '%'
 			)
 		);
 
 		if ( empty( $transient_keys ) ) {
-			return;
+			return 0;
+		}
+
+		// If we asked for a cap and got more, the extra row tells us at
+		// least one more page exists.
+		$has_more = ( $cap > 0 && count( $transient_keys ) > $cap );
+		if ( $has_more ) {
+			$transient_keys = array_slice( $transient_keys, 0, $cap );
 		}
 
 		foreach ( $transient_keys as $key ) {
 			delete_transient( $key );
 		}
+
+		// Re-count what's left so the caller knows whether to recurse.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*)
+				 FROM {$wpdb->options}
+				 WHERE option_name LIKE %s",
+				$wpdb->esc_like( '_transient_' . self::PREFIX ) . '%'
+			)
+		);
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
@@ -337,6 +359,10 @@ class WSE_Cache {
 	 * AJAX handler: flushes all swatch transients.
 	 * Used by the "Clear swatch cache" button in WooSwatches → Settings.
 	 *
+	 * v1.1.0 (B17) — chunked: handles up to WSE_FLUSH_BATCH_SIZE entries
+	 * per request and returns the remaining count so the admin script
+	 * can issue follow-up requests when more are pending.
+	 *
 	 * Gap 13 — Nonce verification + capability check.
 	 */
 	public function ajax_flush_all(): void {
@@ -351,16 +377,21 @@ class WSE_Cache {
 			return;
 		}
 
-		$count = self::get_cache_count();
-		self::flush_all();
+		$total_before = self::get_cache_count();
+		$remaining    = self::flush_all( false, 200 ); // 200 transients per call
+
+		$cleared = max( 0, $total_before - $remaining );
 
 		wp_send_json_success(
 			array(
-				'message' => sprintf(
+				'message'   => sprintf(
 					/* translators: %d: number of cache entries cleared */
 					esc_html__( 'Cleared %d cached swatch entries.', 'woo-swatches-elementor' ),
-					$count
+					$cleared
 				),
+				'cleared'   => $cleared,
+				'remaining' => $remaining,
+				'has_more'  => $remaining > 0,
 			)
 		);
 	}

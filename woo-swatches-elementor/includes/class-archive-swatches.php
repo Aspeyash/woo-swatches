@@ -1,28 +1,31 @@
 <?php
 /**
- * Shop / archive loop swatch display.
+ * Shop / archive loop swatch display (v1.1.0).
  *
  * Renders variation swatches below the product title on all standard
  * WooCommerce shop, category, tag, and custom taxonomy archive pages.
  *
- * Controlled by the admin toggle: WooSwatches → Settings → Archive.
- * When OFF, this class registers its hooks but returns early — so
- * disabling and re-enabling never breaks anything.
- *
- * Architecture notes:
- *   • woocommerce_after_shop_loop_item_title fires for every product
- *     card in the loop. We check is_type('variable') before rendering.
- *   • We call wc_dropdown_variation_attribute_options() exactly
- *     as a product page would. WSE_Swatch_Renderer::render() intercepts
- *     the filter and replaces the <select> with swatch HTML — exactly
- *     the same code path used on single product pages.
- *   • The hidden <select> is kept in the DOM so that archive-specific
- *     JS (added as inline script) can read current selections.
- *
- * Gap 43 — Archive/shop loop swatches with on/off toggle
- * Gap 45 — Single attribute selector: show only the most relevant attr
- * Gap 47 — AJAX add-to-cart for variable products on archive pages
- * Gap 24 — Cart fragment refresh after successful AJAX add
+ * v1.1.0 changes:
+ *   • B1  — Fixed the "Enable on Archive Pages" precedence bug. The check
+ *           `! 'yes' === get_option(...)` always evaluated to false; now
+ *           uses `'yes' !== get_option(...)` so the toggle actually works.
+ *   • B2  — Added render_for_product() public method so WC Blocks
+ *           integration (class-blocks-compat.php) actually renders.
+ *   • B6  — Multi-attribute variable products on archive pages now
+ *           gracefully fall back from "AJAX Add to Cart" to "Go to product
+ *           page" mode so shoppers aren't left clicking a button that
+ *           returns "Please select all options".
+ *   • B7  — wse_archive_max is enforced. Swatches over the limit collapse
+ *           into a "+N more" link that navigates to the product page.
+ *   • B13 — Hook is registered conditionally so the action callback no
+ *           longer fires on every shop loop item when archive swatches
+ *           are disabled or the page isn't a WC archive.
+ *   • B19 — Archive AJAX add-to-cart only binds when the click behaviour
+ *           is set to ajax_add_to_cart, eliminating dead-code event
+ *           listeners on link-mode shops.
+ *   • B23 — AJAX endpoint moved off admin-ajax.php to wc-ajax (the wc-ajax
+ *           endpoint is already excluded from page caching by every major
+ *           cache plugin including LiteSpeed).
  *
  * @package WooSwatchesElementor
  */
@@ -31,14 +34,7 @@ defined( 'ABSPATH' ) || exit;
 
 class WSE_Archive_Swatches {
 
-	// ─────────────────────────────────────────────────────────────────────
-	// Gap 34 — PHP 8.2+ explicit property declarations
-	// ─────────────────────────────────────────────────────────────────────
 	protected static ?WSE_Archive_Swatches $instance = null;
-
-	// ─────────────────────────────────────────────────────────────────────
-	// Singleton
-	// ─────────────────────────────────────────────────────────────────────
 
 	public static function instance(): static {
 		if ( is_null( static::$instance ) ) {
@@ -59,23 +55,29 @@ class WSE_Archive_Swatches {
 
 	private function hooks(): void {
 
-		// Render swatches in the shop loop (always register, guard inside callback)
-		add_action(
-			'woocommerce_after_shop_loop_item_title',
-			array( $this, 'render_archive_swatches' ),
-			15
-		);
+		// B13 — Conditional hook registration.
+		// Only attach the loop callback when the toggle is on. Saves the
+		// callback firing for every product card on every shop request
+		// when the feature is disabled.
+		if ( self::is_enabled() ) {
+			add_action(
+				'woocommerce_after_shop_loop_item_title',
+				array( $this, 'render_archive_swatches' ),
+				15
+			);
+		}
 
-		// Add inline JS on archive pages (after wse-swatches is enqueued)
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_archive_scripts' ), 20 );
 
-		// Gap 47 — AJAX add-to-cart handler for variable products in loop
-		add_action( 'wp_ajax_wse_archive_add_to_cart',        array( $this, 'ajax_add_to_cart' ) );
-		add_action( 'wp_ajax_nopriv_wse_archive_add_to_cart', array( $this, 'ajax_add_to_cart' ) );
+		// B23 — AJAX add-to-cart via wc-ajax (cache-friendly).
+		// wc-ajax registers the action on woocommerce_ajax_{action} (logged-in)
+		// and woocommerce_ajax_{action}_nopriv (guests).
+		add_action( 'wc_ajax_wse_archive_add_to_cart',        array( $this, 'ajax_add_to_cart' ) );
+		add_action( 'wc_ajax_nopriv_wse_archive_add_to_cart', array( $this, 'ajax_add_to_cart' ) );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
-	// Archive swatch renderer
+	// Archive swatch renderer (loop hook callback)
 	// ─────────────────────────────────────────────────────────────────────
 
 	/**
@@ -84,8 +86,8 @@ class WSE_Archive_Swatches {
 	 */
 	public function render_archive_swatches(): void {
 
-		// Gap 43 — on/off toggle check
-		if ( ! 'yes' === get_option( 'wse_archive_swatches', 'yes' ) ) {
+		// B1 — Precedence-correct toggle check.
+		if ( 'yes' !== get_option( 'wse_archive_swatches', 'yes' ) ) {
 			return;
 		}
 
@@ -95,7 +97,25 @@ class WSE_Archive_Swatches {
 			return;
 		}
 
-		// Only render for variable products (swatches need variations)
+		$this->render_for_product( $product );
+	}
+
+	/**
+	 * v1.1.0 (B2) — Public render method for programmatic invocation.
+	 *
+	 * Used by the WC Blocks integration (WSE_Blocks_Compat) to render
+	 * swatches inside All Products / Product Collection blocks. Mirrors
+	 * the loop callback's logic but takes the product as a parameter.
+	 *
+	 * @param \WC_Product $product Variable product to render swatches for.
+	 */
+	public function render_for_product( \WC_Product $product ): void {
+
+		// Same toggle gate so blocks honour it too.
+		if ( 'yes' !== get_option( 'wse_archive_swatches', 'yes' ) ) {
+			return;
+		}
+
 		if ( ! $product->is_type( 'variable' ) ) {
 			return;
 		}
@@ -105,13 +125,8 @@ class WSE_Archive_Swatches {
 			return;
 		}
 
-		// ── Gap 45 — Attribute selection ──────────────────────────────────
-		// Determine which attribute(s) to render in the archive loop.
-		// Default: the first swatch-type attribute, or the first attribute if
-		// none are swatch types.
-		// Admin option wse_archive_attribute ('') means auto-detect first swatch.
+		// ── Attribute selection ───────────────────────────────────────────
 		$attrs_to_render = $this->get_archive_attributes( $attributes, $product );
-
 		if ( empty( $attrs_to_render ) ) {
 			return;
 		}
@@ -120,6 +135,14 @@ class WSE_Archive_Swatches {
 		$product_url    = get_permalink( $product_id );
 		$click_behavior = sanitize_key( get_option( 'wse_archive_click', 'link' ) );
 		$max_swatches   = absint( get_option( 'wse_archive_max', 5 ) );
+
+		// B6 — Multi-attribute variable products cannot be added to cart
+		// from the archive with a single attribute click; fall back to link
+		// mode so shoppers aren't left clicking a button that returns
+		// "Please select all options".
+		if ( 'ajax_add_to_cart' === $click_behavior && count( $attributes ) > 1 ) {
+			$click_behavior = 'link';
+		}
 
 		// ── Wrapper div ────────────────────────────────────────────────────
 		printf(
@@ -130,21 +153,36 @@ class WSE_Archive_Swatches {
 			esc_attr( (string) $max_swatches )
 		);
 
-		// ── Render swatches per attribute ─────────────────────────────────
+		// ── Render swatches per attribute (B7 — apply max + overflow) ────
 		foreach ( $attrs_to_render as $attribute_name => $options ) {
 
-			// wc_dropdown_variation_attribute_options() calls the
-			// woocommerce_dropdown_variation_attribute_options_html filter.
-			// WSE_Swatch_Renderer::render() intercepts it and outputs swatches.
+			$total       = count( $options );
+			$has_overflow = $max_swatches > 0 && $total > $max_swatches;
+			$visible_opts = $has_overflow ? array_slice( $options, 0, $max_swatches ) : $options;
+
 			wc_dropdown_variation_attribute_options(
 				array(
-					'options'          => $options,
+					'options'          => $visible_opts,
 					'attribute'        => $attribute_name,
 					'product'          => $product,
 					'selected'         => '',
-					'show_option_none' => false, // no "Choose an option" in archive
+					'show_option_none' => false,
 				)
 			);
+
+			if ( $has_overflow ) {
+				$overflow_count = $total - count( $visible_opts );
+				printf(
+					'<a href="%1$s" class="wse-archive-overflow" aria-label="%3$s" rel="nofollow">+%2$d</a>',
+					esc_url( $product_url ),
+					(int) $overflow_count,
+					esc_attr( sprintf(
+						/* translators: %d: number of additional swatches not shown */
+						_n( '%d more option — view product', '%d more options — view product', $overflow_count, 'woo-swatches-elementor' ),
+						$overflow_count
+					) )
+				);
+			}
 		}
 
 		// ── AJAX mode: add to cart button (hidden until swatch selected) ──
@@ -160,36 +198,20 @@ class WSE_Archive_Swatches {
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
-	// Gap 45 — Attribute selection logic
+	// Attribute selection logic (Gap 45)
 	// ─────────────────────────────────────────────────────────────────────
 
-	/**
-	 * Determines which attributes to render in the archive loop.
-	 *
-	 * Priority:
-	 *   1. Admin-configured specific attribute (wse_archive_attribute option)
-	 *   2. First image-type attribute (most visually impactful)
-	 *   3. First color-type attribute
-	 *   4. First swatch-type attribute of any kind
-	 *   5. First attribute regardless of type
-	 *
-	 * @param  array<string, array<string>> $attributes All product variation attributes.
-	 * @param  \WC_Product                 $product    The variable product.
-	 * @return array<string, array<string>>             Filtered attributes to render.
-	 */
 	private function get_archive_attributes(
 		array $attributes,
 		\WC_Product $product
 	): array {
 
-		// Admin setting: specific attribute name to always show ('pa_color', etc.)
 		$configured = sanitize_key( (string) get_option( 'wse_archive_attribute', '' ) );
 
 		if ( $configured && isset( $attributes[ $configured ] ) ) {
 			return array( $configured => $attributes[ $configured ] );
 		}
 
-		// Auto-detect: prefer image > color > any swatch > any attribute
 		$priority_order = array( 'image', 'color', 'label', 'button' );
 
 		foreach ( $priority_order as $preferred_type ) {
@@ -201,7 +223,6 @@ class WSE_Archive_Swatches {
 			}
 		}
 
-		// Fallback: return the very first attribute
 		$first_key = array_key_first( $attributes );
 		return array( $first_key => $attributes[ $first_key ] );
 	}
@@ -210,49 +231,48 @@ class WSE_Archive_Swatches {
 	// Archive scripts (inline JS appended to wse-swatches)
 	// ─────────────────────────────────────────────────────────────────────
 
-	/**
-	 * Appends archive-specific click handling as an inline script on
-	 * wp_enqueue_scripts at priority 20 (after wse-swatches is enqueued).
-	 *
-	 * Using wp_add_inline_script keeps the logic close to its PHP
-	 * without requiring an extra HTTP request.
-	 */
 	public function enqueue_archive_scripts(): void {
 
-		// Only on WC archive pages
 		if ( ! is_shop() && ! is_product_category()
 			&& ! is_product_tag() && ! is_product_taxonomy() ) {
 			return;
 		}
 
-		// Only if wse-swatches was actually enqueued (Gap 19 check passed)
 		if ( ! wp_script_is( 'wse-swatches', 'enqueued' ) ) {
 			return;
 		}
 
+		// B19 — pass click behaviour to JS so it can skip dead-code paths.
+		wp_localize_script(
+			'wse-swatches',
+			'WSEArchive',
+			array(
+				'click_behavior' => sanitize_key( get_option( 'wse_archive_click', 'link' ) ),
+				// B23 — wc-ajax endpoint URL for archive AJAX add-to-cart.
+				'wc_ajax_url'    => esc_url( WC_AJAX::get_endpoint( 'wse_archive_add_to_cart' ) ),
+			)
+		);
+
 		wp_add_inline_script( 'wse-swatches', $this->get_archive_inline_js() );
 	}
 
-	/**
-	 * Returns the inline JS string for archive swatch interactions.
-	 * Handles both 'link' and 'ajax_add_to_cart' click modes.
-	 *
-	 * @return string JavaScript string (no <script> tags).
-	 */
 	private function get_archive_inline_js(): string {
 		return <<<'JS'
-/* WooSwatches for Elementor — Archive Swatches */
+/* WooSwatches for Elementor — Archive Swatches (v1.1.0) */
 ( function ( $ ) {
     'use strict';
 
+    var clickBehavior = ( window.WSEArchive && WSEArchive.click_behavior )
+        ? WSEArchive.click_behavior
+        : 'link';
+
     // ── Swatch click in archive loop ──────────────────────────────────
-    $( document ).on(
-        'click.wse-archive',
-        '.wse-archive-swatches .wse-swatch:not(.disabled)',
+    $( document )
+        .off( 'click.wse-archive', '.wse-archive-swatches .wse-swatch:not(.disabled)' )
+        .on(  'click.wse-archive', '.wse-archive-swatches .wse-swatch:not(.disabled)',
         function ( e ) {
             var $swatch    = $( this );
             var attribute  = $swatch.data( 'attribute' );
-            var value      = $swatch.data( 'value' );
             var $container = $swatch.closest( '.wse-archive-swatches' );
             var behavior   = $container.data( 'click-behavior' ) || 'link';
             var productUrl = String( $container.data( 'product-url' ) || '' );
@@ -270,7 +290,6 @@ class WSE_Archive_Swatches {
                 .attr( 'tabindex', '0' );
 
             if ( behavior === 'link' ) {
-                // Navigate to product page with attribute pre-selected
                 e.preventDefault();
                 var params = {};
                 $container.find( '.wse-swatch.selected' ).each( function () {
@@ -282,100 +301,86 @@ class WSE_Archive_Swatches {
                 }
 
             } else if ( behavior === 'ajax_add_to_cart' ) {
-                // Show the Add to Cart button once a swatch is picked
                 e.preventDefault();
                 $container.find( '.wse-archive-atc' ).show();
             }
         }
     );
 
-    // ── Archive AJAX add-to-cart (Gap 47) ─────────────────────────────
-    $( document ).on(
-        'click.wse-archive',
-        '.wse-archive-atc',
-        function ( e ) {
-            e.preventDefault();
+    // ── Archive AJAX add-to-cart — only bind when feature is in use (B19) ──
+    if ( clickBehavior === 'ajax_add_to_cart' ) {
 
-            if ( typeof WSEParams === 'undefined' ) {
-                return;
+        $( document )
+            .off( 'click.wse-archive', '.wse-archive-atc' )
+            .on(  'click.wse-archive', '.wse-archive-atc',
+            function ( e ) {
+                e.preventDefault();
+
+                if ( typeof WSEParams === 'undefined' || typeof WSEArchive === 'undefined' ) {
+                    return;
+                }
+
+                var $btn       = $( this );
+                var $container = $btn.closest( '.wse-archive-swatches' );
+                var productId  = String( $container.data( 'product-id' ) || '' );
+
+                if ( ! productId ) {
+                    return;
+                }
+
+                var postData = {
+                    security   : WSEParams.nonce,
+                    product_id : productId,
+                    quantity   : 1,
+                };
+
+                $container.find( '.wse-swatch.selected' ).each( function () {
+                    postData[ 'attribute_' + $( this ).data( 'attribute' ) ] =
+                        String( $( this ).data( 'value' ) );
+                } );
+
+                $btn.addClass( 'loading' ).prop( 'disabled', true );
+
+                $.ajax( {
+                    url     : WSEArchive.wc_ajax_url,
+                    method  : 'POST',
+                    data    : postData,
+                    success : function ( response ) {
+                        $btn.removeClass( 'loading' ).prop( 'disabled', false );
+
+                        if ( response && response.success ) {
+                            var originalText = $btn.text();
+                            $btn.text( WSEParams.i18n.added || 'Added!' );
+                            setTimeout( function () {
+                                $btn.text( originalText );
+                            }, 2500 );
+
+                            $( document.body ).trigger( 'added_to_cart', [
+                                response.data.fragments,
+                                response.data.cart_hash,
+                                $btn,
+                            ] );
+                            $( document.body ).trigger( 'wc_fragment_refresh' );
+                        }
+                    },
+                    error   : function () {
+                        $btn.removeClass( 'loading' ).prop( 'disabled', false );
+                    },
+                } );
             }
-
-            var $btn       = $( this );
-            var $container = $btn.closest( '.wse-archive-swatches' );
-            var productId  = String( $container.data( 'product-id' ) || '' );
-
-            if ( ! productId ) {
-                return;
-            }
-
-            // Collect selected attribute values
-            var postData = {
-                action     : 'wse_archive_add_to_cart',
-                security   : WSEParams.nonce,
-                product_id : productId,
-                quantity   : 1,
-            };
-
-            $container.find( '.wse-swatch.selected' ).each( function () {
-                postData[ 'attribute_' + $( this ).data( 'attribute' ) ] =
-                    String( $( this ).data( 'value' ) );
-            } );
-
-            // Loading state
-            $btn.addClass( 'loading' ).prop( 'disabled', true );
-
-            $.ajax( {
-                url     : WSEParams.ajax_url,
-                method  : 'POST',
-                data    : postData,
-                success : function ( response ) {
-                    $btn.removeClass( 'loading' ).prop( 'disabled', false );
-
-                    if ( response.success ) {
-                        // Show success text briefly
-                        var originalText = $btn.text();
-                        $btn.text( WSEParams.i18n.added || 'Added!' );
-                        setTimeout( function () {
-                            $btn.text( originalText );
-                        }, 2500 );
-
-                        // Gap 24 — trigger cart fragment refresh
-                        $( document.body ).trigger( 'added_to_cart', [
-                            response.data.fragments,
-                            response.data.cart_hash,
-                            $btn,
-                        ] );
-                        $( document.body ).trigger( 'wc_fragment_refresh' );
-                    }
-                },
-                error   : function () {
-                    $btn.removeClass( 'loading' ).prop( 'disabled', false );
-                },
-            } );
-        }
-    );
+        );
+    }
 
 } )( jQuery );
 JS;
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
-	// Gap 47 — AJAX add-to-cart handler (server side)
+	// AJAX add-to-cart handler (server side)
 	// ─────────────────────────────────────────────────────────────────────
 
-	/**
-	 * Handles AJAX add-to-cart for variable products in the archive loop.
-	 *
-	 * Resolves the variation ID from the posted attribute values, adds to
-	 * the WC cart, and returns refreshed cart fragments for mini-cart update.
-	 *
-	 * Gap 13 — nonce verification + capability + sanitisation
-	 * Gap 24 — returns cart fragments for mini-cart update
-	 * Gap 42 — no raw DB queries; all via WC API
-	 */
 	public function ajax_add_to_cart(): void {
 
-		// Gap 13 — nonce verification (same nonce as main add-to-cart)
 		if ( ! isset( $_POST['security'] ) ||
 			 ! check_ajax_referer( 'wse_nonce', 'security', false ) ) {
 			wp_send_json_error(
@@ -385,7 +390,6 @@ JS;
 			return;
 		}
 
-		// Validate product
 		$product_id = absint( $_POST['product_id'] ?? 0 );
 		if ( ! $product_id ) {
 			wp_send_json_error(
@@ -402,11 +406,9 @@ JS;
 			return;
 		}
 
-		// Gap 13 — Sanitise quantity
 		$quantity = wc_stock_amount( wp_unslash( $_POST['quantity'] ?? 1 ) );
 
-		// Gap 13 — Collect and sanitise attribute values from POST
-		$attributes  = array();
+		$attributes   = array();
 		$variation_id = 0;
 
 		if ( $product->is_type( 'variable' ) ) {
@@ -420,7 +422,6 @@ JS;
 				}
 			}
 
-			// Resolve variation ID from attribute combination
 			$data_store   = \WC_Data_Store::load( 'product' );
 			$variation_id = (int) $data_store->find_matching_product_variation(
 				$product,
@@ -435,7 +436,6 @@ JS;
 			}
 		}
 
-		// Add to WooCommerce cart
 		$cart_item_key = WC()->cart->add_to_cart(
 			$product_id,
 			$quantity,
@@ -450,7 +450,6 @@ JS;
 			return;
 		}
 
-		// Gap 24 — Build cart fragments for mini-cart update
 		ob_start();
 		woocommerce_mini_cart();
 		$mini_cart_html = (string) ob_get_clean();
@@ -474,20 +473,10 @@ JS;
 	// Public helpers
 	// ─────────────────────────────────────────────────────────────────────
 
-	/**
-	 * Returns whether archive swatches are enabled.
-	 *
-	 * @return bool
-	 */
 	public static function is_enabled(): bool {
 		return 'yes' === get_option( 'wse_archive_swatches', 'yes' );
 	}
 
-	/**
-	 * Returns the configured click behaviour for archive swatches.
-	 *
-	 * @return string 'link' | 'ajax_add_to_cart'
-	 */
 	public static function get_click_behavior(): string {
 		return sanitize_key( (string) get_option( 'wse_archive_click', 'link' ) );
 	}

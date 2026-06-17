@@ -126,8 +126,10 @@ class WSE_Blocks_Compat {
 	/**
 	 * Delegates archive swatch HTML generation to WSE_Archive_Swatches.
 	 *
-	 * WSE_Archive_Swatches hooks into woocommerce_after_shop_loop_item_title
-	 * for the classic loop and exposes a render method for programmatic use.
+	 * v1.1.0 (B2) — render_for_product() now exists on WSE_Archive_Swatches
+	 * (added in this release), so this code path actually emits markup.
+	 * In v1.0.5 this method's method_exists() guard silently returned ''
+	 * for every call, making the entire WC Blocks integration inert.
 	 *
 	 * @param  WC_Product $product
 	 * @return string HTML or empty string.

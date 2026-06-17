@@ -206,30 +206,23 @@ class WSE_Assets {
 
 		// Gap 13 — Pass PHP data to all frontend JS via WSEParams.
 		// Attached to wse-swatches (first script in the dependency chain).
-		wp_localize_script(
-			'wse-swatches',
-			'WSEParams',
-			array(
-				'ajax_url' => esc_url( admin_url( 'admin-ajax.php' ) ),
-
-				// WooCommerce AJAX endpoint (preferred over raw admin-ajax.php)
-				'wc_ajax_url' => esc_url( WC_AJAX::get_endpoint( '%%endpoint%%' ) ),
-
-				// Gap 13 — Nonce for AJAX add-to-cart (verified in Phase 12 handler)
-				'nonce'    => wp_create_nonce( 'wse_nonce' ),
-
-				// i18n strings used by add-to-cart.js (Phase 12)
-				'i18n'     => array(
-					'added'      => esc_html__( 'Added to cart!',         'woo-swatches-elementor' ),
-					'adding'     => esc_html__( 'Adding…',                'woo-swatches-elementor' ),
-					'error'      => esc_html__( 'Something went wrong.',  'woo-swatches-elementor' ),
-					'select_opt' => esc_html__( 'Please select an option before adding this product to your cart.', 'woo-swatches-elementor' ),
-				),
-
-				// Cart URL for optional redirect after add (Phase 12)
-				'cart_url' => esc_url( wc_get_cart_url() ),
-			)
+		// v1.1.0 — runs through wse_frontend_params so other classes
+		// (plugin core, future extensions) can append payload data without
+		// re-localizing on a different handle.
+		$params = array(
+			'ajax_url'    => esc_url( admin_url( 'admin-ajax.php' ) ),
+			'wc_ajax_url' => esc_url( WC_AJAX::get_endpoint( '%%endpoint%%' ) ),
+			'nonce'       => wp_create_nonce( 'wse_nonce' ),
+			'i18n'        => array(
+				'added'      => esc_html__( 'Added to cart!',         'woo-swatches-elementor' ),
+				'adding'     => esc_html__( 'Adding…',                'woo-swatches-elementor' ),
+				'error'      => esc_html__( 'Something went wrong.',  'woo-swatches-elementor' ),
+				'select_opt' => esc_html__( 'Please select an option before adding this product to your cart.', 'woo-swatches-elementor' ),
+			),
+			'cart_url'    => esc_url( wc_get_cart_url() ),
 		);
+		$params = (array) apply_filters( 'wse_frontend_params', $params );
+		wp_localize_script( 'wse-swatches', 'WSEParams', $params );
 
 		// ── CSS ───────────────────────────────────────────────────────────
 
@@ -302,40 +295,63 @@ class WSE_Assets {
 	 * Enqueues admin-only assets and passes the cache-flush nonce
 	 * to any admin page that contains the WooSwatches settings UI.
 	 *
-	 * The settings/tools page itself is built in Phase 14.
-	 * We enqueue here so the nonce is available as soon as the page exists.
+	 * v1.1.0 (B18) — Localization moved off the global 'jquery' handle
+	 * onto a dedicated 'wse-admin' script so other plugins / themes
+	 * never collide with the WSEAdmin object on jquery's namespace.
 	 *
 	 * @param string $hook Current admin page hook suffix.
 	 */
 	public function enqueue_admin( string $hook ): void {
 
 		// Only on our own plugin admin pages
-		// Phase 14 will register 'woo-swatches-elementor' as the page slug.
-		// The hook will be: wooswatches_page_wse-settings
-		// or: toplevel_page_woo-swatches-elementor
 		if ( strpos( $hook, 'woo-swatches' ) === false
-			 && strpos( $hook, 'wse-' ) === false ) {
+			 && strpos( $hook, 'wse-' ) === false
+			 && ! $this->is_wse_settings_screen() ) {
 			return;
 		}
 
-		// Pass cache flush nonce to admin JS (for the Clear Cache button in Phase 14)
-		// Gap 13 — secure nonce creation
+		// Register a no-op handle so wp_localize_script has a stable target.
+		// Loading an empty inline script is the simplest way to provide a
+		// per-page handle without shipping a real .js file.
+		if ( ! wp_script_is( 'wse-admin', 'registered' ) ) {
+			wp_register_script(
+				'wse-admin',
+				'',
+				array( 'jquery' ),
+				WSE_VERSION,
+				true
+			);
+		}
+		wp_enqueue_script( 'wse-admin' );
+
 		wp_localize_script(
-			'jquery', // attach to jQuery which is always present on admin pages
+			'wse-admin',
 			'WSEAdmin',
 			array(
 				'ajax_url'    => esc_url( admin_url( 'admin-ajax.php' ) ),
 				'flush_nonce' => wp_create_nonce( 'wse_flush_cache' ),
 				'i18n'        => array(
-					'flushing'  => esc_html__( 'Clearing cache…', 'woo-swatches-elementor' ),
-					'flushed'   => esc_html__( 'Cache cleared.',        'woo-swatches-elementor' ),
-					'error'     => esc_html__( 'Error clearing cache.', 'woo-swatches-elementor' ),
-					'regen_start'  => esc_html__( 'Generating…',             'woo-swatches-elementor' ),
-					'regen_done'   => esc_html__( 'Done!',                   'woo-swatches-elementor' ),
-					'regen_error'  => esc_html__( 'Error during generation.','woo-swatches-elementor' ),
+					'flushing'    => esc_html__( 'Clearing cache…',          'woo-swatches-elementor' ),
+					'flushed'     => esc_html__( 'Cache cleared.',           'woo-swatches-elementor' ),
+					'error'       => esc_html__( 'Error clearing cache.',    'woo-swatches-elementor' ),
+					'regen_start' => esc_html__( 'Generating…',              'woo-swatches-elementor' ),
+					'regen_done'  => esc_html__( 'Done!',                    'woo-swatches-elementor' ),
+					'regen_error' => esc_html__( 'Error during generation.', 'woo-swatches-elementor' ),
 				),
 			)
 		);
+	}
+
+	/**
+	 * Returns true on the WSE WC settings tab.
+	 */
+	private function is_wse_settings_screen(): bool {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || 'woocommerce_page_wc-settings' !== $screen->id ) {
+			return false;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		return isset( $_GET['tab'] ) && 'woo_swatches' === $_GET['tab'];
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

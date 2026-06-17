@@ -110,6 +110,14 @@ class WSE_Settings extends WC_Settings_Page {
 				'desc_tip' => esc_html__( 'When disabled, the wse-stylesheet-disabled body class applies and no visual CSS loads.', 'woo-swatches-elementor' ),
 			),
 			array(
+				'title'    => esc_html__( 'Show "View Cart" Link After Add to Cart', 'woo-swatches-elementor' ),
+				'id'       => 'wse_show_view_cart_link',
+				'type'     => 'checkbox',
+				'default'  => 'yes',
+				'desc'     => esc_html__( 'Append a View Cart link to add-to-cart success notices.', 'woo-swatches-elementor' ),
+				'desc_tip' => esc_html__( 'Disable to hide the "View Cart" link in success messages, the snackbar, and the mini-cart fragment so shoppers stay on the product page.', 'woo-swatches-elementor' ),
+			),
+			array(
 				'type' => 'sectionend',
 				'id'   => 'wse_display_section',
 			),
