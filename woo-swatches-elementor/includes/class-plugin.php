@@ -133,6 +133,16 @@ class WSE_Plugin {
 		// Gap 16 — Load plugin text domain for i18n
 		add_action( 'init', array( $this, 'load_textdomain' ) );
 
+		// v1.1.2 — Defensive coercion of $_POST['variation_id'] to int.
+		// Dokan Pro's Order Min Max module declares its validate_add_to_cart()
+		// callback with a strict `int $variation_id` parameter. When WC's
+		// native form handler passes an empty string (variable product
+		// submitted without a variation selected), PHP throws a fatal
+		// TypeError before our AJAX path even has a chance to run.
+		// Casting at priority 1 ensures the value is always an int from
+		// the moment any add-to-cart validator runs.
+		add_action( 'init', array( $this, 'coerce_variation_id_post' ), 1 );
+
 		// Gap 54 — Register custom swatch image size (80×80 hard crop)
 		add_action( 'after_setup_theme', array( $this, 'register_image_sizes' ) );
 
@@ -183,6 +193,33 @@ class WSE_Plugin {
 	 */
 	public function register_image_sizes(): void {
 		add_image_size( 'wse_swatch', 80, 80, true );
+	}
+
+	/**
+	 * v1.1.2 — Coerce $_POST['variation_id'] to int.
+	 *
+	 * Defensive workaround for Dokan Pro's Order Min Max module (and any
+	 * other third-party validator that declares a strict-typed
+	 * `int $variation_id` parameter on the woocommerce_add_to_cart_validation
+	 * filter). WooCommerce core passes an empty string when no variation
+	 * is selected, which would otherwise trigger a fatal TypeError in the
+	 * strict validator before our JS-level guard has a chance to act.
+	 *
+	 * Runs at `init` priority 1 — before WC_Form_Handler::add_to_cart_action
+	 * (which runs at `init` priority 10 by default) processes the request.
+	 * Skipped on AJAX/REST requests where WC takes the wc-ajax path.
+	 */
+	public function coerce_variation_id_post(): void {
+
+		if ( wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( isset( $_POST['variation_id'] ) ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$_POST['variation_id'] = (int) wp_unslash( $_POST['variation_id'] );
+		}
 	}
 
 	/**

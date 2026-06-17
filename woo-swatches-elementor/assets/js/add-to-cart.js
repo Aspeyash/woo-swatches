@@ -91,6 +91,21 @@
 			.off( 'submit.wse-atc', 'form.wse-canonical-form' )
 			.on( 'submit.wse-atc', 'form.wse-canonical-form', function ( e ) {
 
+			// v1.1.2 (CRITICAL FIX) — Always preventDefault FIRST.
+			//
+			// In v1.1.1 the early-return guards below ran without calling
+			// preventDefault, which let the browser fall through to a native
+			// form POST. On Dokan Pro stacks that have the Order Min Max
+			// module, Dokan's `validate_add_to_cart()` uses a strict-typed
+			// `int $variation_id` parameter; WC passes an empty string when
+			// no variation is selected, and Dokan throws a fatal TypeError.
+			//
+			// Calling preventDefault unconditionally guarantees the form
+			// never submits via standard POST regardless of guard outcomes —
+			// the worst case is now "click does nothing" (correct behaviour
+			// when variation isn't selected) rather than a 500 error page.
+			e.preventDefault();
+
 			var $form = $( this );
 			// Locate the button used for this submit (event.originalEvent.submitter
 			// is the spec-compliant way; fall back to the canonical's primary button).
@@ -102,12 +117,10 @@
 				return;
 			}
 
-			// v1.1.1 — Variation-required guard. If this is a variations form
-			// and no variation_id is set, bail and let WC's native validator
-			// surface its "Please select options" notice. Without this guard
-			// my submit handler would fire AJAX with variation_id=0 → empty
-			// payload → "Something went wrong" on a click that should have
-			// just shown a validation message.
+			// Variation-required guard. WC's native wc-add-to-cart-variation.js
+			// will have already shown its "Please select options" notice via
+			// its own submit handler running before this one bubbles up to
+			// document.body, so a silent bail here is the right behaviour.
 			if ( $form.hasClass( 'variations_form' ) ) {
 				var matched = parseInt( $form.find( 'input.variation_id' ).val(), 10 );
 				if ( ! matched || isNaN( matched ) ) {
@@ -115,7 +128,6 @@
 				}
 			}
 
-			e.preventDefault();
 			submitAtcForm( $btn, $form );
 		} );
 

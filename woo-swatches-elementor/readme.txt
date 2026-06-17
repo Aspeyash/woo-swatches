@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,26 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.1.2 =
+**Critical hotfix: Dokan Pro Order Min Max TypeError on variable products.**
+
+Fixes a regression introduced in v1.1.1 where the Add to Cart submit handler returned without calling `event.preventDefault()` when the variation-required guard tripped. On Dokan Pro stacks with the Order Min Max module enabled, this caused a fatal PHP TypeError:
+
+```
+WeDevs\DokanPro\Modules\OrderMinMax\Frontend\CartRestriction::validate_add_to_cart():
+Argument #4 ($variation_id) must be of type int, string given
+```
+
+Root cause: Dokan Pro's `validate_add_to_cart()` callback declares a strict-typed `int $variation_id` parameter. When v1.1.1's submit handler bailed early without preventing the form's default action, the form POSTed to the server, WooCommerce's `WC_Form_Handler::add_to_cart_handler_variable()` processed it, passed an empty string to the validation filter (no variation selected), and Dokan threw a fatal.
+
+**Fix (JS):**
+* `assets/js/add-to-cart.js` now calls `event.preventDefault()` unconditionally at the top of the canonical-form submit handler, before any guard check. The form can no longer submit via standard POST under any circumstance — worst case is "click does nothing" which matches expected UX when no variation is selected.
+
+**Fix (PHP, defensive):**
+* `includes/class-plugin.php` adds a new `coerce_variation_id_post()` callback hooked to `init` priority 1. It casts `$_POST['variation_id']` to `int` for non-AJAX, non-REST requests, so any third-party validator with strict typing receives an `int` even if a future regression or third-party JS lets the form POST through.
+
+Both fixes ship together so the protection is belt-and-suspenders: the JS prevents POST submissions, and the PHP coercion catches any that still slip through (cached JS, theme overrides, etc.).
 
 = 1.1.1 =
 **Hotfix release: Dokan/multi-vendor compatibility, FOUC fix, sticky-without-presenter, "Added to cart" toast.**
@@ -224,6 +244,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Full WCAG AA keyboard accessibility.
 
 == Upgrade Notice ==
+
+= 1.1.2 =
+CRITICAL: fixes a fatal PHP TypeError on Dokan Pro stacks with Order Min Max module enabled. v1.1.1 users on Dokan should update immediately. JS preventDefault fix + defensive PHP variation_id coercion. Drop-in replacement.
 
 = 1.1.1 =
 Hotfix: Dokan multi-vendor compatibility (no more "Something went wrong" on successful adds), single-widget sticky add-to-cart, "Added to cart" toast notification, FOUC fix for double swatches, robust AJAX payload assembly. Drop-in replacement for v1.1.0.
