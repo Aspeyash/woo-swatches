@@ -1,30 +1,49 @@
 <?php
 /**
- * Add to Cart template — Variable product.
+ * Add to Cart template — Variable product (CANONICAL — v1.1.0).
  *
- * Widget 2 for variable products. Outputs:
- *   1. A variations_form with hidden attribute <select> elements (NOT swatches).
- *      These selects are synced by add-to-cart.js from Widget 1's swatch
- *      selections, giving wc-add-to-cart-variation.js the values it needs.
- *   2. The exact woocommerce-variation wrapper elements that WC's JS targets
- *      to update price, stock status, and description (Gap 33).
- *   3. The quantity stepper and add-to-cart button.
+ * Renders the single canonical <form id="wse-form-{P}"> for a variable
+ * product. Only ONE canonical form per product per page exists, regardless
+ * of how many Widget 2 instances are placed (presenter instances render
+ * variable-presenter.php and target this form via the HTML5 form= attribute).
  *
- * Hidden select bypass:
- *   We add 'wse_skip_renderer' filter before outputting hidden selects
- *   so WSE_Swatch_Renderer returns the native <select> instead of swatches.
- *   The selects are wrapped in .wse-hidden-selects (display:none) so they
- *   are invisible, but jQuery's $form.find() can still read/write them.
+ * Structure:
+ *   <form id="wse-form-{P}" class="variations_form cart wse-canonical-form"
+ *         data-product_variations="...JSON...">
  *
- * Available variables:
+ *     <hidden <select> per attribute>      ← rendered via the swatch
+ *                                             renderer with both emit
+ *                                             flags ON; JS dedup removes
+ *                                             the visible swatch UI when
+ *                                             Widget 1 is also on page.
+ *
+ *     <single_variation_wrap>              ← WC's standard JS targets:
+ *       .woocommerce-variation-price          variation-price HTML
+ *       .woocommerce-variation-availability   in/out-of-stock text
+ *       .woocommerce-variation-description    variation description
+ *
+ *     <quantity input> + <submit button>
+ *     <hidden add-to-cart / variation_id fields>
+ *   </form>
+ *
+ * v1.1.0 changes vs v1.0.5:
+ *   • The wse_skip_renderer bypass is GONE — selects are now emitted by
+ *     the renderer in normal mode (B9).
+ *   • The form ID is `wse-form-{$product_id}` so presenter widgets and
+ *     synthetic JS wrappers can target it via the HTML5 form= attribute (B3).
+ *   • No second variations_form is rendered (B3).
+ *
+ * Available variables (extracted by widget render()):
  *   @var \WC_Product_Variable  $product   The variable product object.
- *   @var array                 $settings  Elementor widget settings from Widget 2.
+ *   @var array                 $settings  Elementor widget settings.
+ *   @var string                $form_id   Canonical form ID (wse-form-{P}).
+ *   @var bool                  $presenter_mode Always false on this template.
  *
  * Gap 27 — All standard WC action hooks present.
  * Gap 33 — Exact WC JS class targets for price/availability/description.
- * Gap 37 — Variable product type routing from Widget 2.
  *
  * @package WooSwatchesElementor
+ * @since   1.1.0
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -46,7 +65,8 @@ $default_attributes   = $product->get_default_attributes();
 
 <?php do_action( 'woocommerce_before_add_to_cart_form' ); ?>
 
-<form class="variations_form cart wse-atc-form wse-variable-cart"
+<form id="<?php echo esc_attr( $form_id ); ?>"
+	  class="variations_form cart wse-canonical-form"
 	  action="<?php echo esc_url( apply_filters( 'woocommerce_add_to_cart_form_action', $product->get_permalink() ) ); ?>"
 	  method="post"
 	  enctype="multipart/form-data"
@@ -57,21 +77,23 @@ $default_attributes   = $product->get_default_attributes();
 
 	<?php
 	/**
-	 * Hidden native <select> elements for each attribute.
+	 * v1.1.0 — Hidden <select> elements per attribute.
 	 *
-	 * We use 'wse_skip_renderer' to ensure WSE_Swatch_Renderer returns the
-	 * plain WC <select> HTML here (not swatches). These selects are:
-	 *   - Invisible (parent has display:none)
-	 *   - Synced by add-to-cart.js when Widget 1 swatch is clicked
-	 *   - Read by wc-add-to-cart-variation.js to match a variation
-	 *   - Submitted with the form to add the correct variation to cart
+	 * The swatch renderer is now driven by emit-flag filters:
+	 *   wse_renderer_emit_select   = true  (default)
+	 *   wse_renderer_emit_swatches = true  (default)
+	 *
+	 * When Widget 1 is also on the page, swatches.js at DOMReady detects
+	 * the duplicate swatch UI and removes it from the canonical form,
+	 * leaving only the hidden <select>. When Widget 1 is NOT on the page,
+	 * the swatch UI rendered here becomes the user's swatch interface.
+	 *
+	 * No more wse_skip_renderer bypass — that was a brittle work-around
+	 * tracked as B9 in the v1.0.5 issue list.
 	 */
 	?>
-	<div class="wse-hidden-selects variations" style="display:none" aria-hidden="true">
+	<div class="wse-canonical-attrs">
 		<?php
-		// Bypass swatch rendering for these selects
-		add_filter( 'wse_skip_renderer', '__return_true' );
-
 		foreach ( $attributes as $attribute_name => $options ) :
 			$selected = $default_attributes[ sanitize_title( $attribute_name ) ] ?? '';
 			wc_dropdown_variation_attribute_options(
@@ -84,26 +106,16 @@ $default_attributes   = $product->get_default_attributes();
 				)
 			);
 		endforeach;
-
-		// Re-enable swatch rendering
-		remove_filter( 'wse_skip_renderer', '__return_true' );
 		?>
-	</div><!-- .wse-hidden-selects -->
+	</div>
 
 	<?php do_action( 'woocommerce_before_add_to_cart_button' ); ?>
 
 	<?php
 	/**
 	 * Gap 33 — single_variation_wrap: exact class names WC's JS targets.
-	 *
 	 * wc-add-to-cart-variation.js injects content into these elements
-	 * when a matching variation is found:
-	 *   .woocommerce-variation-price        → variation price HTML
-	 *   .woocommerce-variation-availability → in/out of stock text
-	 *   .woocommerce-variation-description  → variation description
-	 *
-	 * The .woocommerce-variation-add-to-cart wrapper enables/disables
-	 * the add-to-cart button based on variation availability.
+	 * when a matching variation is found.
 	 */
 	?>
 	<div class="single_variation_wrap">
@@ -141,6 +153,8 @@ $default_attributes   = $product->get_default_attributes();
 							),
 							'input_value' => $default_qty,
 							'step'        => apply_filters( 'woocommerce_quantity_input_step', 1, $product ),
+							// v1.1.0 — class marker so presenter quantity-sync JS can find this input.
+							'classes'     => array( 'input-text', 'qty', 'text', 'wse-canonical-qty' ),
 						),
 						$product
 					);
@@ -160,13 +174,6 @@ $default_attributes   = $product->get_default_attributes();
 
 			<?php do_action( 'woocommerce_after_add_to_cart_button' ); ?>
 
-			<?php
-			/**
-			 * Required hidden fields for WC form submission.
-			 * variation_id: populated by wc-add-to-cart-variation.js
-			 *               when a variation is found.
-			 */
-			?>
 			<input type="hidden" name="add-to-cart"   value="<?php echo absint( $product_id ); ?>"/>
 			<input type="hidden" name="product_id"    value="<?php echo absint( $product_id ); ?>"/>
 			<input type="hidden" name="variation_id"  class="variation_id" value=""/>
@@ -177,6 +184,6 @@ $default_attributes   = $product->get_default_attributes();
 
 	<?php do_action( 'woocommerce_after_variations_form' ); ?>
 
-</form><!-- .wse-variable-cart -->
+</form><!-- #<?php echo esc_html( $form_id ); ?> -->
 
 <?php do_action( 'woocommerce_after_add_to_cart_form' ); ?>

@@ -125,20 +125,6 @@ class WSE_Swatch_Renderer {
 			return $html;
 		}
 
-		/**
-		 * Bypass filter — used by the variable.php add-to-cart template to
-		 * skip swatch rendering for Widget 2's hidden <select> elements.
-		 * Those selects must remain as native <select> so WC's variation JS
-		 * and add-to-cart.js can read/write them without interference.
-		 *
-		 * Usage: add_filter( 'wse_skip_renderer', '__return_true' );
-		 *        // ... output selects ...
-		 *        remove_filter( 'wse_skip_renderer', '__return_true' );
-		 */
-		if ( (bool) apply_filters( 'wse_skip_renderer', false, $attribute, $product ) ) {
-			return $html;
-		}
-
 		// ── Detect attribute type ─────────────────────────────────────────
 		$type = $this->get_type_for_attribute( $attribute, $product );
 
@@ -192,19 +178,44 @@ class WSE_Swatch_Renderer {
 		}
 
 		// ── Build individual swatch item HTML strings ─────────────────────
-		$items_html = '';
+		// B5 — Track whether any swatch in this group is currently selected
+		// so the first available one becomes keyboard-focusable when none is.
+		$any_selected = false;
+		foreach ( $swatch_data as $value => $swatch ) {
+			if ( (string) $value === $selected_value ) {
+				$any_selected = true;
+				break;
+			}
+		}
+
+		$items_html              = '';
+		$first_available_emitted = false;
+
 		foreach ( $swatch_data as $value => $swatch ) {
 
 			// is_selected applied at render-time so URL params are respected
 			$swatch['is_selected'] = ( (string) $value === $selected_value );
 
+			// B5 — First-available focus fallback. When NO swatch in the
+			// group is selected (no default attribute, no URL param), the
+			// first non-disabled swatch in DOM order becomes the keyboard
+			// entry point. swatches.js takes over once focus moves.
+			$is_first_focusable = false;
+			if ( ! $any_selected
+				&& ! $first_available_emitted
+				&& ! empty( $swatch['is_available'] ) ) {
+				$is_first_focusable      = true;
+				$first_available_emitted = true;
+			}
+
 			$item_html = $this->include_template(
 				$type . '.php',
 				array(
-					'value'       => (string) $value,
-					'swatch'      => $swatch,
-					'attribute'   => $attribute,
-					'is_selected' => $swatch['is_selected'],
+					'value'              => (string) $value,
+					'swatch'             => $swatch,
+					'attribute'          => $attribute,
+					'is_selected'        => $swatch['is_selected'],
+					'is_first_focusable' => $is_first_focusable, // v1.1.0 (B5)
 				)
 			);
 
@@ -223,14 +234,43 @@ class WSE_Swatch_Renderer {
 		// ── Wrap and return ───────────────────────────────────────────────
 		do_action( 'wse_before_render_swatches', $attribute, $product );
 
+		/**
+		 * v1.1.0 (B3) — Renderer emit-mode filters.
+		 *
+		 * Two boolean context filters control which structural pieces appear
+		 * in the rendered HTML:
+		 *
+		 *   wse_renderer_emit_select   — when false, the hidden native <select>
+		 *                                is omitted. Widget 1 sets this so the
+		 *                                canonical form (Widget 2) is the sole
+		 *                                owner of variation form fields.
+		 *
+		 *   wse_renderer_emit_swatches — when false, the visual swatch <ul>
+		 *                                is omitted. Widget 2 (canonical mode)
+		 *                                sets this so swatch UI is owned by
+		 *                                Widget 1 alone, eliminating duplication.
+		 *
+		 * Both default to true so direct calls (e.g. on classic single-product
+		 * pages without either widget) behave exactly as in v1.0.5.
+		 */
+		$emit_select   = (bool) apply_filters( 'wse_renderer_emit_select',   true, $attribute, $product, $type );
+		$emit_swatches = (bool) apply_filters( 'wse_renderer_emit_swatches', true, $attribute, $product, $type );
+
+		// If neither piece is requested, return the original HTML untouched.
+		if ( ! $emit_select && ! $emit_swatches ) {
+			return $html;
+		}
+
 		$output = $this->include_template(
 			'wrapper.php',
 			array(
-				'html'        => $html,        // Gap 2 — hidden but intact in DOM
-				'attribute'   => $attribute,
-				'product'     => $product,
-				'type'        => $type,
-				'items_html'  => $items_html,
+				'html'          => $html,        // Gap 2 — hidden but intact in DOM
+				'attribute'     => $attribute,
+				'product'       => $product,
+				'type'          => $type,
+				'items_html'    => $items_html,
+				'emit_select'   => $emit_select,   // v1.1.0
+				'emit_swatches' => $emit_swatches, // v1.1.0
 			)
 		);
 

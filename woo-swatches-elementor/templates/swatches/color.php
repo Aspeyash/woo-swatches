@@ -34,9 +34,10 @@ $classes = array( 'wse-swatch', 'wse-swatch-color' );
 if ( $is_selected )   { $classes[] = 'selected'; }
 if ( ! $is_available ) { $classes[] = 'disabled'; }
 
-// tabindex: 0 for focusable (selected or first available), -1 for others
-// This is simplified — swatches.js manages full roving tabindex
-$tabindex = $is_selected ? '0' : '-1';
+// B5 — tabindex 0 for selected OR first-focusable (when no default selection),
+// -1 for everyone else. swatches.js manages roving tabindex from there.
+$is_first_focusable = isset( $is_first_focusable ) ? (bool) $is_first_focusable : false;
+$tabindex           = ( $is_selected || $is_first_focusable ) ? '0' : '-1';
 ?>
 <li class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>"
 	role="radio"

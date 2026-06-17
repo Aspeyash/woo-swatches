@@ -1,22 +1,24 @@
 <?php
 /**
- * Swatch wrapper template.
+ * Swatch wrapper template (v1.1.0).
  *
  * Outputs the outer container for a single attribute's swatches.
- * The original WooCommerce <select> is preserved hidden in the DOM —
- * this is non-negotiable: wc-add-to-cart-variation.js finds the select
- * by name="attribute_{attr}" and reads/writes its value to drive all
- * variation matching, price updates, and stock checks.
+ * The original WooCommerce <select> is preserved hidden in the DOM only
+ * when $emit_select is true — Widget 1 sets it to false in v1.1.0 so
+ * the canonical form (Widget 2) is the sole owner of form-field state.
  *
  * Available variables (extracted by WSE_Swatch_Renderer::include_template):
- *   @var string       $html       Original WC <select> HTML — hidden but intact.
- *   @var string       $attribute  Attribute name e.g. 'pa_color'.
- *   @var \WC_Product  $product    The product object.
- *   @var string       $type       Swatch type: color|image|label|button.
- *   @var string       $items_html Pre-built <li> HTML for all swatch items.
+ *
+ *   @var string       $html         Original WC <select> HTML — hidden but intact.
+ *   @var string       $attribute    Attribute name e.g. 'pa_color'.
+ *   @var \WC_Product  $product      The product object.
+ *   @var string       $type         Swatch type: color|image|label|button.
+ *   @var string       $items_html   Pre-built <li> HTML for all swatch items.
+ *   @var bool         $emit_select  v1.1.0 — emit the hidden native <select>?
+ *   @var bool         $emit_swatches v1.1.0 — emit the visible swatch <ul>?
  *
  * Gap 2  — Hidden <select> preserved (Emran Ahmed's confirmed pattern)
- * Gap 14 — Accessibility: fieldset + legend wrap
+ * Gap 14 — Accessibility: fieldset + legend wrap (no duplicate aria-label, B15)
  * Gap 40 — Clear/reset link wired to WC reset_data event in swatches.js
  *
  * @package WooSwatchesElementor
@@ -24,24 +26,28 @@
 
 defined( 'ABSPATH' ) || exit;
 
+// Back-compat defaults so child-theme overrides from v1.0.5 keep rendering.
+$emit_select   = isset( $emit_select )   ? (bool) $emit_select   : true;
+$emit_swatches = isset( $emit_swatches ) ? (bool) $emit_swatches : true;
+
 $attr_label = wc_attribute_label( $attribute, $product );
+$form_id    = WSE_Form_Registry::instance()->get_form_id( $product->get_id() );
 ?>
 <div class="wse-swatch-wrap"
 	data-attribute="<?php echo esc_attr( $attribute ); ?>"
-	data-type="<?php echo esc_attr( $type ); ?>">
+	data-type="<?php echo esc_attr( $type ); ?>"
+	data-product-id="<?php echo absint( $product->get_id() ); ?>"
+	data-form-id="<?php echo esc_attr( $form_id ); ?>">
 
+	<?php if ( $emit_select ) : ?>
 	<?php
 	/**
-	 * Gap 2 — The hidden WC <select> MUST stay in the DOM.
-	 *
-	 * wc-add-to-cart-variation.js selects it via:
+	 * Gap 2 — The hidden WC <select> stays in the DOM for canonical-form
+	 * emitters. wc-add-to-cart-variation.js reads/writes it via:
 	 *   $form.find( 'select[name="attribute_pa_color"]' )
 	 *
-	 * swatches.js uses the same selector to sync the hidden value when
-	 * a swatch is clicked — matching Emran Ahmed's exact approach.
-	 *
 	 * aria-hidden="true" removes it from the accessibility tree since
-	 * our ARIA radio group below replaces it semantically.
+	 * the ARIA radio group below replaces it semantically.
 	 */
 	?>
 	<div class="wse-select-hidden variations" style="display:none" aria-hidden="true">
@@ -50,17 +56,16 @@ $attr_label = wc_attribute_label( $attribute, $product );
 		echo $html;
 		?>
 	</div>
+	<?php endif; ?>
 
+	<?php if ( $emit_swatches ) : ?>
 	<?php
 	/**
-	 * Gap 14 — Accessibility.
-	 *
-	 * <fieldset> + <legend> provides the semantic grouping that screen
-	 * readers announce before reading individual swatch options.
-	 *
-	 * The legend is visually hidden with .screen-reader-text (WP core class)
-	 * because the visible attribute label is rendered by the widget's
-	 * own render() method above the swatch list.
+	 * B15 — fieldset + legend provides the semantic grouping that screen
+	 * readers announce before reading individual swatch options. The
+	 * <ul role="radiogroup"> below carries no aria-label so the legend
+	 * isn't announced twice on screen readers that handle <fieldset>
+	 * natively.
 	 */
 	?>
 	<fieldset class="wse-fieldset">
@@ -68,16 +73,9 @@ $attr_label = wc_attribute_label( $attribute, $product );
 			<?php echo esc_html( $attr_label ); ?>
 		</legend>
 
-		<?php
-		/**
-		 * role="radiogroup" + aria-label reinforces the grouping for
-		 * assistive technologies that don't handle <fieldset> natively
-		 * (some mobile screen readers).
-		 */
-		?>
 		<ul class="wse-swatches wse-swatches-<?php echo esc_attr( $type ); ?>"
 			role="radiogroup"
-			aria-label="<?php echo esc_attr( $attr_label ); ?>">
+			data-source-widget="wse-renderer">
 			<?php
 			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			echo $items_html;
@@ -87,11 +85,8 @@ $attr_label = wc_attribute_label( $attribute, $product );
 		<?php
 		/**
 		 * Gap 40 — Clear/reset link.
-		 *
-		 * Initially hidden via CSS (display:none).
-		 * swatches.js shows it as soon as any swatch is selected and
-		 * wires it to trigger WC's own '.reset_variations' click —
-		 * which fires the 'reset_data' event to deselect all swatches.
+		 * swatches.js shows it once any swatch is selected and wires it
+		 * to the WC reset_data event flow.
 		 */
 		?>
 		<a href="#"
@@ -106,4 +101,5 @@ $attr_label = wc_attribute_label( $attribute, $product );
 		</a>
 
 	</fieldset>
+	<?php endif; ?>
 </div>

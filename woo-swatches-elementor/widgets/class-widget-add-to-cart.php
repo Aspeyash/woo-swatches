@@ -132,6 +132,79 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 
 		$this->end_controls_section();
 
+		// ── v1.1.0 — Behavior section (Presenter Mode + Sticky toggles) ──
+		$this->start_controls_section(
+			'section_behavior',
+			array(
+				'label' => esc_html__( 'Behavior', 'woo-swatches-elementor' ),
+				'tab'   => \Elementor\Controls_Manager::TAB_CONTENT,
+			)
+		);
+
+		$this->add_control(
+			'presenter_mode',
+			array(
+				'label'        => esc_html__( 'Presenter Mode', 'woo-swatches-elementor' ),
+				'description'  => esc_html__( 'Enable on a secondary instance (sticky bar / quick-view). The widget will share the form of the primary Add-to-Cart widget on the same page instead of rendering its own.', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'On',  'woo-swatches-elementor' ),
+				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
+				'return_value' => 'yes',
+				'default'      => 'no',
+			)
+		);
+
+		$this->add_control(
+			'sticky_heading',
+			array(
+				'label'     => esc_html__( 'Sticky Behavior (per device)', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::HEADING,
+				'separator' => 'before',
+				'condition' => array( 'presenter_mode' => 'yes' ),
+			)
+		);
+
+		$this->add_control(
+			'sticky_desktop',
+			array(
+				'label'        => esc_html__( 'Sticky on Desktop (≥ 1025px)', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'On',  'woo-swatches-elementor' ),
+				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
+				'return_value' => 'yes',
+				'default'      => 'no',
+				'condition'    => array( 'presenter_mode' => 'yes' ),
+			)
+		);
+
+		$this->add_control(
+			'sticky_tablet',
+			array(
+				'label'        => esc_html__( 'Sticky on Tablet (768–1024px)', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'On',  'woo-swatches-elementor' ),
+				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
+				'return_value' => 'yes',
+				'default'      => 'no',
+				'condition'    => array( 'presenter_mode' => 'yes' ),
+			)
+		);
+
+		$this->add_control(
+			'sticky_mobile',
+			array(
+				'label'        => esc_html__( 'Sticky on Mobile (≤ 767px)', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'On',  'woo-swatches-elementor' ),
+				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
+				'return_value' => 'yes',
+				'default'      => 'no',
+				'condition'    => array( 'presenter_mode' => 'yes' ),
+			)
+		);
+
+		$this->end_controls_section();
+
 		// ── Quantity section ──────────────────────────────────────────────
 		$this->start_controls_section(
 			'section_quantity',
@@ -362,6 +435,16 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 
 	// ─────────────────────────────────────────────────────────────────────
 	// Render (PHP → frontend HTML)
+	//
+	// v1.1.0 (B3) — For variable products, claims canonical or presenter
+	// status from WSE_Form_Registry. Canonical instances render the full
+	// variable.php template (single <form id="wse-form-{P}"> with all
+	// hidden selects + variation JSON). Presenter instances render
+	// variable-presenter.php (button + quantity only, attached via the
+	// HTML5 form= attribute).
+	//
+	// v1.1.0 (Feature B) — For presenter mode, applies sticky CSS classes
+	// based on the per-device toggles (sticky_desktop/tablet/mobile).
 	// ─────────────────────────────────────────────────────────────────────
 
 	protected function render(): void {
@@ -392,7 +475,31 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			$type = 'simple';
 		}
 
-		$template = $this->locate_template( $type );
+		// ── v1.1.0 (B3) — Canonical/presenter coordination ───────────────
+		// Logic:
+		//   • presenter_mode = yes   → always presenter, no canonical claim
+		//                              (button targets another instance's form
+		//                              via the HTML5 form= attribute)
+		//   • presenter_mode = no    → try to claim canonical. If another
+		//                              Widget 2 already claimed for this
+		//                              product, graceful-degrade to presenter.
+		$registry           = WSE_Form_Registry::instance();
+		$widget_id          = (string) $this->get_id();
+		$presenter_setting  = ( $settings['presenter_mode'] ?? 'no' ) === 'yes';
+		$is_presenter       = false;
+		$canonical_form_id  = $registry->get_form_id( (int) $product_id );
+
+		if ( 'variable' === $type ) {
+			if ( $presenter_setting ) {
+				$is_presenter = true;
+			} else {
+				$status       = $registry->claim_canonical( (int) $product_id, $widget_id );
+				$is_presenter = ( WSE_Form_Registry::STATUS_PRESENTER === $status );
+			}
+		}
+
+		$template_key = ( 'variable' === $type && $is_presenter ) ? 'variable-presenter' : $type;
+		$template     = $this->locate_template( $template_key );
 
 		if ( ! $template ) {
 			if ( \Elementor\Plugin::$instance->editor->is_edit_mode() ) {
@@ -404,16 +511,35 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			return;
 		}
 
-		// ── Full-width button class ───────────────────────────────────────
+		// ── Wrapper class assembly ────────────────────────────────────────
 		$wrapper_class = 'wse-widget-add-to-cart';
 		if ( 'yes' === ( $settings['button_full_width'] ?? 'no' ) ) {
 			$wrapper_class .= ' wse-atc-full-width';
+		}
+		if ( $is_presenter ) {
+			$wrapper_class .= ' wse-presenter';
+
+			// Feature B — per-device sticky classes
+			if ( 'yes' === ( $settings['sticky_desktop'] ?? 'no' ) ) {
+				$wrapper_class .= ' wse-sticky-desktop';
+			}
+			if ( 'yes' === ( $settings['sticky_tablet']  ?? 'no' ) ) {
+				$wrapper_class .= ' wse-sticky-tablet';
+			}
+			if ( 'yes' === ( $settings['sticky_mobile']  ?? 'no' ) ) {
+				$wrapper_class .= ' wse-sticky-mobile';
+			}
 		}
 
 		$this->add_render_attribute( 'wrapper', array(
 			'class'           => $wrapper_class,
 			'data-product-id' => absint( $product_id ),
+			'data-form-id'    => $canonical_form_id,
 		) );
+
+		// Expose state to the template via in-scope variables.
+		$presenter_mode = $is_presenter; // template var alias
+		$form_id        = $canonical_form_id;
 		?>
 		<div <?php echo $this->get_render_attribute_string( 'wrapper' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>>
 			<?php
@@ -478,12 +604,31 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 	protected function content_template(): void {
 		?>
 		<#
-		var showQty  = settings.show_quantity === 'yes';
-		var btnText  = settings.button_text || '<?php echo esc_js( __( 'Add to cart', 'woo-swatches-elementor' ) ); ?>';
-		var fullW    = settings.button_full_width === 'yes';
-		var qty      = settings.default_quantity || 1;
+		var showQty   = settings.show_quantity === 'yes';
+		var btnText   = settings.button_text || '<?php echo esc_js( __( 'Add to cart', 'woo-swatches-elementor' ) ); ?>';
+		var fullW     = settings.button_full_width === 'yes';
+		var qty       = settings.default_quantity || 1;
+		var presenter = settings.presenter_mode === 'yes';
+		var stickyD   = settings.sticky_desktop === 'yes';
+		var stickyT   = settings.sticky_tablet  === 'yes';
+		var stickyM   = settings.sticky_mobile  === 'yes';
+		var classes   = 'wse-widget-add-to-cart wse-editor-preview';
+		if ( fullW )     { classes += ' wse-atc-full-width'; }
+		if ( presenter ) { classes += ' wse-presenter'; }
+		if ( presenter && stickyD ) { classes += ' wse-sticky-desktop'; }
+		if ( presenter && stickyT ) { classes += ' wse-sticky-tablet'; }
+		if ( presenter && stickyM ) { classes += ' wse-sticky-mobile'; }
 		#>
-		<div class="wse-widget-add-to-cart{{ fullW ? ' wse-atc-full-width' : '' }} wse-editor-preview">
+		<div class="{{ classes }}">
+			<# if ( presenter ) { #>
+			<div class="wse-editor-presenter-note" style="font-size:11px;color:#534152;background:#eaedff;padding:6px 10px;border-radius:4px;margin-bottom:8px">
+				<?php esc_html_e( 'Presenter Mode — shares form with primary Add-to-Cart widget. Sticky:', 'woo-swatches-elementor' ); ?>
+				<# if ( !stickyD && !stickyT && !stickyM ) { #><?php esc_html_e( 'Off on all devices', 'woo-swatches-elementor' ); ?><# } #>
+				<# if ( stickyD ) { #>Desktop <# } #>
+				<# if ( stickyT ) { #>Tablet <# } #>
+				<# if ( stickyM ) { #>Mobile<# } #>
+			</div>
+			<# } #>
 			<div class="wse-qty-atc-row">
 				<# if ( showQty ) { #>
 				<div class="wse-qty-wrap">

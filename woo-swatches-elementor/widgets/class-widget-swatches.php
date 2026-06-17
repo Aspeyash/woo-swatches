@@ -87,8 +87,11 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 	 * Prevents Elementor from caching this widget's output.
 	 * Critical: product prices, stock status, and variation state must
 	 * always be fresh — never served from a stale render cache.
+	 *
+	 * v1.1.0 (B11) — public for visibility consistency with Widget 2 and
+	 * for compatibility with Elementor 3.20+ direct method invocation.
 	 */
-	protected function is_dynamic_content(): bool {
+	public function is_dynamic_content(): bool {
 		return true;
 	}
 
@@ -637,6 +640,11 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 
 	// ─────────────────────────────────────────────────────────────────────
 	// Render (PHP → frontend HTML)
+	//
+	// v1.1.0 (B3) — Widget 1 no longer emits its own <form class="variations_form">.
+	// Instead it registers with WSE_Form_Registry and emits swatch UI only,
+	// targeting the canonical form (owned by Widget 2 when present, or
+	// synthesised at DOMReady by swatches.js when Widget 1 is alone).
 	// ─────────────────────────────────────────────────────────────────────
 
 	protected function render(): void {
@@ -663,12 +671,11 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 
 		/** @var \WC_Product_Variable $product */
 
-		// ── Variation JSON (needed by wc-add-to-cart-variation.js) ────────
-		$available_variations = $product->get_available_variations();
-		$variations_json      = wp_json_encode( $available_variations );
-		$variations_attr      = function_exists( 'wc_esc_json' )
-			? wc_esc_json( $variations_json )
-			: htmlspecialchars( $variations_json, ENT_QUOTES, 'UTF-8' );
+		// ── v1.1.0 (B3) — Register with the form registry ────────────────
+		$registry  = WSE_Form_Registry::instance();
+		$widget_id = (string) $this->get_id();
+		$registry->register_widget1( $product_id, $widget_id );
+		$form_id = $registry->get_form_id( $product_id );
 
 		// ── Default attributes for pre-selection (Gap 39) ─────────────────
 		$default_attributes = $product->get_default_attributes();
@@ -679,79 +686,97 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 			$oos_class = 'wse-oos-' . sanitize_html_class( $settings['oos_behavior'] );
 		}
 
-		// ── Widget wrapper ────────────────────────────────────────────────
+		// ── Widget wrapper (no <form> — JS attaches to canonical form id) ─
 		$this->add_render_attribute( 'widget_wrap', array(
-			'class'           => trim( 'wse-widget-swatches ' . $oos_class ),
-			'data-product-id' => $product_id,
+			'class'           => trim( 'wse-widget-swatches wse-swatches-wrap ' . $oos_class ),
+			'data-product-id' => (string) $product_id,
+			'data-form-id'    => $form_id,
 		) );
+
+		// v1.1.0 (B3) — Widget 1 emits swatch UI only (no hidden selects).
+		// The canonical form (Widget 2, or JS-wrapped synthetic) owns the selects.
+		$emit_select_false = function () { return false; };
+		add_filter( 'wse_renderer_emit_select', $emit_select_false, 99 );
 		?>
 		<div <?php echo $this->get_render_attribute_string( 'widget_wrap' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>>
 
 			<?php
-			/**
-			 * variations_form wrapper is required so that wc-add-to-cart-variation.js
-			 * can find and initialise the form. swatches.js targets this form via
-			 * $( 'form.variations_form' ) in initAll().
-			 */
-			?>
-			<form class="variations_form cart wse-variations-form"
-			      action="<?php echo esc_url( apply_filters( 'woocommerce_add_to_cart_form_action', $product->get_permalink() ) ); ?>"
-			      method="post"
-			      enctype="multipart/form-data"
-			      data-product_id="<?php echo absint( $product_id ); ?>"
-			      data-product_variations="<?php echo $variations_attr; // phpcs:ignore ?>">
+			foreach ( $product->get_variation_attributes() as $attr_name => $options ) :
 
-				<?php
-				foreach ( $product->get_variation_attributes() as $attr_name => $options ) :
+				$attr_label   = wc_attribute_label( $attr_name, $product );
+				$selected_val = $default_attributes[ sanitize_title( $attr_name ) ] ?? '';
+				?>
 
-					$attr_label   = wc_attribute_label( $attr_name, $product );
-					$selected_val = $default_attributes[ sanitize_title( $attr_name ) ] ?? '';
+				<div class="wse-attr-block wse-label-<?php echo esc_attr( $settings['label_position'] ); ?>"
+				     data-attribute="<?php echo esc_attr( $attr_name ); ?>">
+
+					<?php if ( 'yes' === $settings['show_label'] ) : ?>
+					<div class="wse-attr-label-row">
+						<span class="wse-attr-name"><?php echo esc_html( $attr_label ); ?></span>
+
+						<?php if ( 'yes' === $settings['show_selected_value'] ) : ?>
+						<span class="wse-attr-selected-val"
+						      data-attribute="<?php echo esc_attr( $attr_name ); ?>">
+							<?php
+							if ( $selected_val ) {
+								echo esc_html( ucwords( str_replace( array( '-', '_' ), ' ', $selected_val ) ) );
+							}
+							?>
+						</span>
+						<?php endif; ?>
+					</div>
+					<?php endif; ?>
+
+					<?php
+					/**
+					 * Triggers woocommerce_dropdown_variation_attribute_options_html.
+					 * WSE_Swatch_Renderer::render() intercepts and outputs ONLY
+					 * the swatch <ul> (the wse_renderer_emit_select filter above
+					 * suppresses the hidden <select> — that lives on the canonical
+					 * form owned by Widget 2 / JS-wrapped form).
+					 */
+					wc_dropdown_variation_attribute_options( array(
+						'options'          => $options,
+						'attribute'        => $attr_name,
+						'product'          => $product,
+						'selected'         => $selected_val,
+						'show_option_none' => esc_html__( 'Choose an option', 'woo-swatches-elementor' ),
+					) );
 					?>
 
-					<div class="wse-attr-block wse-label-<?php echo esc_attr( $settings['label_position'] ); ?>">
+				</div><!-- .wse-attr-block -->
 
-						<?php if ( 'yes' === $settings['show_label'] ) : ?>
-						<div class="wse-attr-label-row">
-							<span class="wse-attr-name"><?php echo esc_html( $attr_label ); ?></span>
+			<?php endforeach; ?>
 
-							<?php if ( 'yes' === $settings['show_selected_value'] ) : ?>
-							<span class="wse-attr-selected-val"
-							      data-attribute="<?php echo esc_attr( $attr_name ); ?>">
-								<?php
-								if ( $selected_val ) {
-									echo esc_html( ucwords( str_replace( array( '-', '_' ), ' ', $selected_val ) ) );
-								}
-								?>
-							</span>
-							<?php endif; ?>
-						</div>
-						<?php endif; ?>
-
-						<?php
-						/**
-						 * This triggers woocommerce_dropdown_variation_attribute_options_html.
-						 * WSE_Swatch_Renderer::render() intercepts and outputs:
-						 *   <div class="wse-swatch-wrap">
-						 *     [hidden <select>] + [swatch <ul>] + [clear link]
-						 *   </div>
-						 */
-						wc_dropdown_variation_attribute_options( array(
-							'options'          => $options,
-							'attribute'        => $attr_name,
-							'product'          => $product,
-							'selected'         => $selected_val,
-							'show_option_none' => esc_html__( 'Choose an option', 'woo-swatches-elementor' ),
-						) );
-						?>
-
-					</div><!-- .wse-attr-block -->
-
-				<?php endforeach; ?>
-
-			</form><!-- .variations_form -->
+			<?php
+			/**
+			 * v1.1.0 (B3) — Variation JSON <script> tag, emitted at most once
+			 * per product per page. Used by swatches.js when wrapping a
+			 * Widget 1-alone setup in a synthetic canonical form (scenario c)
+			 * and by form-field-dependency.js for availability calculations.
+			 *
+			 * When Widget 2 (canonical) is also present on the page, its form
+			 * carries data-product_variations natively — JS reconciliation
+			 * prefers the form's attribute and ignores the script tag.
+			 */
+			if ( $registry->should_emit_json( $product_id ) ) :
+				$variations_json = wp_json_encode( $product->get_available_variations() );
+				?>
+				<script type="application/json"
+				        class="wse-variations-json"
+				        data-product-id="<?php echo absint( $product_id ); ?>"><?php
+					// JSON in a <script type="application/json"> block is treated
+					// as data, not script — no XSS surface, no escaping needed
+					// beyond wp_json_encode's UTF-8 normalisation.
+					echo $variations_json; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				?></script>
+				<?php
+			endif;
+			?>
 
 		</div><!-- .wse-widget-swatches -->
 		<?php
+		remove_filter( 'wse_renderer_emit_select', $emit_select_false, 99 );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

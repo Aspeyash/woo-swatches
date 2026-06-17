@@ -45,7 +45,9 @@ $classes = array( 'wse-swatch', 'wse-swatch-image' );
 if ( $is_selected )    { $classes[] = 'selected'; }
 if ( ! $is_available ) { $classes[] = 'disabled'; }
 
-$tabindex = $is_selected ? '0' : '-1';
+// B5 — tabindex 0 for selected OR first-focusable when no default selection.
+$is_first_focusable = isset( $is_first_focusable ) ? (bool) $is_first_focusable : false;
+$tabindex           = ( $is_selected || $is_first_focusable ) ? '0' : '-1';
 ?>
 <li class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>"
 	role="radio"

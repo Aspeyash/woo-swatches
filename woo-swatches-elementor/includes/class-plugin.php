@@ -84,6 +84,10 @@ class WSE_Plugin {
 		require_once WSE_PATH . 'includes/class-cache.php';
 		$this->cache = WSE_Cache::instance();
 
+		// v1.1.0 (B3) — Per-page form registry coordinating canonical/presenter ownership
+		require_once WSE_PATH . 'includes/class-form-registry.php';
+		WSE_Form_Registry::instance();
+
 		// Phase 6  — Core swatch renderer + locate_template()
 		require_once WSE_PATH . 'includes/class-swatch-renderer.php';
 		$this->swatch_renderer = WSE_Swatch_Renderer::instance();
@@ -130,20 +134,24 @@ class WSE_Plugin {
 		add_action( 'init', array( $this, 'load_textdomain' ) );
 
 		// Gap 54 — Register custom swatch image size (80×80 hard crop)
-		// after_setup_theme is the correct hook for add_image_size()
 		add_action( 'after_setup_theme', array( $this, 'register_image_sizes' ) );
 
-		// Gap 3  — Body class state machine (drives ALL CSS states declaratively)
-		// Mirrors Emran Ahmed's exact woo_variation_swatches_stylesheet_* pattern
+		// Gap 3  — Body class state machine
 		add_filter( 'body_class', array( $this, 'body_classes' ) );
 
+		// v1.1.0 (Feature A) — "View Cart" link toggle.
+		add_filter( 'wc_add_to_cart_message_html',         array( $this, 'maybe_strip_view_cart_link' ), 20, 2 );
+		add_filter( 'woocommerce_add_to_cart_fragments',   array( $this, 'maybe_strip_view_cart_in_fragments' ), 20 );
+
+		// v1.1.0 (Feature A) — propagate the toggle into WSEParams JS payload.
+		add_filter( 'wse_frontend_params',                 array( $this, 'inject_view_cart_param' ), 10, 1 );
+
+		// v1.1.0 — Hard-cut migration notice for stale template overrides.
+		add_action( 'admin_notices',                       array( $this, 'maybe_render_template_migration_notice' ) );
+		add_action( 'admin_post_wse_dismiss_template_notice', array( $this, 'handle_dismiss_template_notice' ) );
+
 		// Gap 26 — Elementor category + widget hooks.
-		// These fire during Elementor's init, which is always after plugins_loaded,
-		// so registering them here is safe regardless of plugin load order.
-		// Widget PHP files are require_once'd only inside register_elementor_widgets()
-		// where \Elementor\Widget_Base is guaranteed to exist — never in includes().
 		if ( did_action( 'elementor/loaded' ) ) {
-			// Elementor already loaded before our plugin (rare edge case) — bind now.
 			$this->register_elementor_hooks();
 		} else {
 			add_action( 'elementor/loaded', array( $this, 'register_elementor_hooks' ) );
@@ -307,6 +315,176 @@ class WSE_Plugin {
 		require_once WSE_PATH . 'includes/class-settings.php';
 		$pages[] = new WSE_Settings();
 		return $pages;
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// v1.1.0 (Feature A) — "View Cart" link toggle filter callbacks
+	// ─────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Strips the View Cart anchor (<a class="wc-forward">) from
+	 * wc_add_to_cart_message_html when the user has disabled the toggle.
+	 *
+	 * @param string|mixed $message HTML message produced by WC.
+	 * @param array|int    $products Products map (unused).
+	 * @return string|mixed
+	 */
+	public function maybe_strip_view_cart_link( $message, $products = array() ) {
+		if ( ! is_string( $message ) ) {
+			return $message;
+		}
+		if ( 'yes' === get_option( 'wse_show_view_cart_link', 'yes' ) ) {
+			return $message;
+		}
+		return preg_replace(
+			'/<a[^>]*class="[^"]*\bwc-forward\b[^"]*"[^>]*>[\s\S]*?<\/a>/i',
+			'',
+			$message
+		);
+	}
+
+	/**
+	 * Strips the same anchor from any string fragment that ships an
+	 * embedded View Cart button (mini-cart notice fragment, etc).
+	 *
+	 * @param array $fragments WC fragment map.
+	 * @return array
+	 */
+	public function maybe_strip_view_cart_in_fragments( $fragments ): array {
+		if ( ! is_array( $fragments ) ) {
+			return (array) $fragments;
+		}
+		if ( 'yes' === get_option( 'wse_show_view_cart_link', 'yes' ) ) {
+			return $fragments;
+		}
+		foreach ( $fragments as $key => $value ) {
+			if ( is_string( $value ) ) {
+				$fragments[ $key ] = preg_replace(
+					'/<a[^>]*class="[^"]*\bwc-forward\b[^"]*"[^>]*>[\s\S]*?<\/a>/i',
+					'',
+					$value
+				);
+			}
+		}
+		return $fragments;
+	}
+
+	/**
+	 * Adds show_view_cart_link to the WSEParams payload localized to JS,
+	 * so add-to-cart.js can also strip on the client when stale page-cache
+	 * fragments arrive.
+	 *
+	 * @param array $params Existing WSEParams payload.
+	 * @return array
+	 */
+	public function inject_view_cart_param( array $params ): array {
+		$params['show_view_cart_link'] = 'yes' === get_option( 'wse_show_view_cart_link', 'yes' );
+		return $params;
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// v1.1.0 — Hard-cut template-override migration notice
+	// ─────────────────────────────────────────────────────────────────────
+
+	/**
+	 * v1.1.0 templates have meaningfully different markup vs v1.0.5.
+	 * Stores carrying child-theme overrides will likely render incorrectly
+	 * until the overrides are re-synced. This admin notice surfaces the
+	 * affected files exactly once per site (dismiss persists in the
+	 * wse_template_override_acks option).
+	 */
+	public function maybe_render_template_migration_notice(): void {
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			return;
+		}
+
+		$ack_key  = 'wse_v1_1_template_migration';
+		$ack_list = (array) get_option( 'wse_template_override_acks', array() );
+		if ( in_array( $ack_key, $ack_list, true ) ) {
+			return;
+		}
+
+		$overrides = $this->detect_stale_template_overrides();
+		if ( empty( $overrides ) ) {
+			return;
+		}
+
+		$dismiss_url = wp_nonce_url(
+			admin_url( 'admin-post.php?action=wse_dismiss_template_notice' ),
+			'wse_dismiss_template_notice'
+		);
+		?>
+		<div class="notice notice-warning is-dismissible">
+			<p>
+				<strong><?php esc_html_e( 'ZYMARG Variation Swatches v1.1.0 — Template override action required', 'woo-swatches-elementor' ); ?></strong>
+			</p>
+			<p>
+				<?php esc_html_e( 'The following child-theme overrides were written for an earlier template structure (v1.0.5) and will not work correctly until updated to match the v1.1.0 templates:', 'woo-swatches-elementor' ); ?>
+			</p>
+			<ul style="list-style:disc;margin-left:24px">
+				<?php foreach ( $overrides as $rel ) : ?>
+					<li><code><?php echo esc_html( $rel ); ?></code></li>
+				<?php endforeach; ?>
+			</ul>
+			<p>
+				<a href="<?php echo esc_url( $dismiss_url ); ?>" class="button button-secondary">
+					<?php esc_html_e( 'I have re-synced these — dismiss this notice', 'woo-swatches-elementor' ); ?>
+				</a>
+			</p>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Returns the relative paths of any plugin templates that have a
+	 * theme/child-theme override on disk. We don't try to inspect the
+	 * override contents — the notice is a "hey, double-check these"
+	 * reminder, not an automated diff.
+	 *
+	 * @return array<int, string>
+	 */
+	private function detect_stale_template_overrides(): array {
+		$relatives = array(
+			'woo-swatches-elementor/add-to-cart/variable.php',
+			'woo-swatches-elementor/swatches/wrapper.php',
+			'woo-swatches-elementor/swatches/color.php',
+			'woo-swatches-elementor/swatches/image.php',
+			'woo-swatches-elementor/swatches/label.php',
+		);
+
+		$bases = array(
+			get_stylesheet_directory(),
+			get_template_directory(),
+		);
+
+		$found = array();
+		foreach ( $bases as $base ) {
+			foreach ( $relatives as $rel ) {
+				$path = $base . '/' . $rel;
+				if ( file_exists( $path ) ) {
+					$found[] = str_replace( ABSPATH, '', $path );
+				}
+			}
+		}
+		return array_values( array_unique( $found ) );
+	}
+
+	/**
+	 * Records the v1.1.0 template-migration notice as acknowledged.
+	 */
+	public function handle_dismiss_template_notice(): void {
+		check_admin_referer( 'wse_dismiss_template_notice' );
+
+		if ( ! current_user_can( 'manage_woocommerce' ) ) {
+			wp_die( esc_html__( 'Insufficient permissions.', 'woo-swatches-elementor' ), '', 403 );
+		}
+
+		$ack_list   = (array) get_option( 'wse_template_override_acks', array() );
+		$ack_list[] = 'wse_v1_1_template_migration';
+		update_option( 'wse_template_override_acks', array_values( array_unique( $ack_list ) ) );
+
+		wp_safe_redirect( wp_get_referer() ?: admin_url() );
+		exit;
 	}
 
 }
