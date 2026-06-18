@@ -51,14 +51,66 @@
 	 * The server-side filter strips the anchor when disabled, but stale
 	 * fragments from page caches may still contain it; this client-side
 	 * value lets us also strip on the client when needed.
+	 *
+	 * v1.1.3 — accepts an optional jQuery context (the canonical form or
+	 * any descendant of an Add to Cart widget) so the per-widget
+	 * `data-show-view-cart` override (Inherit / Yes / No) takes precedence
+	 * over the global WSEParams.show_view_cart_link.
+	 *
+	 * @param {jQuery} [$context] Form or any element inside the widget wrapper.
+	 * @returns {boolean}
 	 */
-	function shouldShowViewCart() {
+	function shouldShowViewCart( $context ) {
+
+		// Per-widget override beats the global setting.
+		if ( $context && $context.length ) {
+			var $wrap = $context.closest( '.wse-widget-add-to-cart' );
+			if ( ! $wrap.length ) {
+				// Form linkage via HTML5 form="..." — try matching by form id.
+				var formId = $context.attr( 'id' );
+				if ( formId ) {
+					$wrap = $( '.wse-widget-add-to-cart[data-form-id="' + formId + '"]' ).first();
+				}
+			}
+			if ( $wrap.length ) {
+				var setting = String( $wrap.attr( 'data-show-view-cart' ) || 'inherit' ).toLowerCase();
+				if ( 'yes' === setting ) { return true; }
+				if ( 'no'  === setting ) { return false; }
+				// 'inherit' falls through to the global setting.
+			}
+		}
+
 		if ( window.WSEParams && typeof WSEParams.show_view_cart_link !== 'undefined' ) {
 			return WSEParams.show_view_cart_link !== false
 				&& WSEParams.show_view_cart_link !== 'no'
 				&& WSEParams.show_view_cart_link !== 0;
 		}
 		return true;
+	}
+
+	/**
+	 * v1.1.3 — When at least one Add to Cart widget on the page has its
+	 * per-widget "Show View Cart Link" override set to "No", strip the
+	 * `<a class="wc-forward">View cart</a>` link from any pre-existing
+	 * WooCommerce notices already rendered into the DOM (e.g. a notice
+	 * persisted in the WC session from a previous page-load add-to-cart
+	 * action). Without this, refreshing the page would still show the
+	 * View cart link inline next to the button even though the merchant
+	 * disabled it on the widget.
+	 */
+	function applyPerWidgetViewCartHiding() {
+		if ( ! $( '.wse-widget-add-to-cart[data-show-view-cart="no"]' ).length ) {
+			return;
+		}
+
+		// Remove the standalone View cart anchor wherever WC may render it.
+		$( '.woocommerce-message a.wc-forward, ' +
+		   '.woocommerce-info a.wc-forward, ' +
+		   '.woocommerce-error a.wc-forward, ' +
+		   '.wc-block-components-notice-banner a.wc-forward, ' +
+		   '.wse-widget-add-to-cart a.wc-forward, ' +
+		   '.wse-widget-add-to-cart .added_to_cart.wc-forward'
+		).remove();
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
@@ -341,7 +393,7 @@
 		setBtnState( $btn, BTN_ADDED );
 
 		if ( response && response.fragments ) {
-			applyFragments( response.fragments );
+			applyFragments( response.fragments, $form );
 		}
 
 		$( document.body ).trigger( 'wc_fragment_refresh' );
@@ -369,9 +421,13 @@
 	/**
 	 * Applies a WC fragments map to the DOM, optionally stripping the
 	 * View Cart link if the global setting is OFF (Feature A).
+	 *
+	 * v1.1.3 — accepts a context jQuery object so the per-widget
+	 * "Show View Cart Link" override (data-show-view-cart on the widget
+	 * wrapper) is honoured before falling back to the global setting.
 	 */
-	function applyFragments( fragments ) {
-		var stripViewCart = ! shouldShowViewCart();
+	function applyFragments( fragments, $context ) {
+		var stripViewCart = ! shouldShowViewCart( $context );
 
 		$.each( fragments, function ( key, value ) {
 			if ( stripViewCart && typeof value === 'string' ) {
@@ -384,6 +440,13 @@
 			}
 			$( key ).replaceWith( value );
 		} );
+
+		// v1.1.3 — sweep the page after fragments have been applied so any
+		// inline notices that received the new HTML (and any older notices
+		// already on the page) get the link removed too.
+		if ( stripViewCart ) {
+			applyPerWidgetViewCartHiding();
+		}
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
@@ -409,7 +472,7 @@
 				break;
 			case BTN_ADDED:
 				$btn.addClass( 'wse-atc-added' )
-				    .text( i18n.added || 'Added \u2713' );
+				    .text( i18n.added || 'Added to cart' );
 				break;
 			case BTN_ERROR:
 				$btn.addClass( 'wse-atc-error' )
@@ -609,7 +672,7 @@
 	 * disabled, the toast is just the message; when enabled, a small
 	 * "View cart" link is appended.
 	 */
-	function showAddedToast() {
+	function showAddedToast( $context ) {
 		// Server-side toggle off → do nothing.
 		if ( window.WSEParams && WSEParams.show_added_toast === false ) {
 			return;
@@ -635,8 +698,9 @@
 			.text( msg )
 			.appendTo( $toast );
 
-		// Optional View Cart link — respects the existing wse_show_view_cart_link toggle.
-		if ( shouldShowViewCart() && window.WSEParams && WSEParams.cart_url ) {
+		// v1.1.3 — Optional View Cart link. Respects the per-widget
+		// override before the global wse_show_view_cart_link toggle.
+		if ( shouldShowViewCart( $context ) && window.WSEParams && WSEParams.cart_url ) {
 			$( '<a/>', {
 				'class' : 'wse-toast-link',
 				'href'  : WSEParams.cart_url,
@@ -667,6 +731,11 @@
 		initQuantityStepper();
 		initStickyBodyPadding();
 
+		// v1.1.3 — sweep persisted WC notices on page load so the per-widget
+		// "Show View Cart Link = No" override hides links that are already
+		// in the DOM from a previous page-load add-to-cart action.
+		applyPerWidgetViewCartHiding();
+
 		// v1.1.1 — Toast on archive add-to-cart success.
 		// onAddToCartSuccess() calls showAddedToast() directly for the
 		// canonical-form path. The archive path also fires wse:addedToCart
@@ -674,8 +743,9 @@
 		// here to reach the toast for archive adds too. Idempotent off/on.
 		$( document.body )
 			.off( 'wse:addedToCart.wse-toast' )
-			.on( 'wse:addedToCart.wse-toast', function () {
-				showAddedToast();
+			.on( 'wse:addedToCart.wse-toast', function ( e, data ) {
+				// v1.1.3 — pass form context so per-widget View Cart toggle wins.
+				showAddedToast( data && data.$form ? data.$form : null );
 			} );
 	}
 

@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.1.2
+Stable tag: 1.1.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,24 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.1.3 =
+**Patch: orphan Presenter Mode actually works, per-widget View Cart toggle, cleaner button text.**
+
+**Fix: Orphan Presenter Mode now functional**
+* When Presenter Mode is enabled on a widget that has no canonical sibling on the page, the auto-synthesised hidden form now binds WooCommerce's full variation engine (`$.fn.wc_variation_form()`) so swatch clicks correctly populate `variation_id` and the presenter button submits correctly.
+* The synthetic form's hidden `<select>` elements now contain one `<option value="...">` for every distinct value referenced by the product's variations — previously a single empty option meant `jQuery.val(x)` had no matching option to mark selected, silently breaking cross-widget sync.
+
+**New: Per-widget "Show View Cart Link" toggle**
+* New Behavior control on the Add to Cart widget: **Inherit from settings / Yes / No**. Default is Inherit (uses the global WC Settings → WooSwatches → Display value).
+* When set to **No**, the widget strips the `<a class="wc-forward">View cart</a>` anchor everywhere it appears: inline next to the Add to Cart button (WC's `wc_add_to_cart_message_html`), the bottom-right toast notification, the WooCommerce mini-cart fragment, and any pre-existing notices already rendered into the DOM (handled at DOMReady so refreshing the page doesn't show a stale link).
+* Lets merchants disable the "View cart" link per widget instance without affecting the global setting.
+
+**UX: Cleaner button success text**
+* The localized i18n string `Added to cart!` is now `Added to cart` (no exclamation mark).
+* JS fallback in the success state changed from `Added ✓` to `Added to cart`.
+* Defensive CSS rule (`assets/css/add-to-cart.css`) suppresses any `::before` / `::after` pseudo-element a theme or fragment may inject onto the `.wse-atc-button` (and its loading / added / error variants) — eliminates the stray "✓" or icon some themes (Astra Pro, Flatsome) add next to the button text.
+* The toast's own ✓ icon is unaffected — that's a real `<span>`, not a pseudo-element.
 
 = 1.1.2 =
 **Critical hotfix: Dokan Pro Order Min Max TypeError on variable products.**
@@ -244,6 +262,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Full WCAG AA keyboard accessibility.
 
 == Upgrade Notice ==
+
+= 1.1.3 =
+Patch: orphan Presenter Mode now actually works (auto-synthesised hidden form binds WC's variation engine), per-widget "Show View Cart Link" toggle in the Add to Cart widget (Inherit / Yes / No), success button text cleaned up to just "Added to cart", defensive CSS suppresses theme-injected pseudo-elements on the button. Drop-in replacement for v1.1.2.
 
 = 1.1.2 =
 CRITICAL: fixes a fatal PHP TypeError on Dokan Pro stacks with Order Min Max module enabled. v1.1.1 users on Dokan should update immediately. JS preventDefault fix + defensive PHP variation_id coercion. Drop-in replacement.

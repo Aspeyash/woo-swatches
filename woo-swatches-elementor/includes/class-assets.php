@@ -214,7 +214,7 @@ class WSE_Assets {
 			'wc_ajax_url' => esc_url( WC_AJAX::get_endpoint( '%%endpoint%%' ) ),
 			'nonce'       => wp_create_nonce( 'wse_nonce' ),
 			'i18n'        => array(
-				'added'      => esc_html__( 'Added to cart!',         'woo-swatches-elementor' ),
+				'added'      => esc_html__( 'Added to cart',         'woo-swatches-elementor' ),
 				'adding'     => esc_html__( 'Adding…',                'woo-swatches-elementor' ),
 				'error'      => esc_html__( 'Something went wrong.',  'woo-swatches-elementor' ),
 				'select_opt' => esc_html__( 'Please select an option before adding this product to your cart.', 'woo-swatches-elementor' ),

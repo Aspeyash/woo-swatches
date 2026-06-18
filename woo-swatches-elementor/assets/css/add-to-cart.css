@@ -410,3 +410,29 @@ body.wse-has-sticky-presenter .wse-toast {
 		bottom: calc(16px + 80px);
 	}
 }
+
+
+
+/* ─── v1.1.3 — Suppress theme/plugin-injected ::before/::after on button ──── */
+/*                                                                            */
+/* Some themes (Astra Pro, Flatsome) and WC fragment HTML add a checkmark    */
+/* or cart icon as a pseudo-element on the Add to Cart button — visible as   */
+/* an extra ✓ or icon next to the button text. This rule prevents those     */
+/* injected pseudo-elements from rendering, keeping the button text exactly  */
+/* as the localized i18n string (e.g. "Added to cart" with no extra signs).  */
+/*                                                                            */
+/* The toast's own ✓ icon (a real <span class="wse-toast-icon">) is          */
+/* unaffected — that's an actual DOM element, not a pseudo-element.          */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+.wse-atc-button::before,
+.wse-atc-button::after,
+.wse-atc-button.wse-atc-loading::before,
+.wse-atc-button.wse-atc-loading::after,
+.wse-atc-button.wse-atc-added::before,
+.wse-atc-button.wse-atc-added::after,
+.wse-atc-button.wse-atc-error::before,
+.wse-atc-button.wse-atc-error::after {
+	content: none !important;
+	display: none !important;
+}

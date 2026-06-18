@@ -173,14 +173,25 @@
 				return; // no JSON available — cannot synthesise
 			}
 
-			// Collect every attribute key referenced by any variation.
-			var attrKeys = {};
+			// v1.1.3 — Collect every attribute key AND every distinct value
+			// referenced for that attribute by any variation. The previous
+			// version emitted a single empty <option> per select, which
+			// meant jQuery's $select.val('black') had no matching option to
+			// mark selected — so cross-widget sync silently failed.
+			var attrValues = {}; // { attribute_pa_color: { black: true, blue: true }, ... }
 			variations.forEach( function ( v ) {
-				if ( v && v.attributes ) {
-					Object.keys( v.attributes ).forEach( function ( k ) {
-						attrKeys[ k ] = true;
-					} );
+				if ( ! v || ! v.attributes ) {
+					return;
 				}
+				Object.keys( v.attributes ).forEach( function ( k ) {
+					if ( ! attrValues[ k ] ) {
+						attrValues[ k ] = {};
+					}
+					var val = String( v.attributes[ k ] || '' );
+					if ( val ) {
+						attrValues[ k ][ val ] = true;
+					}
+				} );
 			} );
 
 			// Build the form.
@@ -194,11 +205,21 @@
 				.css( { position: 'absolute', left: '-9999px', width: 0, height: 0, overflow: 'hidden' } )
 				.attr( 'aria-hidden', 'true' );
 
-			Object.keys( attrKeys ).forEach( function ( name ) {
+			Object.keys( attrValues ).forEach( function ( name ) {
 				var $select = $( '<select/>' )
 					.attr( 'name', name )
 					.attr( 'data-attribute_name', name );
+
+				// Empty placeholder option so $select.val('') resolves.
 				$( '<option/>' ).val( '' ).text( '' ).appendTo( $select );
+
+				// One option per distinct value referenced in variation data
+				// so cross-widget sync's $select.val(value).trigger('change')
+				// finds the matching option and the value actually sticks.
+				Object.keys( attrValues[ name ] ).forEach( function ( value ) {
+					$( '<option/>' ).val( value ).text( value ).appendTo( $select );
+				} );
+
 				$form.append( $select );
 			} );
 
@@ -217,6 +238,21 @@
 			$( 'body' ).append( $form );
 
 			$form.data( 'product_variations', variations );
+
+			// v1.1.3 — Bind WC's variation engine to the synthetic form.
+			//
+			// Without this, swatch clicks set the synthetic select value but
+			// nothing fires `found_variation` to populate `variation_id`, so
+			// the presenter button click would silently bail at our
+			// variation-required guard. Calling wc_variation_form() binds
+			// WC's full engine: change handler on selects, found_variation
+			// dispatch, variation_id population, button enable/disable, etc.
+			//
+			// WC's own document.ready loop already ran by this point, which
+			// is why we have to call it explicitly on each newly-built form.
+			if ( typeof $.fn.wc_variation_form === 'function' ) {
+				$form.wc_variation_form();
+			}
 		} );
 	}
 

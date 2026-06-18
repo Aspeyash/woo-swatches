@@ -196,6 +196,31 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			)
 		);
 
+		// v1.1.3 — Per-widget "View Cart" link toggle.
+		$this->add_control(
+			'view_cart_link_heading',
+			array(
+				'label'     => esc_html__( '"View Cart" Link', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_control(
+			'show_view_cart_link',
+			array(
+				'label'       => esc_html__( 'Show "View Cart" Link', 'woo-swatches-elementor' ),
+				'description' => esc_html__( 'Controls the "View cart" link that appears next to the Add to Cart button after a successful add, plus the link in the bottom-right toast and the WooCommerce mini-cart fragment.', 'woo-swatches-elementor' ),
+				'type'        => \Elementor\Controls_Manager::SELECT,
+				'options'     => array(
+					'inherit' => esc_html__( 'Inherit from settings', 'woo-swatches-elementor' ),
+					'yes'     => esc_html__( 'Yes — show the link',    'woo-swatches-elementor' ),
+					'no'      => esc_html__( 'No — hide everywhere',   'woo-swatches-elementor' ),
+				),
+				'default'     => 'inherit',
+			)
+		);
+
 		$this->add_control(
 			'advanced_heading',
 			array(
@@ -561,9 +586,13 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 		}
 
 		$this->add_render_attribute( 'wrapper', array(
-			'class'           => $wrapper_class,
-			'data-product-id' => absint( $product_id ),
-			'data-form-id'    => $canonical_form_id,
+			'class'               => $wrapper_class,
+			'data-product-id'     => absint( $product_id ),
+			'data-form-id'        => $canonical_form_id,
+			// v1.1.3 — per-widget "View Cart" link control. Read by JS in
+			// shouldShowViewCart() to decide whether to strip wc-forward
+			// links from fragments, the toast, and pre-existing notices.
+			'data-show-view-cart' => sanitize_key( (string) ( $settings['show_view_cart_link'] ?? 'inherit' ) ),
 		) );
 
 		// Expose state to the template via in-scope variables.
