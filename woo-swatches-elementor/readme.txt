@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.1.3
+Stable tag: 1.1.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,19 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.1.4 =
+**Patch: View Cart link is now correctly hidden everywhere when the toggle is off.**
+
+When the "Show View Cart Link" setting (global or per-widget) is set to OFF, an inline `<a class="added_to_cart wc-forward">View cart</a>` link still appeared next to the Add to Cart button after a successful AJAX add. Root cause: WooCommerce's own frontend `wc-add-to-cart.js` binds an `added_to_cart` event listener that injects this link client-side, **after** my server-side `wc_add_to_cart_message_html` filter has already run. My v1.1.3 server-side filter could not reach this DOM injection.
+
+**Fix:**
+* New `added_to_cart.wse-strip-view-cart` listener in `assets/js/add-to-cart.js` removes the WC-injected link on the next tick (using `setTimeout(0)` so WC's listener runs first, then we strip).
+* `applyPerWidgetViewCartHiding()` was renamed to `applyViewCartHiding()` and now triggers when EITHER the global `wse_show_view_cart_link` setting is off OR any widget has `data-show-view-cart="no"` (previously only the per-widget override triggered cleanup).
+* Selector list expanded to also catch `a.added_to_cart.wc-forward` outside of widget wrappers (covers themes that render the link in non-standard locations).
+* The cleanup runs at three trigger points: DOMReady, after fragment apply, and after `added_to_cart` (catches WC's client-side injection). All three paths are idempotent.
+
+After installing, hard-refresh (Ctrl+Shift+R / Cmd+Shift+R) the live product page to flush cached JS. The View cart link will be hidden in all three locations: WC's top notice, inline beside the button, and the bottom-right toast.
 
 = 1.1.3 =
 **Patch: orphan Presenter Mode actually works, per-widget View Cart toggle, cleaner button text.**
@@ -262,6 +275,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Full WCAG AA keyboard accessibility.
 
 == Upgrade Notice ==
+
+= 1.1.4 =
+Patch: closes the gap where WooCommerce's frontend JS injected a "View cart" link inline beside the button even when "Show View Cart Link" was toggled off. The link is now correctly hidden in all three locations (WC notice, inline next to button, toast). Drop-in replacement for v1.1.3. Hard-refresh the product page after install.
 
 = 1.1.3 =
 Patch: orphan Presenter Mode now actually works (auto-synthesised hidden form binds WC's variation engine), per-widget "Show View Cart Link" toggle in the Add to Cart widget (Inherit / Yes / No), success button text cleaned up to just "Added to cart", defensive CSS suppresses theme-injected pseudo-elements on the button. Drop-in replacement for v1.1.2.

@@ -97,21 +97,38 @@
 	 * action). Without this, refreshing the page would still show the
 	 * View cart link inline next to the button even though the merchant
 	 * disabled it on the widget.
+	 *
+	 * v1.1.4 — Now also fires when the GLOBAL `wse_show_view_cart_link`
+	 * setting is off (not just per-widget). Previously the global setting
+	 * relied on the server-side `wc_add_to_cart_message_html` filter
+	 * alone, which doesn't catch the `<a class="added_to_cart wc-forward">`
+	 * link that WooCommerce's own frontend `wc-add-to-cart.js` listener
+	 * injects after the button on the `added_to_cart` event.
 	 */
-	function applyPerWidgetViewCartHiding() {
-		if ( ! $( '.wse-widget-add-to-cart[data-show-view-cart="no"]' ).length ) {
+	function applyViewCartHiding() {
+		var globalHidden       = ! shouldShowViewCart(); // no context → global setting
+		var anyPerWidgetHidden = $( '.wse-widget-add-to-cart[data-show-view-cart="no"]' ).length > 0;
+
+		if ( ! globalHidden && ! anyPerWidgetHidden ) {
 			return;
 		}
 
-		// Remove the standalone View cart anchor wherever WC may render it.
+		// Remove the standalone View cart anchor wherever WC may render it,
+		// including the `<a class="added_to_cart wc-forward">` link that
+		// WooCommerce's wc-add-to-cart.js listener injects after the button
+		// on the added_to_cart event (the link the user circled in red).
 		$( '.woocommerce-message a.wc-forward, ' +
 		   '.woocommerce-info a.wc-forward, ' +
 		   '.woocommerce-error a.wc-forward, ' +
 		   '.wc-block-components-notice-banner a.wc-forward, ' +
 		   '.wse-widget-add-to-cart a.wc-forward, ' +
-		   '.wse-widget-add-to-cart .added_to_cart.wc-forward'
+		   '.wse-widget-add-to-cart .added_to_cart.wc-forward, ' +
+		   'a.added_to_cart.wc-forward'
 		).remove();
 	}
+
+	// v1.1.4 — Backwards-compat alias so existing callers still work.
+	var applyPerWidgetViewCartHiding = applyViewCartHiding;
 
 	// ─────────────────────────────────────────────────────────────────────
 	// 1. Cross-widget sync — Widget 1 click → canonical hidden select
@@ -444,8 +461,10 @@
 		// v1.1.3 — sweep the page after fragments have been applied so any
 		// inline notices that received the new HTML (and any older notices
 		// already on the page) get the link removed too.
+		// v1.1.4 — applyViewCartHiding() also strips WC's
+		// `.added_to_cart.wc-forward` link injection from the DOM.
 		if ( stripViewCart ) {
-			applyPerWidgetViewCartHiding();
+			applyViewCartHiding();
 		}
 	}
 
@@ -734,7 +753,19 @@
 		// v1.1.3 — sweep persisted WC notices on page load so the per-widget
 		// "Show View Cart Link = No" override hides links that are already
 		// in the DOM from a previous page-load add-to-cart action.
-		applyPerWidgetViewCartHiding();
+		applyViewCartHiding();
+
+		// v1.1.4 — Strip WC's client-side <a class="added_to_cart wc-forward">
+		// link AFTER WooCommerce's own wc-add-to-cart.js listener has injected
+		// it on the added_to_cart event. setTimeout(0) lets WC's listener
+		// finish first, then we remove the link on the next tick.
+		$( document.body )
+			.off( 'added_to_cart.wse-strip-view-cart' )
+			.on( 'added_to_cart.wse-strip-view-cart', function ( e, fragments, cart_hash, $button ) {
+				setTimeout( function () {
+					applyViewCartHiding();
+				}, 0 );
+			} );
 
 		// v1.1.1 — Toast on archive add-to-cart success.
 		// onAddToCartSuccess() calls showAddedToast() directly for the
