@@ -345,8 +345,14 @@ class WSE_Plugin {
 		require_once WSE_PATH . 'widgets/class-widget-swatches.php';
 		require_once WSE_PATH . 'widgets/class-widget-add-to-cart.php';
 
+		// v1.2.0 — Widget 3 (ZYMARG Price). Owns price rendering on simple
+		// and variable products and stays in sync with Widget 1 via the
+		// canonical form's variation events. See widgets/class-widget-price.php.
+		require_once WSE_PATH . 'widgets/class-widget-price.php';
+
 		$widgets_manager->register( new WSE_Widget_Swatches() );
 		$widgets_manager->register( new WSE_Widget_Add_To_Cart() );
+		$widgets_manager->register( new WSE_Widget_Price() );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

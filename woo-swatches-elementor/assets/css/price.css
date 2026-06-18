@@ -1,0 +1,34 @@
+/**
+ * WooSwatches for Elementor — ZYMARG Price Widget Stylesheet (v1.2.0)
+ *
+ * All visual rules are gated by body.wse-stylesheet-enabled so when the
+ * "Plugin Stylesheet" toggle is off in WooCommerce → Settings → WooSwatches,
+ * none of these rules apply and the theme's CSS has full control.
+ *
+ * Phase 2 will fill in the full ZYMARG-branded styles. Phase 1 ships
+ * minimal scaffold styles so the widget is positioned correctly in the
+ * Elementor preview.
+ *
+ * @package WooSwatchesElementor
+ * @since   1.2.0
+ */
+
+/* ─── Scaffold (Phase 1) ─────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .zymarg-price {
+	display:     inline-flex;
+	align-items: baseline;
+	gap:         .5em;
+	line-height: 1.2;
+	font-family: inherit;
+}
+
+body.wse-stylesheet-enabled .zymarg-price--scaffold {
+	color: #534152; /* Text Muted (ZYMARG token) */
+}
+
+body.wse-stylesheet-enabled .zymarg-price-scaffold-note {
+	font-style: italic;
+	font-size:  .875rem;
+	opacity:    .6;
+}

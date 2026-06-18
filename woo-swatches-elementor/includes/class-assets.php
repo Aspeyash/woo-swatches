@@ -114,6 +114,19 @@ class WSE_Assets {
 			$v,
 			true
 		);
+
+		// v1.2.0 — Widget 3 (ZYMARG Price) variation sync.
+		// Listens to the canonical form's `found_variation` / `reset_data`
+		// events fired by wc-add-to-cart-variation.js and re-renders any
+		// .zymarg-price[data-form-id] on the page. Loaded only when Widget 3
+		// is in the layout (declared via get_script_depends()).
+		wp_register_script(
+			'wse-price',
+			$u . 'price' . $s . '.js',
+			array( 'jquery', 'wc-add-to-cart-variation' ),
+			$v,
+			true
+		);
 	}
 
 	/**
@@ -153,6 +166,18 @@ class WSE_Assets {
 		wp_register_style(
 			'wse-add-to-cart',
 			$u . 'add-to-cart.css',
+			array(),
+			$v
+		);
+
+		// v1.2.0 — Widget 3 (ZYMARG Price) stylesheet.
+		// Loaded only when Widget 3 is in the page layout (declared via
+		// get_style_depends() on the widget). Built on the same body-class
+		// gating pattern as wse-swatches: visual rules apply only when
+		// .wse-stylesheet-enabled is on the body.
+		wp_register_style(
+			'wse-price',
+			$u . 'price.css',
 			array(),
 			$v
 		);
@@ -375,6 +400,9 @@ class WSE_Assets {
 			'add_to_cart_js'            => 'wse-add-to-cart',
 			'add_to_cart_css'           => 'wse-add-to-cart',
 			'form_field_dependency_js'  => 'wse-form-field-dependency',
+			// v1.2.0 — Widget 3 (ZYMARG Price)
+			'price_js'                  => 'wse-price',
+			'price_css'                 => 'wse-price',
 		);
 		return $map[ $asset ] ?? '';
 	}
