@@ -1,0 +1,373 @@
+/**
+ * WooSwatches for Elementor — Main Stylesheet
+ *
+ * All visual rules are gated by body.wse-stylesheet-enabled so when the
+ * "Plugin Stylesheet" toggle is off in WooCommerce → Settings → WooSwatches,
+ * no rules apply and the theme's own CSS has full control.
+ *
+ * Shape variants are driven by body classes set in WSE_Plugin::body_classes():
+ *   body.wse-shape-rounded  — 6 px border-radius  (default)
+ *   body.wse-shape-circle   — 50% border-radius
+ *   body.wse-shape-square   — 0  border-radius
+ *
+ * OOS variants:
+ *   body.wse-oos-blur  — greyed-out swatch
+ *   body.wse-oos-cross — greyed-out + diagonal line
+ *   body.wse-oos-hide  — swatch removed from flow
+ *
+ * @package WooSwatchesElementor
+ * @version 1.0.0
+ */
+
+/* ─── CSS Custom Properties ─────────────────────────────────────────────── */
+
+:root {
+	--wse-swatch-size:         32px;
+	--wse-swatch-gap:           6px;
+	--wse-swatch-border:  1px solid rgba(0, 0, 0, .15);
+	--wse-swatch-radius:        6px;  /* rounded default */
+	--wse-swatch-active-color: #0066cc;
+	--wse-swatch-active-width:  2px;
+	--wse-swatch-oos-opacity:   .35;
+	--wse-label-padding:  4px 10px;
+	--wse-label-min-width:     32px;
+}
+
+/* ─── Swatch list reset ──────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-swatches {
+	display:         flex;
+	flex-wrap:       wrap;
+	gap:             var(--wse-swatch-gap);
+	list-style:      none;
+	margin:          0;
+	padding:         0;
+}
+
+/* ─── Base swatch item ───────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-swatch {
+	display:         inline-flex;
+	align-items:     center;
+	justify-content: center;
+	width:           var(--wse-swatch-size);
+	height:          var(--wse-swatch-size);
+	border:          var(--wse-swatch-border);
+	border-radius:   var(--wse-swatch-radius);
+	cursor:          pointer;
+	position:        relative;
+	overflow:        hidden;
+	transition:      border-color .15s ease, box-shadow .15s ease, opacity .15s ease;
+	box-sizing:      border-box;
+	flex-shrink:     0;
+	-webkit-user-select: none;
+	user-select:     none;
+}
+
+body.wse-stylesheet-enabled .wse-swatch:hover {
+	border-color: var(--wse-swatch-active-color);
+}
+
+/* Focus-visible ring (WCAG 2.4.7) */
+body.wse-stylesheet-enabled .wse-swatch:focus {
+	outline: none;
+}
+body.wse-stylesheet-enabled .wse-swatch:focus-visible {
+	outline:        2px solid var(--wse-swatch-active-color);
+	outline-offset: 2px;
+}
+
+/* ─── Selected state ─────────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-swatch.selected {
+	border-color: var(--wse-swatch-active-color);
+	box-shadow:   0 0 0 var(--wse-swatch-active-width) var(--wse-swatch-active-color);
+}
+
+/* ─── Color swatch ───────────────────────────────────────────────────────── */
+/* Background colour is applied inline from WSE_Term_Meta::get_color() */
+
+body.wse-stylesheet-enabled .wse-swatch-color {
+	/* No additional rules needed — background is inline */
+}
+
+/* ─── Image swatch ───────────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-swatch-image {
+	padding: 0;
+}
+
+body.wse-stylesheet-enabled .wse-swatch-image img {
+	display:    block;
+	width:      100%;
+	height:     100%;
+	object-fit: cover;
+}
+
+/* ─── Label / Button swatch ──────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-swatch-label,
+body.wse-stylesheet-enabled .wse-swatch-button {
+	width:          auto;
+	min-width:      var(--wse-label-min-width);
+	padding:        var(--wse-label-padding);
+	font-size:      .813rem;   /* 13px */
+	font-weight:    500;
+	line-height:    1;
+	letter-spacing: .01em;
+	white-space:    nowrap;
+	background:     #fff;
+	color:          #3c434a;
+}
+
+body.wse-stylesheet-enabled .wse-swatch-label.selected,
+body.wse-stylesheet-enabled .wse-swatch-button.selected {
+	background: var(--wse-swatch-active-color);
+	color:      #fff;
+}
+
+/* ─── Shape variants ─────────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled.wse-shape-rounded .wse-swatch {
+	border-radius: 6px;
+}
+
+body.wse-stylesheet-enabled.wse-shape-circle .wse-swatch {
+	border-radius: 50%;
+}
+
+body.wse-stylesheet-enabled.wse-shape-square .wse-swatch {
+	border-radius: 0;
+}
+
+/* Label/button swatches keep small radius regardless of global shape */
+body.wse-stylesheet-enabled .wse-swatch-label,
+body.wse-stylesheet-enabled .wse-swatch-button {
+	border-radius: 4px !important;
+}
+
+/* ─── Out-of-stock: blur ─────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled.wse-oos-blur .wse-swatch.disabled,
+body.wse-stylesheet-enabled.wse-oos-cross .wse-swatch.disabled {
+	opacity: var(--wse-swatch-oos-opacity);
+	cursor:  not-allowed;
+	pointer-events: auto; /* keep visible but non-interactive */
+}
+
+body.wse-stylesheet-enabled.wse-oos-blur .wse-swatch.disabled:hover,
+body.wse-stylesheet-enabled.wse-oos-cross .wse-swatch.disabled:hover {
+	border-color: rgba(0, 0, 0, .15); /* override hover highlight */
+	box-shadow:   none;
+}
+
+/* ─── Out-of-stock: cross-out ────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled.wse-oos-cross .wse-swatch.disabled::after {
+	content:      '';
+	position:     absolute;
+	inset:        0;
+	background:   linear-gradient(
+		to bottom right,
+		transparent calc(50% - .5px),
+		rgba(180, 0, 0, .6) calc(50% - .5px),
+		rgba(180, 0, 0, .6) calc(50% + .5px),
+		transparent calc(50% + .5px)
+	);
+}
+
+/* ─── Out-of-stock: hide ─────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled.wse-oos-hide .wse-swatch.disabled {
+	display: none;
+}
+
+/* ─── Filtered-out (form-field-dependency.js) ────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-swatch.filtered-out {
+	opacity:        .25;
+	cursor:         not-allowed;
+	pointer-events: none;
+}
+
+/* ─── Reset link ─────────────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-reset-link {
+	display:     inline-block;
+	margin-top:  6px;
+	font-size:   .75rem;
+	color:       #767676;
+	text-decoration: underline;
+	cursor:      pointer;
+}
+
+body.wse-stylesheet-enabled .wse-reset-link:hover {
+	color: #0066cc;
+}
+
+/* ─── Swatch wrap (per-attribute container) ──────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-swatch-wrap {
+	margin-bottom: 12px;
+}
+
+body.wse-stylesheet-enabled .wse-swatch-wrap:last-child {
+	margin-bottom: 0;
+}
+
+/* ─── Native passthrough attribute wrapper (non-swatch types) ────────────── */
+/* Added in v1.0.3 (Bug A fix) purely so the <select> sits inside an
+   ancestor carrying .variations, which wc-add-to-cart-variation.js
+   requires for variation matching. Reset any margin/display that WC
+   core or a theme may apply to a bare .variations selector. */
+
+body.wse-stylesheet-enabled .wse-native-attr.variations {
+	display: block;
+	margin:  0;
+	padding: 0;
+}
+
+/* ─── Widget 1 — Variation Swatches wrapper ──────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-widget-swatches {
+	width: 100%;
+}
+
+body.wse-stylesheet-enabled .wse-attr-block {
+	margin-bottom: 16px;
+}
+
+body.wse-stylesheet-enabled .wse-attr-block:last-child {
+	margin-bottom: 0;
+}
+
+/* Label row — attribute name + selected value */
+body.wse-stylesheet-enabled .wse-attr-label-row {
+	display:        flex;
+	align-items:    baseline;
+	gap:            6px;
+	margin-bottom:  8px;
+}
+
+body.wse-stylesheet-enabled .wse-attr-name {
+	font-size:   .875rem;
+	font-weight: 600;
+	color:       #1a1a2e;
+}
+
+body.wse-stylesheet-enabled .wse-attr-selected-val {
+	font-size:  .813rem;
+	color:      #767676;
+}
+
+body.wse-stylesheet-enabled .wse-attr-selected-val:empty {
+	display: none;
+}
+
+/* Label position variants */
+body.wse-stylesheet-enabled .wse-label-beside .wse-attr-label-row {
+	flex-direction:  row;
+	align-items:     center;
+}
+
+body.wse-stylesheet-enabled .wse-label-above .wse-attr-label-row {
+	flex-direction: column;
+	align-items:    flex-start;
+}
+
+body.wse-stylesheet-enabled .wse-label-none .wse-attr-label-row {
+	display: none;
+}
+
+/* Hide native WC variation select — keep accessible */
+body.wse-stylesheet-enabled .wse-select-wrap {
+	position: absolute !important;
+	width:    1px !important;
+	height:   1px !important;
+	padding:  0 !important;
+	margin:   -1px !important;
+	overflow: hidden !important;
+	clip:     rect(0, 0, 0, 0) !important;
+	border:   0 !important;
+}
+
+/* ─── Archive / shop-loop swatches ──────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-archive-swatches {
+	display:   flex;
+	flex-wrap: wrap;
+	gap:       4px;
+	margin:    8px 0 0;
+}
+
+body.wse-stylesheet-enabled .wse-archive-swatches .wse-swatch {
+	--wse-swatch-size: 24px;   /* smaller in archive loop */
+}
+
+body.wse-stylesheet-enabled .wse-archive-swatches .wse-swatch-label {
+	font-size:   .75rem;
+	padding:     3px 7px;
+	min-width:   24px;
+}
+
+body.wse-stylesheet-enabled .wse-more {
+	display:        inline-flex;
+	align-items:    center;
+	justify-content:center;
+	font-size:      .75rem;
+	color:          #767676;
+	padding:        0 4px;
+	line-height:    var(--wse-swatch-size);
+}
+
+/* ─── Stylesheet disabled ────────────────────────────────────────────────── */
+/* When "Plugin Stylesheet" is turned off the body class changes to
+   .wse-stylesheet-disabled — none of the above rules match, so nothing
+   renders and the theme has full control. No explicit rule needed. */
+
+
+
+/* ─── v1.1.6 (Bug #2) — Checkmark overlay visibility ─────────────────────── */
+/* Templates render <span class="wse-checkmark"> on every color and image
+   swatch with the intent that CSS would gate it on the .selected state.
+   That CSS rule was missing entirely from v1.1.5 and earlier, so the
+   checkmark rendered always-on regardless of selection. Restored here. */
+
+body.wse-stylesheet-enabled .wse-checkmark {
+	position:        absolute;
+	inset:           0;
+	display:         flex;
+	align-items:     center;
+	justify-content: center;
+	color:           #fff;
+	pointer-events:  none;
+	opacity:         0;
+	transition:      opacity .15s ease;
+}
+
+body.wse-stylesheet-enabled .wse-swatch.selected .wse-checkmark {
+	opacity: 1;
+}
+
+/* Per ZYMARG product preference: image swatches never show the checkmark.
+   The image itself is the indication; an overlaid checkmark obscures the
+   product image and adds no signal. */
+body.wse-stylesheet-enabled .wse-swatch-image .wse-checkmark {
+	display: none;
+}
+
+/* ─── v1.1.6 (Bug #3) — Selected label / button: no colour fill ──────────── */
+/* Previous rule painted .wse-swatch-label.selected and .wse-swatch-button.selected
+   with the active colour as background and white text, producing the
+   "theme-blue pill" effect on selection. Per ZYMARG product preference, the
+   selected state should carry no colour change at all — selection is
+   indicated by font weight and a neutral currentColor border only. */
+
+body.wse-stylesheet-enabled .wse-swatch-label.selected,
+body.wse-stylesheet-enabled .wse-swatch-button.selected {
+	background:    transparent;
+	color:         inherit;
+	border-color:  currentColor;
+	box-shadow:    none;
+	font-weight:   700;
+}

@@ -1,0 +1,44 @@
+/**
+ * WooSwatches for Elementor — RTL Stylesheet
+ *
+ * WordPress loads this file automatically in place of swatches.css
+ * when is_rtl() is true (via wp_style_add_data 'rtl' → 'replace').
+ *
+ * Only properties that need direction-flipping are listed here;
+ * everything else is inherited from swatches.css.
+ *
+ * @package WooSwatchesElementor
+ * @version 1.0.0
+ */
+
+/* ─── Flip flex directions ───────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-swatches {
+	direction: rtl;
+}
+
+body.wse-stylesheet-enabled .wse-attr-label-row {
+	direction: rtl;
+}
+
+/* ─── Tooltip — flip to right side in RTL ───────────────────────────────── */
+
+body.wse-tooltip-enabled .wse-swatch::before,
+body.wse-tooltip-enabled .wse-swatch::after {
+	left:      auto;
+	right:     50%;
+	transform: translateX(50%) translateY(4px);
+}
+
+body.wse-tooltip-enabled .wse-swatch:hover::before,
+body.wse-tooltip-enabled .wse-swatch:hover::after,
+body.wse-tooltip-enabled .wse-swatch:focus-visible::before,
+body.wse-tooltip-enabled .wse-swatch:focus-visible::after {
+	transform: translateX(50%) translateY(0);
+}
+
+/* ─── Archive swatches ───────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-archive-swatches {
+	direction: rtl;
+}

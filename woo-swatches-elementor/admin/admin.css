@@ -1,0 +1,261 @@
+/**
+ * WooSwatches for Elementor — Admin Styles
+ *
+ * Loaded only on WC attribute term edit screens (edit-pa_*)
+ * via WSE_Term_Meta::admin_enqueue() — Gap 23, Gap 52.
+ *
+ * Styles:
+ *   1. Color picker field layout
+ *   2. Image upload field layout and preview
+ *   3. Shared form field utility
+ *
+ * @package WooSwatchesElementor
+ */
+
+/* ── Shared field wrapper ───────────────────────────────────────────────── */
+
+.term-wse-color-wrap,
+.term-wse-image-wrap {
+    margin-bottom: 16px;
+}
+
+.term-wse-color-wrap label,
+.term-wse-image-wrap label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+/* ── Color picker ──────────────────────────────────────────────────────── */
+
+/*
+ * The wp-color-picker wraps the input in .wp-picker-container.
+ * We constrain its width so it doesn't stretch to full column width.
+ */
+.term-wse-color-wrap .wp-picker-container {
+    display: inline-block;
+}
+
+.term-wse-color-wrap .wse-color-picker {
+    width: 100px;
+}
+
+/* Color swatch preview shown inside the wp-color-picker button */
+.term-wse-color-wrap .wp-color-result {
+    border-radius: 4px;
+}
+
+/* ── Image upload field ────────────────────────────────────────────────── */
+
+.wse-image-upload-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Preview thumbnail — 80×80 slightly rounded square */
+.wse-image-preview {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 6px;         /* slightly rounded square — matches Gap 3 default */
+    border: 1px solid #ddd;
+    background: #f5f5f5;
+    display: block;
+    flex-shrink: 0;
+}
+
+.wse-image-preview.hidden {
+    display: none;
+}
+
+/* Action buttons column */
+.wse-image-upload-wrap .wse-upload-image-btn {
+    align-self: flex-start;
+    margin-top: 0;
+}
+
+.wse-image-upload-wrap .wse-remove-image-btn {
+    align-self: flex-start;
+    color: #b32d2e;
+    margin-top: 4px;
+    display: block;
+    font-size: 12px;
+    text-decoration: none;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.wse-image-upload-wrap .wse-remove-image-btn:hover {
+    color: #8a2020;
+    text-decoration: underline;
+}
+
+.wse-image-upload-wrap .wse-remove-image-btn.hidden {
+    display: none;
+}
+
+/* Button column flex container */
+.wse-image-upload-wrap .wse-image-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* ── Edit screen <tr> layout adjustments ──────────────────────────────── */
+
+/*
+ * On Edit Term screens, WC uses <tr> / <th> / <td> structure.
+ * Ensure our fields align with WC's standard field rows.
+ */
+.term-wse-color-wrap th,
+.term-wse-image-wrap th {
+    padding-right: 16px;
+    font-weight: 600;
+    vertical-align: top;
+    padding-top: 10px;
+}
+
+.term-wse-color-wrap td,
+.term-wse-image-wrap td {
+    padding-top: 6px;
+}
+
+/* ── Description text ─────────────────────────────────────────────────── */
+
+.term-wse-color-wrap .description,
+.term-wse-image-wrap .description {
+    margin-top: 6px;
+    color: #646970;
+    font-style: italic;
+    font-size: 12px;
+}
+
+/* ── Add Term screen <div> layout adjustments ─────────────────────────── */
+
+/*
+ * On Add Term screens, WC uses <div class="form-field"> structure.
+ * Match WC's own spacing for add-term form fields.
+ */
+div.term-wse-color-wrap,
+div.term-wse-image-wrap {
+    padding: 10px 0 6px;
+    border-top: 1px solid #eee;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LOCAL ATTRIBUTE SWATCHES METABOX
+   Product edit screen — WooSwatches → Local Attribute Swatches
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Metabox wrapper ──────────────────────────────────────────────────── */
+
+.wse-local-swatches-wrap {
+    padding: 4px 0 8px;
+}
+
+.wse-local-no-attrs {
+    color: #646970;
+    font-style: italic;
+    margin: 8px 0;
+}
+
+/* ── Per-attribute section ────────────────────────────────────────────── */
+
+.wse-local-attr-section {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    background: #fafafa;
+}
+
+.wse-local-attr-section:last-child {
+    margin-bottom: 0;
+}
+
+.wse-local-attr-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin: 0 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e2e7;
+    color: #1d2327;
+    text-transform: capitalize;
+}
+
+/* ── Type selector row ────────────────────────────────────────────────── */
+
+.wse-local-attr-type-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.wse-local-attr-type-row label {
+    font-weight: 600;
+    font-size: 12.5px;
+    white-space: nowrap;
+    margin: 0;
+}
+
+.wse-local-type-select {
+    min-width: 160px;
+}
+
+/* ── Fields label ─────────────────────────────────────────────────────── */
+
+.wse-local-fields-label {
+    font-size: 12px;
+    margin-bottom: 8px;
+    color: #646970;
+}
+
+/* ── Terms grid (color + image option rows) ───────────────────────────── */
+
+.wse-local-terms-grid {
+    display: grid;
+    grid-template-columns: repeat( auto-fill, minmax( 180px, 1fr ) );
+    gap: 10px 16px;
+}
+
+/* Each term row (label + picker) */
+.wse-local-term-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.wse-local-term-row > label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #3c434a;
+}
+
+/* Color picker constraint inside grid cell */
+.wse-local-term-row .wp-picker-container {
+    display: inline-block;
+}
+
+.wse-local-term-row .wse-local-color-picker {
+    width: 90px;
+}
+
+/* Image row — stack preview above upload controls */
+.wse-local-image-row .wse-image-upload-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+/* ── Visibility utility ───────────────────────────────────────────────── */
+
+.wse-hidden {
+    display: none !important;
+}

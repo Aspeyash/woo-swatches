@@ -1,0 +1,403 @@
+=== ZYMARG Variation Swatches for Elementor ===
+Contributors: zymarg
+Tags: woocommerce, variation swatches, elementor, color swatches, product attributes
+Requires at least: 6.4
+Tested up to: 6.7
+Requires PHP: 8.1
+WC requires at least: 8.0
+WC tested up to: 9.4
+Stable tag: 1.2.0
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+Replace WooCommerce variation dropdowns with beautiful color, image, and label swatches — built natively for Elementor.
+
+== Description ==
+
+**ZYMARG Variation Swatches for Elementor** replaces WooCommerce's default variation dropdowns with visual swatches you can style and position anywhere using Elementor.
+
+= Two dedicated Elementor widgets =
+
+**Widget 1 — ZYMARG Variation Swatches**
+Renders color, image, label, and button swatches for any variable product. Place it anywhere on your product page layout.
+
+**Widget 2 — ZYMARG Add to Cart**
+A fully configurable quantity stepper + Add to Cart button. Syncs automatically with Widget 1 — selecting a swatch updates the form and enables the button.
+
+= Key features =
+
+* **Four swatch types** — color (hex), dual/split color, image, label, button
+* **Cross-widget sync** — Widgets 1 and 2 communicate without page reloads
+* **Archive loop support** — show compact swatches on shop/category pages
+* **Out-of-stock handling** — blur, cross-out, or hide unavailable options
+* **CSS tooltip** — shows term name on hover with no JavaScript
+* **RTL support** — full right-to-left layout via swatches-rtl.css
+* **Keyboard accessible** — arrow key navigation, focus-visible rings (WCAG AA)
+* **WooCommerce Blocks** — works with the All Products block and Product Collection block
+* **REST API** — `zymarg_swatches` field added to `/products` and `/products/variations` endpoints
+* **WP-CLI** — `wp wse regen-thumbs` to batch-regenerate swatch thumbnails
+* **Transient cache** — configurable TTL with one-click flush
+* **Theme override** — place templates in `{theme}/woo-swatches-elementor/` to customise output
+
+= Requirements =
+
+* WordPress 6.4+
+* WooCommerce 8.0+
+* Elementor 3.20+ (free or Pro)
+* PHP 8.1+
+
+= Shortcodes =
+
+No shortcodes. All output is via dedicated Elementor widgets.
+
+== Installation ==
+
+1. Upload the `woo-swatches-elementor` folder to `/wp-content/plugins/`.
+2. Activate the plugin through **Plugins → Installed Plugins**.
+3. Go to **WooCommerce → Settings → WooSwatches** to configure global defaults.
+4. For each product attribute, go to **Products → Attributes**, select an attribute, set its **Type** to `color`, `image`, `label`, or `button`.
+5. Edit each attribute term and fill in the colour, image, or label value.
+6. In Elementor, add the **ZYMARG Variation Swatches** and/or **ZYMARG Add to Cart** widgets to your product page template.
+
+== Frequently Asked Questions ==
+
+= Does this work without Elementor? =
+
+The two Elementor widgets require Elementor. However, archive/shop loop swatches and the WooCommerce Blocks integration work on any theme.
+
+= Can I override the templates? =
+
+Yes. Copy any file from `templates/swatches/` or `templates/add-to-cart/` into your theme at `{theme}/woo-swatches-elementor/{same-path}` and WordPress will use your version.
+
+= How do I add swatches to the shop loop? =
+
+Enable **Archive / Shop Loop → Enable on Archive Pages** under WooCommerce → Settings → WooSwatches. Swatches appear automatically below product titles.
+
+= Is it compatible with WooCommerce Blocks? =
+
+Yes. Swatches are injected into the All Products block (legacy) and the Product Collection block (WC 8.0+) automatically when archive swatches are enabled.
+
+= How do I regenerate swatch thumbnails after changing image sizes? =
+
+Go to **Tools → Regen Swatch Thumbnails** in the WordPress admin, or run `wp wse regen-thumbs` from the command line.
+
+= Will my data be deleted if I uninstall? =
+
+Only if you enable **Advanced → Delete Data on Uninstall** before deleting the plugin.
+
+== Screenshots ==
+
+1. Widget 1 (Variation Swatches) and Widget 2 (Add to Cart) in Elementor editor
+2. Color, image, label, and button swatch types
+3. WooCommerce → Settings → WooSwatches
+4. Attribute term edit screen with colour picker
+5. Shop loop with archive swatches
+
+== Changelog ==
+
+= 1.2.0 =
+**Minor: Widget 3 (ZYMARG Price) introduced + quantity stepper redesign in Widget 2.**
+
+This release splits price display into its own dedicated, fully-stylable Elementor widget and ships a touch-friendly +/- quantity stepper inside Widget 2 (Add to Cart).
+
+**New: Widget 3 — ZYMARG Price**
+
+* Standalone Elementor widget (`zymarg-price`) under the WooSwatches category. Place anywhere on a product page — main column, sticky cart, gallery sidebar — multiple instances on the same page all sync to the same canonical form.
+* **Simple products**: renders the price always; sale-aware. If on sale, the sale price is the prominent number and the regular price renders next to it as a strikethrough subscript.
+* **Variable products, no variation selected**: renders ONLY the lowest active price across all variations (per ZYMARG product spec). When any variation on the product is on sale, the lowest regular price across all variations is rendered next to the lowest active price as a strikethrough subscript, and the Sale badge appears (option (ii) per spec).
+* **Variable products, variation selected via Widget 1**: when the customer picks a swatch, `price.js` listens to the canonical form's `found_variation` event fired by `wc-add-to-cart-variation.js` and re-renders this widget with that specific variation's price + sale formatting. `reset_data` restores the lowest-baseline.
+* **Default display style** (Content tab → Display): Lowest price (default), Lowest with "From" prefix, or Price range.
+* **Regular price position** (Content tab → Display): Inline subscript (default), Inline beside, Below, or Hide.
+* **Sale badge**: optional badge with configurable text. Shows when ANY variation on the product is on sale, even on the lowest-baseline view.
+* **Style controls**: typography + colour for current price (regular and on-sale separately), typography + colour + opacity for regular ("was") price, full sale-badge styling (typography, text colour, background, padding, border radius), responsive layout gap and alignment. All values flow through CSS custom properties so themes and child themes can override at runtime without specificity wars.
+* Currency formatting (decimal separator, thousand separator, decimals, currency symbol, currency position) is read live from WooCommerce's option store on both server-side and client-side renders, so currency-switcher plugins (WPML, Aelia, etc.) that hook the underlying WC functions are respected automatically.
+* LFI guard on every template include via `realpath()` allow-list — same protection as the existing `WSE_Swatch_Renderer` template system.
+
+**Changed: Widget 2 — Quantity stepper redesign**
+
+* Replaced WooCommerce's bare quantity input with a `[-] [qty] [+]` stepper for touch-friendly increment/decrement. Manual numeric entry is still available; the middle `<input>` keeps its WC-expected name, classes, and value handling so cart logic is unchanged.
+* New Content tab controls (under Quantity section): Show +/- Stepper Buttons toggle, Decrease icon (Elementor icon picker), Increase icon (Elementor icon picker).
+* New Style tab section "Quantity Stepper Buttons" with full control: total stepper width, button size, icon size, gap, normal/hover/disabled state colours, border, border radius. All responsive.
+* Click handlers respect per-variation `min_qty` / `max_qty` updates from WC's variation matcher — the stepper buttons disable when the variation imposes new bounds.
+* `grouped` product templates left untouched (the per-row qty inputs in a grouped product table are a separate UX problem; parked for a future release).
+
+**Changed: Widget 2 — "Show Inline Price" toggle**
+
+* New control under Content → Button section. Default for fresh installs: **OFF** (Widget 3 owns price). Default for upgrades from any prior v1.1.x release: **ON** (back-compat). Existing configured Widget 2 instances keep their previous behaviour.
+* When OFF, Widget 2 still renders the `.woocommerce-variation-price` div (so WC's variation engine writes into it without errors) — it's just CSS-hidden via `body.wse-stylesheet-enabled .wse-no-inline-price .woocommerce-variation-price { display: none; }`. Availability and description divs stay visible.
+
+**Migration**
+
+* Drop-in replacement for v1.1.6. No DB schema changes.
+* On activation, the activator detects an upgrade from any version `< 1.2.0` and pins `wse_widget2_inline_price_default` to `'yes'`, so existing Widget 2 instances continue to show their inline price exactly as in v1.1.x. New Widget 2 instances added after the upgrade will default to `'no'` so Widget 3 owns price display going forward.
+* For ZYMARG (or any user wanting Widget 3 to own price on existing pages): edit each Widget 2 in Elementor and toggle Show Inline Price → Off. Manual one-time per page.
+* No template overrides require updating.
+
+**Files changed / added**
+
+* New: `widgets/class-widget-price.php`, `templates/price/{simple.php, variable.php, parts/price-current.php, parts/price-was.php}`, `templates/quantity-stepper.php`, `assets/css/price.css` (+ `.min`), `assets/js/price.js` (+ `.min`).
+* Modified: `includes/class-plugin.php` (Widget 3 registration + price params in WSEParams), `includes/class-assets.php` (handle map + register), `includes/class-activator.php` (default + migration), `widgets/class-widget-add-to-cart.php` (stepper + inline-price controls), `templates/add-to-cart/{simple.php, variable.php}` (stepper integration + form class), `assets/css/add-to-cart.css` (+ `.min`) (stepper + inline-price hide), `assets/js/add-to-cart.js` (+ `.min`) (stepper handlers).
+
+= 1.1.6 =
+**Patch: Six rendering bugs found via live ZYMARG site testing — admin asset paths, missing CSS, missing template, duplicate dropdowns.**
+
+This release fixes a cluster of bugs that surfaced once the plugin was used on a real Dokan Pro / Astra / Hostinger stack against products with local (non-taxonomy) custom attributes. Five of them have a single shared root cause — files referenced by the wrong path on disk — and the remaining two are missing CSS rules and a missing template-name mapping.
+
+**Bug #1 — Color swatches rendered as a grey square with a permanent checkmark instead of the actual colour**
+Two combined causes:
+1. The admin metabox couldn't save colours because the admin JS and CSS for the Local Attribute Swatches metabox were enqueued from `assets/js/admin-local-attributes.min.js` and `assets/css/admin.css` — paths that don't exist on disk (admin assets live in `admin/`, and only unminified `.js` files are shipped). In production (`SCRIPT_DEBUG=false`, default) this 404'd, the wp-color-picker UI never initialised, the per-option colour inputs stayed empty, and `_wse_local_swatches` was saved without colour values. The renderer then fell back to its `#e0e0e0` default, producing a grey tile.
+2. The checkmark overlay (#2 below) rendered always-on, masking the missing colour with a tick.
+After this fix the picker initialises, colours save correctly, and the swatch renders the actual hex value.
+
+**Bug #2 — Image and color swatches showed a permanent checkmark on every tile, not just the selected one**
+The `<span class="wse-checkmark">` element is rendered on every color and image swatch, with the intent that CSS gates its visibility on `.wse-swatch.selected`. That CSS rule was missing entirely from `assets/css/swatches.css` (and its minified twin), so the checkmark span rendered always-on regardless of selection state. v1.1.6 adds the missing rule plus an explicit `display:none` on image swatches per ZYMARG product preference (the image itself is sufficient indication; the overlaid checkmark obscures it).
+
+**Bug #3 — Selected label/button swatch had a hard-coded blue (`#0066cc`) background pill**
+`assets/css/swatches.css` painted `.wse-swatch-label.selected` and `.wse-swatch-button.selected` with `background: var(--wse-swatch-active-color)` and `color: #fff`, producing the "blue pill" effect on selection. Per ZYMARG product preference, v1.1.6 overrides the selected state to carry no colour change at all — selection is now indicated by `font-weight: 700` and a neutral `currentColor` border only.
+
+**Bug #4 — Button-type swatches rendered an empty `<ul>` (nothing visible)**
+The renderer's loop calls `include_template($type . '.php', ...)`, so for `type='button'` it tried to load `templates/swatches/button.php` — a file that has never existed in the plugin. `locate_template()` returned empty, the LFI guard silently failed the include, and button-typed attributes produced no swatch markup on every product page. Fixed by routing `button` through `label.php`, which already supports the button variant via the `.wse-swatch-label--button` modifier class (driven by `$swatch['type']`).
+
+**Bug #5 — Dropdown (`select`) attributes rendered TWO dropdowns, both required to select before Add to Cart enabled**
+When a local attribute was set to type "Dropdown", the renderer's early-exit path for non-swatch types (`return '<div class="wse-native-attr variations">' . $html . '</div>'`) ignored the `wse_renderer_emit_select` filter that Widget 1 sets to `false` during its render. So Widget 1 emitted a passthrough copy of the native `<select>` while Widget 2 (canonical form) emitted its own — two dropdowns with the same `name`, two independent variation matchers. v1.1.6 respects the filter on the early-exit path: when emit_select is false (Widget 1's render), the renderer returns empty for non-swatch types, leaving the canonical form as the sole owner of the dropdown.
+
+**Bug #6 — Local Attribute Swatches metabox: Upload button did nothing; Color and Image fields shown together**
+Same root cause as Bug #1: `class-local-attributes.php` enqueued admin CSS from `assets/css/admin.css` (404 — file is at `admin/admin.css`) and admin JS from `assets/js/admin-local-attributes.min.js` (404 — only `admin/admin-local-attributes.js` exists). With the JS not loading, the click handler `$(document).on('click', '.wse-local-upload-btn', ...)` never registered, so the Upload button was inert. With the CSS not loading, the `.wse-hidden { display:none !important }` rule never applied, so the type-switcher's visibility gating failed and both Color and Image field groups rendered simultaneously regardless of saved type. `class-term-meta.php` had the same path bugs and got the same fix for symmetry — the global-attribute term editor's Upload button was silently broken in production for the same reason.
+
+**Files changed**
+* `includes/class-swatch-renderer.php` — Bug #4 (button → label template normalisation), Bug #5 (emit_select check on early-exit path).
+* `includes/class-local-attributes.php` — Bug #1 + #6 (admin CSS+JS path corrections).
+* `includes/class-term-meta.php` — Bug #6 mirror (admin CSS+JS path corrections for global attribute term editor).
+* `assets/css/swatches.css` and `assets/css/swatches.min.css` — Bug #2 (`.wse-checkmark` visibility gating + image-swatch hide), Bug #3 (override selected label/button styling).
+
+**Migration**
+* Drop-in replacement for v1.1.5. No DB migration required.
+* After installing, hard-refresh (Ctrl+Shift+R / Cmd+Shift+R) the live product page and any product edit screen to flush cached CSS and JS.
+* If you had previously configured local-attribute colour or image swatches and they appeared not to save, re-open the product, set the swatch values again with the now-working picker UI, and click Update. Existing saved data is unaffected.
+* No changelog item from v1.1.5 is being reverted.
+
+= 1.1.5 =
+**Patch: View Cart link hiding now uses CSS body class — wins all races.**
+
+v1.1.4 stripped WooCommerce's injected `<a class="added_to_cart wc-forward">` link via a JS `added_to_cart` listener, but the strip ran reactively *after* WC's injection, which lost the race on some sites (browser cache, timing variations). v1.1.5 switches to a CSS-first approach that applies the rule **before** WC's `<script>` ever runs — there is no timing window where the link is visible.
+
+**Implementation:**
+* `class-plugin.php` adds a `body_class` filter that appends `wse-hide-view-cart` to `<body>` whenever the global `wse_show_view_cart_link` option is `no`.
+* `assets/js/add-to-cart.js` adds the same body class via JS at DOMReady whenever any Add to Cart widget on the page has its per-widget `data-show-view-cart="no"` override set.
+* `assets/css/add-to-cart.css` matches `body.wse-hide-view-cart a.added_to_cart.wc-forward` (and the various other places WC renders the View cart anchor) with `display:none !important; visibility:hidden !important; pointer-events:none !important;` — uncatchable by any timing race.
+* The v1.1.4 JS DOM strip stays as defense-in-depth so removed elements don't accumulate in memory.
+
+After installing, hard-refresh the live product page (Ctrl+Shift+R / Cmd+Shift+R) to flush the cached CSS. The View cart link will be hidden in every location: WC's top notice, inline beside the button, mini-cart fragment, and the toast.
+
+= 1.1.4 =
+**Patch: View Cart link is now correctly hidden everywhere when the toggle is off.**
+
+When the "Show View Cart Link" setting (global or per-widget) is set to OFF, an inline `<a class="added_to_cart wc-forward">View cart</a>` link still appeared next to the Add to Cart button after a successful AJAX add. Root cause: WooCommerce's own frontend `wc-add-to-cart.js` binds an `added_to_cart` event listener that injects this link client-side, **after** my server-side `wc_add_to_cart_message_html` filter has already run. My v1.1.3 server-side filter could not reach this DOM injection.
+
+**Fix:**
+* New `added_to_cart.wse-strip-view-cart` listener in `assets/js/add-to-cart.js` removes the WC-injected link on the next tick (using `setTimeout(0)` so WC's listener runs first, then we strip).
+* `applyPerWidgetViewCartHiding()` was renamed to `applyViewCartHiding()` and now triggers when EITHER the global `wse_show_view_cart_link` setting is off OR any widget has `data-show-view-cart="no"` (previously only the per-widget override triggered cleanup).
+* Selector list expanded to also catch `a.added_to_cart.wc-forward` outside of widget wrappers (covers themes that render the link in non-standard locations).
+* The cleanup runs at three trigger points: DOMReady, after fragment apply, and after `added_to_cart` (catches WC's client-side injection). All three paths are idempotent.
+
+After installing, hard-refresh (Ctrl+Shift+R / Cmd+Shift+R) the live product page to flush cached JS. The View cart link will be hidden in all three locations: WC's top notice, inline beside the button, and the bottom-right toast.
+
+= 1.1.3 =
+**Patch: orphan Presenter Mode actually works, per-widget View Cart toggle, cleaner button text.**
+
+**Fix: Orphan Presenter Mode now functional**
+* When Presenter Mode is enabled on a widget that has no canonical sibling on the page, the auto-synthesised hidden form now binds WooCommerce's full variation engine (`$.fn.wc_variation_form()`) so swatch clicks correctly populate `variation_id` and the presenter button submits correctly.
+* The synthetic form's hidden `<select>` elements now contain one `<option value="...">` for every distinct value referenced by the product's variations — previously a single empty option meant `jQuery.val(x)` had no matching option to mark selected, silently breaking cross-widget sync.
+
+**New: Per-widget "Show View Cart Link" toggle**
+* New Behavior control on the Add to Cart widget: **Inherit from settings / Yes / No**. Default is Inherit (uses the global WC Settings → WooSwatches → Display value).
+* When set to **No**, the widget strips the `<a class="wc-forward">View cart</a>` anchor everywhere it appears: inline next to the Add to Cart button (WC's `wc_add_to_cart_message_html`), the bottom-right toast notification, the WooCommerce mini-cart fragment, and any pre-existing notices already rendered into the DOM (handled at DOMReady so refreshing the page doesn't show a stale link).
+* Lets merchants disable the "View cart" link per widget instance without affecting the global setting.
+
+**UX: Cleaner button success text**
+* The localized i18n string `Added to cart!` is now `Added to cart` (no exclamation mark).
+* JS fallback in the success state changed from `Added ✓` to `Added to cart`.
+* Defensive CSS rule (`assets/css/add-to-cart.css`) suppresses any `::before` / `::after` pseudo-element a theme or fragment may inject onto the `.wse-atc-button` (and its loading / added / error variants) — eliminates the stray "✓" or icon some themes (Astra Pro, Flatsome) add next to the button text.
+* The toast's own ✓ icon is unaffected — that's a real `<span>`, not a pseudo-element.
+
+= 1.1.2 =
+**Critical hotfix: Dokan Pro Order Min Max TypeError on variable products.**
+
+Fixes a regression introduced in v1.1.1 where the Add to Cart submit handler returned without calling `event.preventDefault()` when the variation-required guard tripped. On Dokan Pro stacks with the Order Min Max module enabled, this caused a fatal PHP TypeError:
+
+```
+WeDevs\DokanPro\Modules\OrderMinMax\Frontend\CartRestriction::validate_add_to_cart():
+Argument #4 ($variation_id) must be of type int, string given
+```
+
+Root cause: Dokan Pro's `validate_add_to_cart()` callback declares a strict-typed `int $variation_id` parameter. When v1.1.1's submit handler bailed early without preventing the form's default action, the form POSTed to the server, WooCommerce's `WC_Form_Handler::add_to_cart_handler_variable()` processed it, passed an empty string to the validation filter (no variation selected), and Dokan threw a fatal.
+
+**Fix (JS):**
+* `assets/js/add-to-cart.js` now calls `event.preventDefault()` unconditionally at the top of the canonical-form submit handler, before any guard check. The form can no longer submit via standard POST under any circumstance — worst case is "click does nothing" which matches expected UX when no variation is selected.
+
+**Fix (PHP, defensive):**
+* `includes/class-plugin.php` adds a new `coerce_variation_id_post()` callback hooked to `init` priority 1. It casts `$_POST['variation_id']` to `int` for non-AJAX, non-REST requests, so any third-party validator with strict typing receives an `int` even if a future regression or third-party JS lets the form POST through.
+
+Both fixes ship together so the protection is belt-and-suspenders: the JS prevents POST submissions, and the PHP coercion catches any that still slip through (cached JS, theme overrides, etc.).
+
+= 1.1.1 =
+**Hotfix release: Dokan/multi-vendor compatibility, FOUC fix, sticky-without-presenter, "Added to cart" toast.**
+
+This release addresses live-site issues reported on a Dokan Pro / Astra / Pantheon stack and refines three v1.1.0 design choices that proved problematic in real-world usage.
+
+**New: "Added to cart" toast notification**
+* Small bottom-right toast confirms successful add-to-cart on every code path (canonical Add to Cart widget, archive AJAX, presenter sticky bar). Auto-dismisses in ~3.5 seconds. Mobile-aware (full-width on ≤ 767px, lifts above the sticky presenter when one is active).
+* Toggleable via WooCommerce → Settings → WooSwatches → Display → "Show 'Added to Cart' Toast" (default ON).
+* Respects the existing "View Cart" link toggle: shows the link when enabled, omits it when not.
+
+**New: Multi-vendor compatibility mode (Dokan / WCFM / WC Vendors / MultiVendorX)**
+* New setting: WooCommerce → Settings → WooSwatches → Display → "Multi-vendor Compatibility Mode" (default Auto).
+  * Auto: enabled when one of these multi-vendor plugins is active server-side.
+  * On: always run cart-state verification on AJAX errors.
+  * Off: never run verification (v1.1.0 behaviour).
+* When active, the AJAX add-to-cart re-checks the cart hash whenever WooCommerce returns `error: true`. If the cart actually changed, the request is treated as success and the toast fires. Fixes the long-standing "Something went wrong (but the product is in the cart)" issue on Dokan stacks.
+* Re-introduces the v1.0.5 cart-hash heuristic, but smarter: only kicks in when WC reports an error AND a multi-vendor plugin is detected, so non-vendor stores still see real errors honestly.
+
+**Fix: Sticky add-to-cart works on a single widget**
+* v1.1.0 only exposed the Sticky toggles when Presenter Mode was on, which required two widgets and broke single-widget setups. v1.1.1 makes the Sticky on Desktop / Tablet / Mobile toggles always available on the Add to Cart widget.
+* The sticky CSS classes now apply to the canonical Add to Cart wrapper too, not just `.wse-presenter`. A single Add to Cart widget with Sticky on Mobile = On now correctly pins the entire form to the viewport bottom on mobile.
+* Presenter Mode moves under an "Advanced" heading with clearer guidance — it's only meant for secondary widgets on pages that already have a primary Add to Cart elsewhere.
+
+**Fix: Orphan presenter auto-synthesis**
+* Anyone who enables Presenter Mode on a page without a canonical Add to Cart widget would previously get a broken button (form="wse-form-X" pointing at a non-existent form, AJAX request with no payload, "Something went wrong"). v1.1.1 detects this at DOMReady and synthesises a hidden canonical form with all required hidden inputs and selects so the button still works.
+* Editor warning added: when Presenter Mode is toggled on, the widget shows an inline notice explaining that it requires a primary Add to Cart elsewhere on the page (or the auto-synthesis will kick in as a fallback).
+
+**Fix: No more flash of duplicate swatches on page load**
+* When both Widget 1 (Swatches) and Widget 2 canonical (Add to Cart) were on the same page, both rendered visible swatches and the JS dedup at DOMReady caused a brief flash of two swatch sets. v1.1.1 hides the canonical form's swatches by default via CSS, and JS only reveals them when no Widget 1 is on the page (Widget 2-alone scenario). Result: zero flash on first paint.
+
+**Fix: Variation-required guard**
+* The submit handler now bails when a variations form has no resolved `variation_id`, letting WooCommerce's native validator surface its "Please select options" notice instead of firing an empty AJAX request that produces "Something went wrong".
+* CSS now enforces the disabled visual state of the Add to Cart button when WC's variation engine has marked it disabled or `wc-variation-selection-needed`, so themes that override button styling can't accidentally make a non-functional button look enabled.
+
+**Fix: Robust AJAX payload assembly**
+* `submitAtcForm()` now builds the request payload from explicit sources (form `data-product_id`, `input.variation_id`, `input.qty`, `select[name^=attribute_]`, HTML5 `form="..."`-linked selects) rather than relying on `$form.serializeArray()` alone. Survives nested-form HTML, orphan-presenter setups, and third-party plugins that mangle form structure.
+
+**Migration**
+* Drop-in replacement for v1.1.0. No DB migration required.
+* If you toggled Presenter Mode in v1.1.0 expecting it to give you a sticky add-to-cart, switch back: turn Presenter Mode OFF and turn the Sticky toggles ON directly on your single Add to Cart widget.
+* Multi-vendor sites: the default Auto setting will detect Dokan/WCFM/WC Vendors and turn on cart verification automatically. Override via WC → Settings → WooSwatches → Display if you want explicit control.
+
+= 1.1.0 =
+**Major release: B3 architecture refactor + 23 bug fixes + 2 new features**
+
+This release replaces the dual-form architecture with a single canonical form per product, eliminating duplicate variation engines and fixing a long list of real-world bugs. It also introduces a Presenter Mode for sticky add-to-cart bars and a global toggle to hide the View Cart link.
+
+**Architecture (B3) — single canonical form per product**
+* Widget 1 (Swatches) no longer renders its own `<form class="variations_form">`. It registers with a new per-page form registry and emits swatch UI only.
+* Widget 2 (Add to Cart) renders the canonical `<form id="wse-form-{product_id}">`. Multiple instances of Widget 2 on the same page (sticky bar + main button) coordinate automatically — the first becomes canonical, others become presenters that target its form via the HTML5 `form=` attribute.
+* Variation JSON is emitted exactly once per product per page.
+* Result: one `wc-add-to-cart-variation.js` engine per product instead of two; halved page weight on multi-attribute variable products.
+
+**New: Presenter Mode (sticky add-to-cart bar)**
+* New "Behavior" section on the Add to Cart widget with a Presenter Mode switcher.
+* When enabled, the widget renders a button + quantity input that targets another instance's canonical form. Quantity values are kept in bidirectional sync via JS.
+* Per-device sticky toggles: independent on/off switchers for Desktop (≥ 1025px), Tablet (768–1024px), and Mobile (≤ 767px). All default OFF — opt in per device.
+* When sticky is active for the current viewport, the body picks up matching padding-bottom so content is never obscured by the pinned bar.
+
+**New: "View Cart" link toggle (global)**
+* New WooCommerce Settings → WooSwatches → Display → "Show 'View Cart' link after Add to Cart" option. Default ON (matches v1.0.5 behaviour).
+* When OFF, strips the View Cart anchor from the success message and the cart fragments — applies everywhere (main button, sticky bar, archive AJAX, Astra snackbar).
+* Server-side filter is the primary path; client-side fragment sweep handles stale page-cache fragments.
+
+**Bug fixes (B1–B23)**
+* B1 — Operator-precedence bug fixed: the "Enable on Archive Pages" toggle now actually disables when set to "no". Previously `! 'yes' === get_option(...)` always evaluated to false.
+* B2 — WooCommerce Blocks integration is no longer dead. Added the `WSE_Archive_Swatches::render_for_product()` method that the All Products and Product Collection block paths actually call.
+* B4 — Mixed swatch + native dropdown attributes (e.g. Color swatch + Logo dropdown) now correctly enable Add to Cart. Cross-widget sync resolves through the canonical form's hidden selects regardless of input type.
+* B5 — Initial keyboard tabindex: when no default attribute is set, the first available swatch in each group now receives `tabindex="0"` so the swatch group is reachable via Tab. Previously every swatch had `tabindex="-1"` until something was selected.
+* B6 — Multi-attribute variable products on archive pages no longer fail with "Please select all options". Auto-falls back from AJAX-add-to-cart to "Go to product page" mode when the product has more than one attribute.
+* B7 — `wse_archive_max` setting is now enforced. Swatches above the limit collapse into a "+N more" link to the product page.
+* B8 — Add-to-Cart AJAX result is now deterministic. WooCommerce's `error: true` response is treated as a real error (not masked as success via cart-hash). Network errors still fall back to fragment verification, but explicit validation rejections (Dokan etc.) are surfaced honestly.
+* B9 — `wse_skip_renderer` bypass removed; replaced with the `wse_renderer_emit_select` and `wse_renderer_emit_swatches` filters that scope rendering cleanly without conflicting with third-party hooks.
+* B10 — Init storm fix: `updateAvailability` is now requestAnimationFrame-debounced per form. A product with N default attributes triggers exactly one availability scan at init instead of N.
+* B11 — `is_dynamic_content()` is now `public` on Widget 1 (was `protected`) for consistency with Widget 2 and Elementor 3.20+ direct method invocation.
+* B12 — Gallery image swap now uses an active-slide-aware selector chain (`.flex-active-slide` → `:not(.clone)` → `:first-child`). Themes with carousel galleries (Astra Pro, Flatsome, Hello+) now swap the visible slide.
+* B13 — Archive hook is registered conditionally — only when the toggle is on. No more wasted callback invocations on every shop loop item when the feature is disabled.
+* B14 — Activation gate hardening: removed redundant PHP version check (the plugin header `Requires PHP: 8.1` already gates this in WP 5.1+); WC version check uses `class_exists('WooCommerce')` for reliability across bulk-activation orders.
+* B15 — Swatch wrapper no longer announces the attribute label twice on screen readers (legend + aria-label duplication).
+* B17 — Cache flush is chunked (200 entries per call) and returns the remaining count so large-catalog stores don't time out on the admin Flush Cache button.
+* B18 — `WSEAdmin` JS object moved off the global `jquery` handle onto a dedicated `wse-admin` script handle to prevent collisions with other plugins.
+* B19 — Archive AJAX click handler only binds when the click behaviour is set to `ajax_add_to_cart`. No dead-code listeners on link-mode shops.
+* B20 — Archive AJAX flow audited for idempotency; binds via namespaced `.off()/.on()` pattern.
+* B21 — REST extension now also exposes the `zymarg_swatches` field on the public WC Store API (`/wc/store/v1/products`) for headless storefronts and the modern Cart & Checkout blocks.
+* B22 — Plugin description clarified: the widgets work with free Elementor; Elementor Pro is only required to use these widgets in Theme Builder templates.
+* B23 — Archive add-to-cart AJAX moved off `admin-ajax.php` onto the WC AJAX endpoint (`wc-ajax=wse_archive_add_to_cart`). LiteSpeed Cache, Hostinger Cache Manager, and other major page-cache plugins exclude `wc-ajax` from caching by default, fixing stale-nonce 403s.
+
+**Migration**
+* Existing stores: no database migration required. All v1.0.5 options keep their format. Cache should be flushed once after upgrade (Settings → WooSwatches → Performance → Flush Cache).
+* Child-theme template overrides of `templates/add-to-cart/variable.php`, `templates/swatches/wrapper.php`, `templates/swatches/color.php`, `templates/swatches/image.php`, or `templates/swatches/label.php` MUST be re-synced — the markup has changed. An admin notice will list any stale overrides detected on your install. Dismiss the notice once you've re-synced.
+
+**Performance**
+* Per-product page weight reduced ~40–50% on multi-attribute variable products (single variation JSON instead of two).
+* `wc-add-to-cart-variation.js` runs once per product per page instead of twice.
+* `updateAvailability` runs once per init regardless of default-attribute count.
+
+= 1.0.5 =
+* Fix: Add to Cart on variable products showed "Something went wrong" even though the item was successfully added to the cart. A server-side plugin (typically a multi-vendor plugin such as Dokan) was filtering woocommerce_add_to_cart_validation to false for AJAX-submitted variable product requests, causing WooCommerce's AJAX handler to return {error:true} — even though a parallel mechanism (WooCommerce's own variation form) had already added the item to the cart session. The Add to Cart engine now verifies the actual cart state via a follow-up get_refreshed_fragments call whenever an error response is received. If the cart hash changed (item was genuinely added), the widget correctly shows "Added ✓" and triggers the theme's Added to Cart notification; if the hash is unchanged (genuine failure), it shows "Something went wrong".
+* Fix: The "Adding…" button label was displaying the literal text "Adding\u2026" instead of "Adding…". PHP does not interpret \uXXXX Unicode escapes inside strings (that is JavaScript syntax); the sequence was being passed through as-is by wp_localize_script. Fixed by using the actual UTF-8 ellipsis character (…) in the PHP source for all three affected labels: the add-to-cart loading state, the cache-flush progress label, and the thumbnail regeneration progress label.
+
+= 1.0.4 =
+* Fix: After a successful Add to Cart on a variable product (Widget 2), the button briefly showed "Adding..." and then "Something went wrong" — even though the item was genuinely added to the cart (visible on the Cart page). Root cause: WooCommerce's wc_fragments_loaded and wc_fragments_refreshed events both fire during a normal page load, and each previously triggered a separate internal "reinit" signal. add-to-cart.js responded to every reinit by re-binding its click handler without removing the previous one, so a single click fired 2-3 simultaneous add-to-cart requests — the first succeeded, the extras failed (e.g. due to stock already reserved by the first), and whichever response arrived last overwrote the button state. The internal reinit signal now fires at most once per page load, and every event handler in add-to-cart.js is rebound idempotently (no duplicate handlers regardless of how many times init runs).
+* Improvement: A successful Add to Cart from the ZYMARG Add to Cart widget now triggers WooCommerce's standard added_to_cart event (matching core's own add-to-cart button signature). Themes that show a native "Added to cart" notification/snackbar for AJAX add-to-cart (as Astra does for shop-loop add-to-cart buttons) will now show that same notification for Widget 2 as well.
+
+= 1.0.3 =
+* Fix: Products with a second, non-swatch attribute (e.g. a plain "Logo" dropdown, or any attribute left as WooCommerce's default Select type) kept Add to Cart permanently disabled even after every swatch was correctly selected. wc-add-to-cart-variation.js only collects "chosen attributes" from elements inside a .variations ancestor; passthrough native <select> elements had none. They are now wrapped in a structural .wse-native-attr.variations container — same visible dropdown, now correctly included in variation matching.
+* Fix: The Clear link inside each swatch group never worked. It targeted .reset_variations, an element from WooCommerce's default <table class="variations"> template that this plugin never renders, so the click handler was a permanent no-op. Clear now directly resets every .variations select in the form (covering both swatch-type and the new native passthrough selects) and triggers WooCommerce's recalculation, then runs the existing swatch-deselect/reset logic and notifies the Add to Cart widget.
+* Fix: For products with default attribute values (WooCommerce pre-selects e.g. Color=Red, Size=Large on page load), the Add to Cart widget's hidden selects stayed empty and its button remained disabled until the shopper manually re-clicked an already-selected swatch. The cross-widget sync now also runs once on page load for any attribute with a pre-selected default, bringing both widgets into sync immediately without requiring an extra click.
+
+= 1.0.2 =
+* Fix: Variation swatches were visually selectable but the Add to Cart button stayed permanently disabled, the variation_id never resolved, and clicking the button showed WooCommerce's "Please select some product options before adding this product to your cart." The hidden <select> elements (in both the Variation Swatches widget and the Add to Cart widget) now carry the class "variations" alongside their existing wrapper classes. wc-add-to-cart-variation.js binds its change/found_variation/reset_data handlers via a delegated ".variations select" selector — without that class the script never recalculated the selected variation, regardless of how correctly the swatch-to-select sync ran.
+
+= 1.0.1 =
+* Fix: Elementor widget classes were loaded before Elementor itself, causing a fatal "Class Elementor\Widget_Base not found" error and missing widgets in the Elementor panel. Widget registration now hooks into elementor/loaded with did_action() fallbacks for all load orders.
+* Fix: Replaced four calls to the non-existent woocommerce_dropdown_variation_attribute_options() with the correct wc_dropdown_variation_attribute_options() — affected Widget 1 (swatches), the Swatch Renderer's filter hook, Widget 2's variable-product template, and archive/shop-loop swatches. The variable-product instance caused a silent fatal that left the entire single product page blank for both admin and guest users.
+
+= 1.0.0 =
+* Initial release.
+* Widgets: ZYMARG Variation Swatches, ZYMARG Add to Cart.
+* Swatch types: color, dual-color, image, label, button.
+* Archive loop support with click-behaviour option (link / AJAX add to cart).
+* WooCommerce Blocks compatibility (All Products + Product Collection).
+* REST API extension (`zymarg_swatches` field on products and variations).
+* Transient cache with configurable TTL and one-click flush.
+* Thumbnail generator with WP-CLI support.
+* RTL stylesheet.
+* Full WCAG AA keyboard accessibility.
+
+== Roadmap ==
+
+= 1.3.0 (planned) =
+* Widget 4 — ZYMARG Variation Image Gallery: a product-image gallery widget that automatically flips to show the matching variation's image (and gallery, where available) when a swatch is selected via Widget 1. Designed to live in the gallery column of a product page and stay in sync with all variation widgets through the existing Form Registry coordination.
+
+== Upgrade Notice ==
+
+= 1.2.0 =
+Minor release. New Widget 3 (ZYMARG Price) takes over price display with full sale-aware formatting and live updates when variations are selected via Widget 1. New touch-friendly +/- quantity stepper in Widget 2 with full Elementor styling control. Widget 2 gains a Show Inline Price toggle — defaults to ON for upgrades (back-compat) and OFF for fresh installs. Hard-refresh after install. No DB migration.
+
+= 1.1.6 =
+Patch: fixes six rendering bugs found via live ZYMARG testing. Color swatches now actually display the configured colour. Image swatches no longer show a checkmark overlay. Label/button swatches no longer turn blue when selected. Button-type swatches now render (was: empty). Dropdown-type attributes now render exactly one dropdown (was: two). Local-attribute metabox Upload button now works (was: silently inert in production). Drop-in replacement for v1.1.5. Hard-refresh after install.
+
+= 1.1.5 =
+Patch: switches the View Cart link hide from a reactive JS strip to a CSS-first approach using a body class. The CSS rule applies before WooCommerce's frontend JS runs, so there's no race condition where the link is visible. Drop-in replacement for v1.1.4. Hard-refresh after install. After this update, the manual CSS workaround in your theme's Customize → Additional CSS is no longer needed and can be removed.
+
+= 1.1.4 =
+Patch: closes the gap where WooCommerce's frontend JS injected a "View cart" link inline beside the button even when "Show View Cart Link" was toggled off. The link is now correctly hidden in all three locations (WC notice, inline next to button, toast). Drop-in replacement for v1.1.3. Hard-refresh the product page after install.
+
+= 1.1.3 =
+Patch: orphan Presenter Mode now actually works (auto-synthesised hidden form binds WC's variation engine), per-widget "Show View Cart Link" toggle in the Add to Cart widget (Inherit / Yes / No), success button text cleaned up to just "Added to cart", defensive CSS suppresses theme-injected pseudo-elements on the button. Drop-in replacement for v1.1.2.
+
+= 1.1.2 =
+CRITICAL: fixes a fatal PHP TypeError on Dokan Pro stacks with Order Min Max module enabled. v1.1.1 users on Dokan should update immediately. JS preventDefault fix + defensive PHP variation_id coercion. Drop-in replacement.
+
+= 1.1.1 =
+Hotfix: Dokan multi-vendor compatibility (no more "Something went wrong" on successful adds), single-widget sticky add-to-cart, "Added to cart" toast notification, FOUC fix for double swatches, robust AJAX payload assembly. Drop-in replacement for v1.1.0.
+
+= 1.1.0 =
+Major release: single-canonical-form architecture (B3), 23 bug fixes, Presenter Mode for sticky add-to-cart bars, and a global "View Cart" link toggle. Flush the swatch cache once after upgrade. Child-theme template overrides MUST be re-synced — an admin notice will list any stale ones.
+
+= 1.0.0 =
+Initial release — no upgrade steps required.
