@@ -785,6 +785,119 @@
 			} );
 	}
 
+	// ─────────────────────────────────────────────────────────────────────
+	// v1.2.0 — Quantity stepper [-] [qty] [+]
+	//
+	// Delegated click handlers on the document so the buttons work on
+	// any stepper present at any time — including steppers added later
+	// by Elementor's editor or AJAX-loaded fragments. Each click reads
+	// the input's current value, applies the step (clamped to min/max),
+	// writes the new value, fires a 'change' event so WC's variation
+	// matcher and any listening cart logic picks up the update, and
+	// then re-evaluates the disabled state of both buttons.
+	// ─────────────────────────────────────────────────────────────────────
+
+	function clamp( value, min, max ) {
+		var v = parseFloat( value );
+		if ( isNaN( v ) ) { v = parseFloat( min ) || 0; }
+		if ( ! isNaN( min ) && v < min ) { v = min; }
+		if ( ! isNaN( max ) && '' !== max && v > max ) { v = max; }
+		return v;
+	}
+
+	function readBounds( $input ) {
+		// min / max / step come from the input's HTML attributes — WC's
+		// variation matcher updates these via found_variation when a
+		// variation imposes its own per-variation min_qty / max_qty.
+		var min  = parseFloat( $input.attr( 'min' ) );
+		var max  = $input.attr( 'max' );
+		var step = parseFloat( $input.attr( 'step' ) );
+		return {
+			min:  isNaN( min )  ? 0  : min,
+			max:  ( '' === max || 'undefined' === typeof max || null === max ) ? '' : parseFloat( max ),
+			step: isNaN( step ) || step <= 0 ? 1 : step,
+		};
+	}
+
+	function updateStepperButtons( $stepper ) {
+		var $input = $stepper.find( 'input.qty' ).first();
+		if ( ! $input.length ) { return; }
+
+		var b   = readBounds( $input );
+		var val = parseFloat( $input.val() );
+
+		var $minus = $stepper.find( '.wse-qty-btn--minus' );
+		var $plus  = $stepper.find( '.wse-qty-btn--plus' );
+
+		$minus.prop( 'disabled', isNaN( val ) || val <= b.min );
+		$plus.prop( 'disabled', '' !== b.max && ! isNaN( val ) && val >= b.max );
+	}
+
+	function changeStepperValue( $stepper, direction ) {
+		var $input = $stepper.find( 'input.qty' ).first();
+		if ( ! $input.length ) { return; }
+
+		var b      = readBounds( $input );
+		var raw    = parseFloat( $input.val() );
+		var current = isNaN( raw ) ? b.min : raw;
+		var next   = current + ( direction * b.step );
+		var clamped = clamp( next, b.min, b.max );
+
+		// No-op when already at the bound — avoids spurious 'change' events.
+		if ( clamped === current ) { return; }
+
+		$input.val( clamped ).trigger( 'change' );
+		updateStepperButtons( $stepper );
+	}
+
+	function initQtyStepper() {
+		// Initial pass: set disabled state for every stepper on the page.
+		$( '.wse-qty-stepper' ).each( function () {
+			updateStepperButtons( $( this ) );
+		} );
+
+		// Delegated click handlers (work on dynamically added steppers).
+		$( document )
+			.off( 'click.wseQtyStepper' )
+			.on( 'click.wseQtyStepper', '.wse-qty-btn--minus', function ( e ) {
+				e.preventDefault();
+				changeStepperValue( $( this ).closest( '.wse-qty-stepper' ), -1 );
+			} )
+			.on( 'click.wseQtyStepper', '.wse-qty-btn--plus', function ( e ) {
+				e.preventDefault();
+				changeStepperValue( $( this ).closest( '.wse-qty-stepper' ), +1 );
+			} );
+
+		// Manual entry: re-clamp on blur and refresh button states.
+		$( document )
+			.off( 'change.wseQtyStepper input.wseQtyStepper' )
+			.on( 'change.wseQtyStepper input.wseQtyStepper', '.wse-qty-stepper input.qty', function () {
+				var $stepper = $( this ).closest( '.wse-qty-stepper' );
+				updateStepperButtons( $stepper );
+			} );
+
+		// Variable products: WC's wc-add-to-cart-variation.js may update
+		// the input's min/max attributes when a variation is matched.
+		// Re-evaluate the disabled state on those events too.
+		$( document )
+			.off( 'found_variation.wseQtyStepper reset_data.wseQtyStepper' )
+			.on( 'found_variation.wseQtyStepper reset_data.wseQtyStepper', 'form.variations_form, .wse-canonical-form', function () {
+				var $form = $( this );
+				$form.find( '.wse-qty-stepper' ).each( function () {
+					updateStepperButtons( $( this ) );
+				} );
+			} );
+	}
+
+	// Hook stepper init into the existing init pass — same .off()/.on()
+	// guards already make the rest of init() idempotent for Elementor
+	// editor reloads, so adding stepper init here keeps the same contract.
+	var _wseInit = init;
+	init = function () {
+		_wseInit();
+		initQtyStepper();
+	};
+
 	$( document ).ready( init );
 
 	// Reinit hooks (every binding above is .off()-then-.on() idempotent).

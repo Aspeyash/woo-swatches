@@ -139,25 +139,31 @@ $default_attributes   = $product->get_default_attributes();
 					<?php do_action( 'woocommerce_before_add_to_cart_quantity' ); ?>
 
 					<?php
-					woocommerce_quantity_input(
-						array(
-							'min_value'   => apply_filters(
-								'woocommerce_quantity_input_min',
-								$product->get_min_purchase_quantity(),
-								$product
-							),
-							'max_value'   => apply_filters(
-								'woocommerce_quantity_input_max',
-								$product->get_max_purchase_quantity(),
-								$product
-							),
-							'input_value' => $default_qty,
-							'step'        => apply_filters( 'woocommerce_quantity_input_step', 1, $product ),
-							// v1.1.0 — class marker so presenter quantity-sync JS can find this input.
-							'classes'     => array( 'input-text', 'qty', 'text', 'wse-canonical-qty' ),
+					/**
+					 * v1.2.0 — Replaced woocommerce_quantity_input() with the
+					 * shared stepper template. Same input name + classes
+					 * (with the wse-canonical-qty marker preserved so the
+					 * presenter quantity-sync JS still finds this input)
+					 * so wc-add-to-cart-variation.js continues to read and
+					 * write the value without modification.
+					 */
+					$args = array(
+						'min'           => apply_filters(
+							'woocommerce_quantity_input_min',
+							$product->get_min_purchase_quantity(),
+							$product
 						),
-						$product
+						'max'           => apply_filters(
+							'woocommerce_quantity_input_max',
+							$product->get_max_purchase_quantity(),
+							$product
+						),
+						'step'          => apply_filters( 'woocommerce_quantity_input_step', 1, $product ),
+						'value'         => $default_qty,
+						'input_name'    => 'quantity',
+						'input_classes' => array( 'input-text', 'qty', 'text', 'wse-canonical-qty' ),
 					);
+					include WSE_PATH . 'templates/quantity-stepper.php';
 					?>
 
 					<?php do_action( 'woocommerce_after_add_to_cart_quantity' ); ?>

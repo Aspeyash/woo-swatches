@@ -467,3 +467,97 @@ body.wse-hide-view-cart .wse-toast-link {
 	visibility:     hidden     !important;
 	pointer-events: none       !important;
 }
+
+
+
+/* ─── v1.2.0 — Quantity stepper ─────────────────────────────────────────── */
+/* The stepper wraps the WC quantity input with optional [-] [+] buttons.
+   The middle <input> stays exactly where WC expects it (same name, same
+   .qty class), so wc-add-to-cart-variation.js continues to read and write
+   the value without modification. All sizing / colour / icon properties
+   are written via CSS custom properties from the Elementor Style tab so
+   themes can override without !important. */
+
+body.wse-stylesheet-enabled .wse-qty-stepper {
+	--wse-qty-btn-size:       36px;
+	--wse-qty-icon-size:      14px;
+	--wse-qty-gap:            0px;
+
+	display:         inline-flex;
+	align-items:     stretch;
+	gap:             var(--wse-qty-gap);
+	vertical-align:  middle;
+	box-sizing:      border-box;
+}
+
+/* Strip the native number-spin arrows so the stepper buttons are the
+   only increment/decrement UI. Manual numeric entry is unaffected. */
+body.wse-stylesheet-enabled .wse-qty-stepper .qty {
+	-moz-appearance: textfield;
+	text-align:      center;
+	min-width:       0;
+	box-sizing:      border-box;
+}
+body.wse-stylesheet-enabled .wse-qty-stepper .qty::-webkit-inner-spin-button,
+body.wse-stylesheet-enabled .wse-qty-stepper .qty::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+/* Buttons */
+body.wse-stylesheet-enabled .wse-qty-btn {
+	display:         inline-flex;
+	align-items:     center;
+	justify-content: center;
+	width:           var(--wse-qty-btn-size);
+	height:          var(--wse-qty-btn-size);
+	padding:         0;
+	border:          1px solid rgba(0, 0, 0, .15);
+	background:      #fafafa;
+	color:           #131b2e;             /* ZYMARG Text Body */
+	cursor:          pointer;
+	user-select:     none;
+	-webkit-tap-highlight-color: transparent;
+	transition:      background .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;
+	flex-shrink:     0;
+	line-height:     1;
+}
+
+body.wse-stylesheet-enabled .wse-qty-btn:hover:not(:disabled) {
+	background:    #f0f0f0;
+	border-color:  rgba(0, 0, 0, .25);
+}
+
+body.wse-stylesheet-enabled .wse-qty-btn:focus-visible {
+	outline:        2px solid #9500a5;     /* ZYMARG Primary */
+	outline-offset: 1px;
+	z-index:        2;
+}
+
+body.wse-stylesheet-enabled .wse-qty-btn:disabled {
+	opacity:        .4;
+	cursor:         not-allowed;
+}
+
+/* Icon sizing — applies whether the icon is a <svg>, <i> (Font Awesome /
+   Elementor icons), or our fallback inline SVG. */
+body.wse-stylesheet-enabled .wse-qty-btn svg,
+body.wse-stylesheet-enabled .wse-qty-btn i {
+	display:    block;
+	width:      var(--wse-qty-icon-size);
+	height:     var(--wse-qty-icon-size);
+	font-size:  var(--wse-qty-icon-size);
+	line-height: 1;
+}
+
+/* When buttons sit flush against the input (default gap = 0), tighten
+   the corners so the three elements read as a single unified stepper. */
+body.wse-stylesheet-enabled .wse-qty-stepper .wse-qty-btn--minus { border-right-width: 0; }
+body.wse-stylesheet-enabled .wse-qty-stepper .wse-qty-btn--plus  { border-left-width:  0; }
+
+/* When the user disables the buttons via the show_qty_stepper_buttons
+   toggle, only the bare input renders. Reset the container to behave
+   like a normal qty wrap. */
+body.wse-stylesheet-enabled .wse-qty-stepper--no-buttons {
+	display: inline-block;
+}

@@ -290,6 +290,64 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			)
 		);
 
+		// v1.2.0 — Quantity stepper buttons.
+		$this->add_control(
+			'show_qty_stepper_buttons',
+			array(
+				'label'        => esc_html__( 'Show +/- Stepper Buttons', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'Yes', 'woo-swatches-elementor' ),
+				'label_off'    => esc_html__( 'No',  'woo-swatches-elementor' ),
+				'return_value' => 'yes',
+				'default'      => 'yes',
+				'description'  => esc_html__(
+					'Wrap the quantity field with [-] and [+] buttons for touch-friendly increment/decrement. Manual numeric entry stays available.',
+					'woo-swatches-elementor'
+				),
+				'condition'    => array( 'show_quantity' => 'yes' ),
+			)
+		);
+
+		$this->add_control(
+			'decrease_icon',
+			array(
+				'label'       => esc_html__( 'Decrease icon', 'woo-swatches-elementor' ),
+				'type'        => \Elementor\Controls_Manager::ICONS,
+				'default'     => array(
+					'value'   => 'eicon-minus',
+					'library' => 'eicons',
+				),
+				'recommended' => array(
+					'eicons'         => array( 'minus', 'minus-circle', 'arrow-left', 'chevron-left' ),
+					'fa-solid'       => array( 'minus', 'minus-circle' ),
+				),
+				'condition'   => array(
+					'show_quantity'             => 'yes',
+					'show_qty_stepper_buttons'  => 'yes',
+				),
+			)
+		);
+
+		$this->add_control(
+			'increase_icon',
+			array(
+				'label'       => esc_html__( 'Increase icon', 'woo-swatches-elementor' ),
+				'type'        => \Elementor\Controls_Manager::ICONS,
+				'default'     => array(
+					'value'   => 'eicon-plus',
+					'library' => 'eicons',
+				),
+				'recommended' => array(
+					'eicons'         => array( 'plus', 'plus-circle', 'arrow-right', 'chevron-right' ),
+					'fa-solid'       => array( 'plus', 'plus-circle' ),
+				),
+				'condition'   => array(
+					'show_quantity'             => 'yes',
+					'show_qty_stepper_buttons'  => 'yes',
+				),
+			)
+		);
+
 		$this->end_controls_section();
 
 		// ── Button section ────────────────────────────────────────────────
@@ -478,6 +536,187 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 				'size_units' => array( 'px', '%' ),
 				'selectors'  => array(
 					'{{WRAPPER}} .wse-qty-wrap .qty' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->end_controls_section();
+
+		// ── v1.2.0 — Quantity Stepper Buttons style ───────────────────────
+		$this->start_controls_section(
+			'section_style_qty_stepper',
+			array(
+				'label'     => esc_html__( 'Quantity Stepper Buttons', 'woo-swatches-elementor' ),
+				'tab'       => \Elementor\Controls_Manager::TAB_STYLE,
+				'condition' => array(
+					'show_quantity'             => 'yes',
+					'show_qty_stepper_buttons'  => 'yes',
+				),
+			)
+		);
+
+		// ── Sizing ───────────────────────────────────────────────────────
+		$this->add_responsive_control(
+			'qty_stepper_total_width',
+			array(
+				'label'      => esc_html__( 'Total stepper width', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::SLIDER,
+				'size_units' => array( 'px', '%', 'em' ),
+				'range'      => array(
+					'px' => array( 'min' => 80,  'max' => 320 ),
+					'%'  => array( 'min' => 20,  'max' => 100 ),
+				),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-qty-stepper' => 'width: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'qty_stepper_btn_size',
+			array(
+				'label'      => esc_html__( 'Button size', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em' ),
+				'range'      => array( 'px' => array( 'min' => 24, 'max' => 64 ) ),
+				'default'    => array( 'unit' => 'px', 'size' => 36 ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-qty-stepper' => '--wse-qty-btn-size: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'qty_stepper_icon_size',
+			array(
+				'label'      => esc_html__( 'Icon size', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em' ),
+				'range'      => array( 'px' => array( 'min' => 8, 'max' => 32 ) ),
+				'default'    => array( 'unit' => 'px', 'size' => 14 ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-qty-stepper' => '--wse-qty-icon-size: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'qty_stepper_gap',
+			array(
+				'label'      => esc_html__( 'Gap between elements', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::SLIDER,
+				'size_units' => array( 'px' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 24 ) ),
+				'default'    => array( 'unit' => 'px', 'size' => 0 ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-qty-stepper' => '--wse-qty-gap: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		// ── Tabs: Normal / Hover / Disabled ──────────────────────────────
+		$this->start_controls_tabs( 'tabs_qty_stepper_btn_state' );
+
+		// Normal
+		$this->start_controls_tab(
+			'tab_qty_btn_normal',
+			array( 'label' => esc_html__( 'Normal', 'woo-swatches-elementor' ) )
+		);
+
+		$this->add_control(
+			'qty_btn_color_normal',
+			array(
+				'label'     => esc_html__( 'Icon / text color', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .wse-qty-btn' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'qty_btn_bg_normal',
+			array(
+				'label'     => esc_html__( 'Background', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .wse-qty-btn' => 'background-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->end_controls_tab();
+
+		// Hover
+		$this->start_controls_tab(
+			'tab_qty_btn_hover',
+			array( 'label' => esc_html__( 'Hover', 'woo-swatches-elementor' ) )
+		);
+
+		$this->add_control(
+			'qty_btn_color_hover',
+			array(
+				'label'     => esc_html__( 'Icon / text color', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .wse-qty-btn:hover:not(:disabled)' => 'color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_control(
+			'qty_btn_bg_hover',
+			array(
+				'label'     => esc_html__( 'Background', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .wse-qty-btn:hover:not(:disabled)' => 'background-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->end_controls_tab();
+
+		// Disabled
+		$this->start_controls_tab(
+			'tab_qty_btn_disabled',
+			array( 'label' => esc_html__( 'Disabled', 'woo-swatches-elementor' ) )
+		);
+
+		$this->add_control(
+			'qty_btn_disabled_opacity',
+			array(
+				'label'      => esc_html__( 'Opacity', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::SLIDER,
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 1, 'step' => 0.05 ) ),
+				'default'    => array( 'unit' => 'px', 'size' => 0.4 ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-qty-btn:disabled' => 'opacity: {{SIZE}};',
+				),
+			)
+		);
+
+		$this->end_controls_tab();
+
+		$this->end_controls_tabs();
+
+		// ── Border + radius ──────────────────────────────────────────────
+		$this->add_group_control(
+			\Elementor\Group_Control_Border::get_type(),
+			array(
+				'name'     => 'qty_btn_border',
+				'selector' => '{{WRAPPER}} .wse-qty-btn',
+			)
+		);
+
+		$this->add_responsive_control(
+			'qty_btn_border_radius',
+			array(
+				'label'      => esc_html__( 'Border radius', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-qty-btn' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
 				),
 			)
 		);
