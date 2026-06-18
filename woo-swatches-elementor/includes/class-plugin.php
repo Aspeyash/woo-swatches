@@ -149,6 +149,15 @@ class WSE_Plugin {
 		// Gap 3  — Body class state machine
 		add_filter( 'body_class', array( $this, 'body_classes' ) );
 
+		// v1.1.5 — Body class for hiding the View Cart link.
+		// CSS rules in assets/css/add-to-cart.css use the wse-hide-view-cart
+		// body class to suppress WooCommerce's client-side
+		// `<a class="added_to_cart wc-forward">` link injection (which my
+		// reactive JS strip lost the race against in v1.1.4). The CSS rule
+		// applies before WC's <script> runs, so there is no timing window
+		// where the link is visible.
+		add_filter( 'body_class', array( $this, 'maybe_add_hide_view_cart_class' ) );
+
 		// v1.1.0 (Feature A) — "View Cart" link toggle.
 		add_filter( 'wc_add_to_cart_message_html',         array( $this, 'maybe_strip_view_cart_link' ), 20, 2 );
 		add_filter( 'woocommerce_add_to_cart_fragments',   array( $this, 'maybe_strip_view_cart_in_fragments' ), 20 );
@@ -352,6 +361,23 @@ class WSE_Plugin {
 		require_once WSE_PATH . 'includes/class-settings.php';
 		$pages[] = new WSE_Settings();
 		return $pages;
+	}
+
+	/**
+	 * v1.1.5 — Adds the `wse-hide-view-cart` body class when the global
+	 * "Show 'View Cart' Link" toggle is off so the CSS rule in
+	 * assets/css/add-to-cart.css can hide the inline injected link before
+	 * WooCommerce's frontend JS even runs. Per-widget overrides ("No") add
+	 * the same class via JS at DOMReady (see add-to-cart.js).
+	 *
+	 * @param string[] $classes
+	 * @return string[]
+	 */
+	public function maybe_add_hide_view_cart_class( array $classes ): array {
+		if ( 'no' === get_option( 'wse_show_view_cart_link', 'yes' ) ) {
+			$classes[] = 'wse-hide-view-cart';
+		}
+		return $classes;
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

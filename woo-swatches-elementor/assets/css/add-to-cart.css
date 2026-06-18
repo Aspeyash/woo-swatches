@@ -436,3 +436,34 @@ body.wse-has-sticky-presenter .wse-toast {
 	content: none !important;
 	display: none !important;
 }
+
+
+
+/* ─── v1.1.5 — Hide WC's injected View Cart link via body class ─────────── */
+/*                                                                            */
+/* WooCommerce's frontend wc-add-to-cart.js binds an `added_to_cart`         */
+/* listener that injects `<a class="added_to_cart wc-forward">View cart</a>` */
+/* after the button. v1.1.4's JS strip ran reactively after the injection   */
+/* and was losing the race on some sites (cache, timing). v1.1.5 uses CSS   */
+/* with !important + a server-side body class — the rule applies before     */
+/* WC's <script> ever runs, so there's no timing window where the link is   */
+/* visible.                                                                  */
+/*                                                                            */
+/* The body class is added by:                                              */
+/*   • PHP body_class filter when wse_show_view_cart_link option is 'no'    */
+/*   • JS at DOMReady when any widget has data-show-view-cart="no"          */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+body.wse-hide-view-cart a.added_to_cart.wc-forward,
+body.wse-hide-view-cart .added_to_cart.wc-forward,
+body.wse-hide-view-cart a.wc-forward.added_to_cart,
+body.wse-hide-view-cart .woocommerce-message a.wc-forward,
+body.wse-hide-view-cart .woocommerce-info a.wc-forward,
+body.wse-hide-view-cart .woocommerce-error a.wc-forward,
+body.wse-hide-view-cart .wc-block-components-notice-banner a.wc-forward,
+body.wse-hide-view-cart .wse-widget-add-to-cart a.wc-forward,
+body.wse-hide-view-cart .wse-toast-link {
+	display:        none       !important;
+	visibility:     hidden     !important;
+	pointer-events: none       !important;
+}

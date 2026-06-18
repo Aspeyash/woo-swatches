@@ -113,10 +113,15 @@
 			return;
 		}
 
-		// Remove the standalone View cart anchor wherever WC may render it,
-		// including the `<a class="added_to_cart wc-forward">` link that
-		// WooCommerce's wc-add-to-cart.js listener injects after the button
-		// on the added_to_cart event (the link the user circled in red).
+		// v1.1.5 — Add the `wse-hide-view-cart` body class so the CSS rule
+		// in add-to-cart.css hides any injected link permanently. PHP adds
+		// this class when the global toggle is off; JS adds it here for
+		// per-widget overrides. Idempotent — addClass is a no-op if already set.
+		$( 'body' ).addClass( 'wse-hide-view-cart' );
+
+		// Defense-in-depth: also remove the actual elements so they don't
+		// take up DOM space (CSS display:none already does this layout-wise,
+		// but this is cleaner for memory and screen reader output).
 		$( '.woocommerce-message a.wc-forward, ' +
 		   '.woocommerce-info a.wc-forward, ' +
 		   '.woocommerce-error a.wc-forward, ' +

@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.1.4
+Stable tag: 1.1.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,19 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.1.5 =
+**Patch: View Cart link hiding now uses CSS body class — wins all races.**
+
+v1.1.4 stripped WooCommerce's injected `<a class="added_to_cart wc-forward">` link via a JS `added_to_cart` listener, but the strip ran reactively *after* WC's injection, which lost the race on some sites (browser cache, timing variations). v1.1.5 switches to a CSS-first approach that applies the rule **before** WC's `<script>` ever runs — there is no timing window where the link is visible.
+
+**Implementation:**
+* `class-plugin.php` adds a `body_class` filter that appends `wse-hide-view-cart` to `<body>` whenever the global `wse_show_view_cart_link` option is `no`.
+* `assets/js/add-to-cart.js` adds the same body class via JS at DOMReady whenever any Add to Cart widget on the page has its per-widget `data-show-view-cart="no"` override set.
+* `assets/css/add-to-cart.css` matches `body.wse-hide-view-cart a.added_to_cart.wc-forward` (and the various other places WC renders the View cart anchor) with `display:none !important; visibility:hidden !important; pointer-events:none !important;` — uncatchable by any timing race.
+* The v1.1.4 JS DOM strip stays as defense-in-depth so removed elements don't accumulate in memory.
+
+After installing, hard-refresh the live product page (Ctrl+Shift+R / Cmd+Shift+R) to flush the cached CSS. The View cart link will be hidden in every location: WC's top notice, inline beside the button, mini-cart fragment, and the toast.
 
 = 1.1.4 =
 **Patch: View Cart link is now correctly hidden everywhere when the toggle is off.**
@@ -275,6 +288,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Full WCAG AA keyboard accessibility.
 
 == Upgrade Notice ==
+
+= 1.1.5 =
+Patch: switches the View Cart link hide from a reactive JS strip to a CSS-first approach using a body class. The CSS rule applies before WooCommerce's frontend JS runs, so there's no race condition where the link is visible. Drop-in replacement for v1.1.4. Hard-refresh after install. After this update, the manual CSS workaround in your theme's Customize → Additional CSS is no longer needed and can be removed.
 
 = 1.1.4 =
 Patch: closes the gap where WooCommerce's frontend JS injected a "View cart" link inline beside the button even when "Show View Cart Link" was toggled off. The link is now correctly hidden in all three locations (WC notice, inline next to button, toast). Drop-in replacement for v1.1.3. Hard-refresh the product page after install.
