@@ -118,10 +118,13 @@ class WSE_Local_Attributes {
 		wp_enqueue_style( 'wp-color-picker' );
 		wp_enqueue_media();
 
-		// Gap 49 — WSE_SUFFIX: .min in production, '' in debug
+		// v1.1.6 (Bug #6): admin JS lives in admin/, not assets/js/, and is
+		// shipped unminified only — using WSE_SUFFIX here produced a 404 in
+		// production (.min.js never existed), so click handlers (Upload, type
+		// switcher) never bound. Path corrected.
 		wp_enqueue_script(
 			'wse-admin-local-attributes',
-			WSE_URL . 'assets/js/admin-local-attributes' . WSE_SUFFIX . '.js',
+			WSE_URL . 'admin/admin-local-attributes.js',
 			array( 'jquery', 'wp-color-picker' ),
 			WSE_VERSION,
 			true
@@ -138,10 +141,13 @@ class WSE_Local_Attributes {
 			)
 		);
 
-		// Shared admin CSS already covers the field styles
+		// v1.1.6 (Bug #6): admin.css lives in admin/, not assets/css/.
+		// Previous wrong path 404'd, so .wse-hidden { display:none } never
+		// loaded — both color and image field groups rendered together
+		// regardless of saved type. Path corrected.
 		wp_enqueue_style(
 			'wse-admin',
-			WSE_URL . 'assets/css/admin.css',
+			WSE_URL . 'admin/admin.css',
 			array( 'wp-color-picker' ),
 			WSE_VERSION
 		);

@@ -143,6 +143,29 @@ class WSE_Swatch_Renderer {
 			 * This wrapper is purely structural: same visible <select>,
 			 * same classes — just inside an ancestor carrying .variations.
 			 */
+
+			/**
+			 * v1.1.6 (Bug #5): Respect wse_renderer_emit_select on this
+			 * early-exit path too. Widget 1 sets emit_select=false during
+			 * its render so the canonical form (Widget 2) is the sole owner
+			 * of every attribute's <select> — including non-swatch (select /
+			 * text) types. Before this fix, the early-return passthrough
+			 * bypassed the filter, so Widget 1 emitted a duplicate <select>
+			 * for dropdown-typed attributes, producing two visible dropdowns
+			 * with the same name and breaking variation matching until both
+			 * were independently selected.
+			 */
+			$emit_select = (bool) apply_filters(
+				'wse_renderer_emit_select',
+				true,
+				$attribute,
+				$product,
+				$type
+			);
+			if ( ! $emit_select ) {
+				return '';
+			}
+
 			return '<div class="wse-native-attr variations">' . $html . '</div>';
 		}
 
@@ -208,8 +231,20 @@ class WSE_Swatch_Renderer {
 				$first_available_emitted = true;
 			}
 
+			/**
+			 * v1.1.6 (Bug #4): Button-type swatches are rendered through
+			 * label.php — the label template already supports the button
+			 * variant via the .wse-swatch-label--button modifier class
+			 * (driven by $swatch['type'] === 'button'). Previous code looked
+			 * for templates/swatches/button.php which has never existed in
+			 * the plugin, so locate_template() returned empty, the LFI guard
+			 * silently failed the include, and button-typed attributes
+			 * rendered an empty <ul> on every product page.
+			 */
+			$template_name = ( 'button' === $type ) ? 'label.php' : ( $type . '.php' );
+
 			$item_html = $this->include_template(
-				$type . '.php',
+				$template_name,
 				array(
 					'value'              => (string) $value,
 					'swatch'             => $swatch,

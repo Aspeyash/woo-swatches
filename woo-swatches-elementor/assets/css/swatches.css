@@ -324,3 +324,50 @@ body.wse-stylesheet-enabled .wse-more {
 /* When "Plugin Stylesheet" is turned off the body class changes to
    .wse-stylesheet-disabled — none of the above rules match, so nothing
    renders and the theme has full control. No explicit rule needed. */
+
+
+
+/* ─── v1.1.6 (Bug #2) — Checkmark overlay visibility ─────────────────────── */
+/* Templates render <span class="wse-checkmark"> on every color and image
+   swatch with the intent that CSS would gate it on the .selected state.
+   That CSS rule was missing entirely from v1.1.5 and earlier, so the
+   checkmark rendered always-on regardless of selection. Restored here. */
+
+body.wse-stylesheet-enabled .wse-checkmark {
+	position:        absolute;
+	inset:           0;
+	display:         flex;
+	align-items:     center;
+	justify-content: center;
+	color:           #fff;
+	pointer-events:  none;
+	opacity:         0;
+	transition:      opacity .15s ease;
+}
+
+body.wse-stylesheet-enabled .wse-swatch.selected .wse-checkmark {
+	opacity: 1;
+}
+
+/* Per ZYMARG product preference: image swatches never show the checkmark.
+   The image itself is the indication; an overlaid checkmark obscures the
+   product image and adds no signal. */
+body.wse-stylesheet-enabled .wse-swatch-image .wse-checkmark {
+	display: none;
+}
+
+/* ─── v1.1.6 (Bug #3) — Selected label / button: no colour fill ──────────── */
+/* Previous rule painted .wse-swatch-label.selected and .wse-swatch-button.selected
+   with the active colour as background and white text, producing the
+   "theme-blue pill" effect on selection. Per ZYMARG product preference, the
+   selected state should carry no colour change at all — selection is
+   indicated by font weight and a neutral currentColor border only. */
+
+body.wse-stylesheet-enabled .wse-swatch-label.selected,
+body.wse-stylesheet-enabled .wse-swatch-button.selected {
+	background:    transparent;
+	color:         inherit;
+	border-color:  currentColor;
+	box-shadow:    none;
+	font-weight:   700;
+}

@@ -95,11 +95,14 @@ class WSE_Term_Meta {
 		// WordPress media uploader (needed for image swatch uploads)
 		wp_enqueue_media();
 
-		// Our admin JS — initialises color picker and media uploader
-		// Gap 49 — WSE_SUFFIX switches .min in production, '' in debug
+		// v1.1.6 (Bug #6): admin JS lives in admin/, not assets/js/, and is
+		// shipped unminified only — using WSE_SUFFIX here produced a 404 in
+		// production (.min.js never existed), so the global-attribute term
+		// editor's color picker + image uploader were broken in the same way
+		// the local-attribute metabox was. Path corrected.
 		wp_enqueue_script(
 			'wse-admin-term-meta',
-			WSE_URL . 'assets/js/admin-term-meta' . WSE_SUFFIX . '.js',
+			WSE_URL . 'admin/admin-term-meta.js',
 			array( 'jquery', 'wp-color-picker' ),
 			WSE_VERSION,
 			true // load in footer
@@ -117,10 +120,11 @@ class WSE_Term_Meta {
 			)
 		);
 
-		// Our admin CSS — styles color picker and image upload fields
+		// v1.1.6 (Bug #6): admin.css lives in admin/, not assets/css/.
+		// Wrong path 404'd, leaving the term-edit screen unstyled. Corrected.
 		wp_enqueue_style(
 			'wse-admin',
-			WSE_URL . 'assets/css/admin.css',
+			WSE_URL . 'admin/admin.css',
 			array( 'wp-color-picker' ),
 			WSE_VERSION
 		);

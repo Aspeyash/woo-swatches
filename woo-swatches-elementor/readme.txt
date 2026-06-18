@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.1.5
+Stable tag: 1.1.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,44 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.1.6 =
+**Patch: Six rendering bugs found via live ZYMARG site testing — admin asset paths, missing CSS, missing template, duplicate dropdowns.**
+
+This release fixes a cluster of bugs that surfaced once the plugin was used on a real Dokan Pro / Astra / Hostinger stack against products with local (non-taxonomy) custom attributes. Five of them have a single shared root cause — files referenced by the wrong path on disk — and the remaining two are missing CSS rules and a missing template-name mapping.
+
+**Bug #1 — Color swatches rendered as a grey square with a permanent checkmark instead of the actual colour**
+Two combined causes:
+1. The admin metabox couldn't save colours because the admin JS and CSS for the Local Attribute Swatches metabox were enqueued from `assets/js/admin-local-attributes.min.js` and `assets/css/admin.css` — paths that don't exist on disk (admin assets live in `admin/`, and only unminified `.js` files are shipped). In production (`SCRIPT_DEBUG=false`, default) this 404'd, the wp-color-picker UI never initialised, the per-option colour inputs stayed empty, and `_wse_local_swatches` was saved without colour values. The renderer then fell back to its `#e0e0e0` default, producing a grey tile.
+2. The checkmark overlay (#2 below) rendered always-on, masking the missing colour with a tick.
+After this fix the picker initialises, colours save correctly, and the swatch renders the actual hex value.
+
+**Bug #2 — Image and color swatches showed a permanent checkmark on every tile, not just the selected one**
+The `<span class="wse-checkmark">` element is rendered on every color and image swatch, with the intent that CSS gates its visibility on `.wse-swatch.selected`. That CSS rule was missing entirely from `assets/css/swatches.css` (and its minified twin), so the checkmark span rendered always-on regardless of selection state. v1.1.6 adds the missing rule plus an explicit `display:none` on image swatches per ZYMARG product preference (the image itself is sufficient indication; the overlaid checkmark obscures it).
+
+**Bug #3 — Selected label/button swatch had a hard-coded blue (`#0066cc`) background pill**
+`assets/css/swatches.css` painted `.wse-swatch-label.selected` and `.wse-swatch-button.selected` with `background: var(--wse-swatch-active-color)` and `color: #fff`, producing the "blue pill" effect on selection. Per ZYMARG product preference, v1.1.6 overrides the selected state to carry no colour change at all — selection is now indicated by `font-weight: 700` and a neutral `currentColor` border only.
+
+**Bug #4 — Button-type swatches rendered an empty `<ul>` (nothing visible)**
+The renderer's loop calls `include_template($type . '.php', ...)`, so for `type='button'` it tried to load `templates/swatches/button.php` — a file that has never existed in the plugin. `locate_template()` returned empty, the LFI guard silently failed the include, and button-typed attributes produced no swatch markup on every product page. Fixed by routing `button` through `label.php`, which already supports the button variant via the `.wse-swatch-label--button` modifier class (driven by `$swatch['type']`).
+
+**Bug #5 — Dropdown (`select`) attributes rendered TWO dropdowns, both required to select before Add to Cart enabled**
+When a local attribute was set to type "Dropdown", the renderer's early-exit path for non-swatch types (`return '<div class="wse-native-attr variations">' . $html . '</div>'`) ignored the `wse_renderer_emit_select` filter that Widget 1 sets to `false` during its render. So Widget 1 emitted a passthrough copy of the native `<select>` while Widget 2 (canonical form) emitted its own — two dropdowns with the same `name`, two independent variation matchers. v1.1.6 respects the filter on the early-exit path: when emit_select is false (Widget 1's render), the renderer returns empty for non-swatch types, leaving the canonical form as the sole owner of the dropdown.
+
+**Bug #6 — Local Attribute Swatches metabox: Upload button did nothing; Color and Image fields shown together**
+Same root cause as Bug #1: `class-local-attributes.php` enqueued admin CSS from `assets/css/admin.css` (404 — file is at `admin/admin.css`) and admin JS from `assets/js/admin-local-attributes.min.js` (404 — only `admin/admin-local-attributes.js` exists). With the JS not loading, the click handler `$(document).on('click', '.wse-local-upload-btn', ...)` never registered, so the Upload button was inert. With the CSS not loading, the `.wse-hidden { display:none !important }` rule never applied, so the type-switcher's visibility gating failed and both Color and Image field groups rendered simultaneously regardless of saved type. `class-term-meta.php` had the same path bugs and got the same fix for symmetry — the global-attribute term editor's Upload button was silently broken in production for the same reason.
+
+**Files changed**
+* `includes/class-swatch-renderer.php` — Bug #4 (button → label template normalisation), Bug #5 (emit_select check on early-exit path).
+* `includes/class-local-attributes.php` — Bug #1 + #6 (admin CSS+JS path corrections).
+* `includes/class-term-meta.php` — Bug #6 mirror (admin CSS+JS path corrections for global attribute term editor).
+* `assets/css/swatches.css` and `assets/css/swatches.min.css` — Bug #2 (`.wse-checkmark` visibility gating + image-swatch hide), Bug #3 (override selected label/button styling).
+
+**Migration**
+* Drop-in replacement for v1.1.5. No DB migration required.
+* After installing, hard-refresh (Ctrl+Shift+R / Cmd+Shift+R) the live product page and any product edit screen to flush cached CSS and JS.
+* If you had previously configured local-attribute colour or image swatches and they appeared not to save, re-open the product, set the swatch values again with the now-working picker UI, and click Update. Existing saved data is unaffected.
+* No changelog item from v1.1.5 is being reverted.
 
 = 1.1.5 =
 **Patch: View Cart link hiding now uses CSS body class — wins all races.**
@@ -288,6 +326,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Full WCAG AA keyboard accessibility.
 
 == Upgrade Notice ==
+
+= 1.1.6 =
+Patch: fixes six rendering bugs found via live ZYMARG testing. Color swatches now actually display the configured colour. Image swatches no longer show a checkmark overlay. Label/button swatches no longer turn blue when selected. Button-type swatches now render (was: empty). Dropdown-type attributes now render exactly one dropdown (was: two). Local-attribute metabox Upload button now works (was: silently inert in production). Drop-in replacement for v1.1.5. Hard-refresh after install.
 
 = 1.1.5 =
 Patch: switches the View Cart link hide from a reactive JS strip to a CSS-first approach using a body class. The CSS rule applies before WooCommerce's frontend JS runs, so there's no race condition where the link is visible. Drop-in replacement for v1.1.4. Hard-refresh after install. After this update, the manual CSS workaround in your theme's Customize → Additional CSS is no longer needed and can be removed.
