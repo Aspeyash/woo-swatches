@@ -379,6 +379,29 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			)
 		);
 
+		// v1.2.0 — Inline price toggle.
+		// Widget 3 (ZYMARG Price) is the new default owner of price display.
+		// This toggle controls whether Widget 2 ALSO renders the variation
+		// price slot. Default is read from wse_widget2_inline_price_default,
+		// which the activator pins to 'yes' on upgrades from < 1.2.0 (so
+		// existing v1.1.x users keep their inline price) and 'no' on fresh
+		// installs (so Widget 3 owns the price out of the box).
+		$this->add_control(
+			'show_inline_price',
+			array(
+				'label'        => esc_html__( 'Show Inline Price', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'Show', 'woo-swatches-elementor' ),
+				'label_off'    => esc_html__( 'Hide', 'woo-swatches-elementor' ),
+				'return_value' => 'yes',
+				'default'      => get_option( 'wse_widget2_inline_price_default', 'no' ),
+				'description'  => esc_html__(
+					'Show the variation price inside this widget. Turn OFF when you have placed the ZYMARG Price (Widget 3) elsewhere on the page so it owns price display.',
+					'woo-swatches-elementor'
+				),
+			)
+		);
+
 		$this->end_controls_section();
 	}
 

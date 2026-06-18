@@ -66,7 +66,7 @@ $default_attributes   = $product->get_default_attributes();
 <?php do_action( 'woocommerce_before_add_to_cart_form' ); ?>
 
 <form id="<?php echo esc_attr( $form_id ); ?>"
-	  class="variations_form cart wse-canonical-form"
+	  class="variations_form cart wse-canonical-form<?php echo ( ( $settings['show_inline_price'] ?? 'yes' ) === 'yes' ) ? '' : ' wse-no-inline-price'; ?>"
 	  action="<?php echo esc_url( apply_filters( 'woocommerce_add_to_cart_form_action', $product->get_permalink() ) ); ?>"
 	  method="post"
 	  enctype="multipart/form-data"

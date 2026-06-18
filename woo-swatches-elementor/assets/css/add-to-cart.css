@@ -561,3 +561,16 @@ body.wse-stylesheet-enabled .wse-qty-stepper .wse-qty-btn--plus  { border-left-w
 body.wse-stylesheet-enabled .wse-qty-stepper--no-buttons {
 	display: inline-block;
 }
+
+
+
+/* ─── v1.2.0 — Inline price hide ────────────────────────────────────────── */
+/* When Widget 2's "Show Inline Price" toggle is off, the .wse-no-inline-price
+   class is added to the canonical form. WC's wc-add-to-cart-variation.js
+   continues to write into .woocommerce-variation-price as normal — we just
+   visually hide it so Widget 3 (ZYMARG Price) owns the price display.
+   Availability and description divs stay visible (they're useful regardless). */
+
+body.wse-stylesheet-enabled .wse-no-inline-price .woocommerce-variation-price {
+	display: none;
+}

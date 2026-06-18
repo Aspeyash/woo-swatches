@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.1.6
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,49 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.2.0 =
+**Minor: Widget 3 (ZYMARG Price) introduced + quantity stepper redesign in Widget 2.**
+
+This release splits price display into its own dedicated, fully-stylable Elementor widget and ships a touch-friendly +/- quantity stepper inside Widget 2 (Add to Cart).
+
+**New: Widget 3 — ZYMARG Price**
+
+* Standalone Elementor widget (`zymarg-price`) under the WooSwatches category. Place anywhere on a product page — main column, sticky cart, gallery sidebar — multiple instances on the same page all sync to the same canonical form.
+* **Simple products**: renders the price always; sale-aware. If on sale, the sale price is the prominent number and the regular price renders next to it as a strikethrough subscript.
+* **Variable products, no variation selected**: renders ONLY the lowest active price across all variations (per ZYMARG product spec). When any variation on the product is on sale, the lowest regular price across all variations is rendered next to the lowest active price as a strikethrough subscript, and the Sale badge appears (option (ii) per spec).
+* **Variable products, variation selected via Widget 1**: when the customer picks a swatch, `price.js` listens to the canonical form's `found_variation` event fired by `wc-add-to-cart-variation.js` and re-renders this widget with that specific variation's price + sale formatting. `reset_data` restores the lowest-baseline.
+* **Default display style** (Content tab → Display): Lowest price (default), Lowest with "From" prefix, or Price range.
+* **Regular price position** (Content tab → Display): Inline subscript (default), Inline beside, Below, or Hide.
+* **Sale badge**: optional badge with configurable text. Shows when ANY variation on the product is on sale, even on the lowest-baseline view.
+* **Style controls**: typography + colour for current price (regular and on-sale separately), typography + colour + opacity for regular ("was") price, full sale-badge styling (typography, text colour, background, padding, border radius), responsive layout gap and alignment. All values flow through CSS custom properties so themes and child themes can override at runtime without specificity wars.
+* Currency formatting (decimal separator, thousand separator, decimals, currency symbol, currency position) is read live from WooCommerce's option store on both server-side and client-side renders, so currency-switcher plugins (WPML, Aelia, etc.) that hook the underlying WC functions are respected automatically.
+* LFI guard on every template include via `realpath()` allow-list — same protection as the existing `WSE_Swatch_Renderer` template system.
+
+**Changed: Widget 2 — Quantity stepper redesign**
+
+* Replaced WooCommerce's bare quantity input with a `[-] [qty] [+]` stepper for touch-friendly increment/decrement. Manual numeric entry is still available; the middle `<input>` keeps its WC-expected name, classes, and value handling so cart logic is unchanged.
+* New Content tab controls (under Quantity section): Show +/- Stepper Buttons toggle, Decrease icon (Elementor icon picker), Increase icon (Elementor icon picker).
+* New Style tab section "Quantity Stepper Buttons" with full control: total stepper width, button size, icon size, gap, normal/hover/disabled state colours, border, border radius. All responsive.
+* Click handlers respect per-variation `min_qty` / `max_qty` updates from WC's variation matcher — the stepper buttons disable when the variation imposes new bounds.
+* `grouped` product templates left untouched (the per-row qty inputs in a grouped product table are a separate UX problem; parked for a future release).
+
+**Changed: Widget 2 — "Show Inline Price" toggle**
+
+* New control under Content → Button section. Default for fresh installs: **OFF** (Widget 3 owns price). Default for upgrades from any prior v1.1.x release: **ON** (back-compat). Existing configured Widget 2 instances keep their previous behaviour.
+* When OFF, Widget 2 still renders the `.woocommerce-variation-price` div (so WC's variation engine writes into it without errors) — it's just CSS-hidden via `body.wse-stylesheet-enabled .wse-no-inline-price .woocommerce-variation-price { display: none; }`. Availability and description divs stay visible.
+
+**Migration**
+
+* Drop-in replacement for v1.1.6. No DB schema changes.
+* On activation, the activator detects an upgrade from any version `< 1.2.0` and pins `wse_widget2_inline_price_default` to `'yes'`, so existing Widget 2 instances continue to show their inline price exactly as in v1.1.x. New Widget 2 instances added after the upgrade will default to `'no'` so Widget 3 owns price display going forward.
+* For ZYMARG (or any user wanting Widget 3 to own price on existing pages): edit each Widget 2 in Elementor and toggle Show Inline Price → Off. Manual one-time per page.
+* No template overrides require updating.
+
+**Files changed / added**
+
+* New: `widgets/class-widget-price.php`, `templates/price/{simple.php, variable.php, parts/price-current.php, parts/price-was.php}`, `templates/quantity-stepper.php`, `assets/css/price.css` (+ `.min`), `assets/js/price.js` (+ `.min`).
+* Modified: `includes/class-plugin.php` (Widget 3 registration + price params in WSEParams), `includes/class-assets.php` (handle map + register), `includes/class-activator.php` (default + migration), `widgets/class-widget-add-to-cart.php` (stepper + inline-price controls), `templates/add-to-cart/{simple.php, variable.php}` (stepper integration + form class), `assets/css/add-to-cart.css` (+ `.min`) (stepper + inline-price hide), `assets/js/add-to-cart.js` (+ `.min`) (stepper handlers).
 
 = 1.1.6 =
 **Patch: Six rendering bugs found via live ZYMARG site testing — admin asset paths, missing CSS, missing template, duplicate dropdowns.**
@@ -325,7 +368,15 @@ This release replaces the dual-form architecture with a single canonical form pe
 * RTL stylesheet.
 * Full WCAG AA keyboard accessibility.
 
+== Roadmap ==
+
+= 1.3.0 (planned) =
+* Widget 4 — ZYMARG Variation Image Gallery: a product-image gallery widget that automatically flips to show the matching variation's image (and gallery, where available) when a swatch is selected via Widget 1. Designed to live in the gallery column of a product page and stay in sync with all variation widgets through the existing Form Registry coordination.
+
 == Upgrade Notice ==
+
+= 1.2.0 =
+Minor release. New Widget 3 (ZYMARG Price) takes over price display with full sale-aware formatting and live updates when variations are selected via Widget 1. New touch-friendly +/- quantity stepper in Widget 2 with full Elementor styling control. Widget 2 gains a Show Inline Price toggle — defaults to ON for upgrades (back-compat) and OFF for fresh installs. Hard-refresh after install. No DB migration.
 
 = 1.1.6 =
 Patch: fixes six rendering bugs found via live ZYMARG testing. Color swatches now actually display the configured colour. Image swatches no longer show a checkmark overlay. Label/button swatches no longer turn blue when selected. Button-type swatches now render (was: empty). Dropdown-type attributes now render exactly one dropdown (was: two). Local-attribute metabox Upload button now works (was: silently inert in production). Drop-in replacement for v1.1.5. Hard-refresh after install.

@@ -97,7 +97,23 @@ class WSE_Activator {
 
 			// v1.1.1 — Show toast notification on successful AJAX add-to-cart.
 			'wse_show_added_toast' => 'yes',
+
+			// v1.2.0 — Default for Widget 2's "Show inline price" toggle on
+			// NEW widget instances. New installs get 'no' (Widget 3 owns the
+			// price). Existing v1.1.x installs are migrated to 'yes' below
+			// so their already-placed Widget 2 instances keep showing price
+			// without a manual edit.
+			'wse_widget2_inline_price_default' => 'no',
 		);
+
+		// ── Detect upgrade from < 1.2.0 and pin Widget 2 inline-price default to 'yes' ──
+		// add_option() above is a no-op when wse_version already exists,
+		// so we read it here and override the default for back-compat
+		// before any new widgets are added.
+		$prior_version = get_option( 'wse_version', '' );
+		if ( $prior_version && version_compare( $prior_version, '1.2.0', '<' ) ) {
+			update_option( 'wse_widget2_inline_price_default', 'yes' );
+		}
 
 		foreach ( $defaults as $key => $value ) {
 			add_option( $key, $value );
@@ -166,6 +182,7 @@ class WSE_Activator {
 			'wse_template_override_acks', // v1.1.0 — hard-cut migration notice acks
 			'wse_multivendor_compat', // v1.1.1
 			'wse_show_added_toast', // v1.1.1
+			'wse_widget2_inline_price_default', // v1.2.0
 			'wse_version',
 			'wse_regen_notice_dismissed',
 		);
