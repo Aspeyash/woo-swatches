@@ -471,6 +471,24 @@ class WSE_Plugin {
 		$params['i18n']['toast_added'] = esc_html__( 'Added to cart', 'woo-swatches-elementor' );
 		$params['i18n']['view_cart']   = esc_html__( 'View cart', 'woo-swatches-elementor' );
 
+		// v1.2.0 — Currency / decimal / separator settings consumed by
+		// price.js's formatPrice() helper. Pulled straight from WC's option
+		// store so any third-party currency switcher that filters the
+		// underlying functions also affects Widget 3 in real time. Kept
+		// under the 'price' sub-key so future price-related params land in
+		// a single namespace without polluting the top-level WSEParams.
+		$params['price'] = array(
+			'currency_symbol' => html_entity_decode(
+				get_woocommerce_currency_symbol(),
+				ENT_QUOTES,
+				'UTF-8'
+			),
+			'currency_pos'    => (string) get_option( 'woocommerce_currency_pos', 'left' ),
+			'decimals'        => (int) wc_get_price_decimals(),
+			'decimal_sep'     => (string) wc_get_price_decimal_separator(),
+			'thousand_sep'    => (string) wc_get_price_thousand_separator(),
+		);
+
 		return $params;
 	}
 
