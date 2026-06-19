@@ -283,15 +283,24 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			)
 		);
 
+		// v1.2.2 — Icon defaults changed from eicon-minus/eicon-plus to
+		// empty values so the inline-SVG fallback in templates/quantity-stepper.php
+		// is the default visual. This bypasses the Elementor icon-data manager
+		// entirely on installs where its array doesn't have a "minus"/"plus"
+		// key (a known issue across some Elementor / Elementor Pro version
+		// combinations) — see the v1.2.2 changelog for the full diagnosis.
+		// Users who explicitly pick an Elementor icon via the picker still
+		// get that rendering through Icons_Manager.
 		$this->add_control(
 			'decrease_icon',
 			array(
 				'label'       => esc_html__( 'Decrease icon', 'woo-swatches-elementor' ),
 				'type'        => \Elementor\Controls_Manager::ICONS,
 				'default'     => array(
-					'value'   => 'eicon-minus',
-					'library' => 'eicons',
+					'value'   => '',
+					'library' => '',
 				),
+				'description' => esc_html__( 'Leave empty to use the built-in minus glyph (recommended). Pick an Elementor icon to override.', 'woo-swatches-elementor' ),
 				'recommended' => array(
 					'eicons'         => array( 'minus', 'minus-circle', 'arrow-left', 'chevron-left' ),
 					'fa-solid'       => array( 'minus', 'minus-circle' ),
@@ -309,9 +318,10 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 				'label'       => esc_html__( 'Increase icon', 'woo-swatches-elementor' ),
 				'type'        => \Elementor\Controls_Manager::ICONS,
 				'default'     => array(
-					'value'   => 'eicon-plus',
-					'library' => 'eicons',
+					'value'   => '',
+					'library' => '',
 				),
+				'description' => esc_html__( 'Leave empty to use the built-in plus glyph (recommended). Pick an Elementor icon to override.', 'woo-swatches-elementor' ),
 				'recommended' => array(
 					'eicons'         => array( 'plus', 'plus-circle', 'arrow-right', 'chevron-right' ),
 					'fa-solid'       => array( 'plus', 'plus-circle' ),
