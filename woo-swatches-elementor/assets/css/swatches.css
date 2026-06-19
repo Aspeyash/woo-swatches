@@ -491,3 +491,53 @@ body.wse-tooltip-enabled .wse-attr-block.wse-image-label-pos-above  .wse-swatch-
 body.wse-tooltip-enabled .wse-attr-block.wse-image-label-pos-above  .wse-swatch-image:focus-visible::after {
 	display: none !important;
 }
+
+
+
+/* ─── v1.2.3 (Issue 7) — Show Price Under Image Swatches ────────────────── */
+/* The per-swatch price <span class="wse-swatch-image-price"> is always
+   rendered in image.php (when a matching variation has a price). CSS
+   here hides it by default and shows it only when Widget 1's "Show
+   Price Under Image Swatches" toggle adds .wse-show-image-price to the
+   parent .wse-attr-block. Builds on the v1.2.1 F4 image-label layout
+   so the price stacks below both the image and the label. */
+
+body.wse-stylesheet-enabled .wse-swatch-image-price {
+	display:    none;            /* hidden by default — toggle on via parent class */
+	font-size:  .7rem;
+	font-weight: 600;
+	line-height: 1.2;
+	color:      var( --zymarg-price-color, #131b2e );  /* ZYMARG Text Body */
+	text-align: center;
+	margin-top: 2px;
+}
+
+body.wse-stylesheet-enabled .wse-attr-block.wse-show-image-price .wse-swatch-image-price {
+	display: block;
+}
+
+/* WC's standard sale-price <del> + <ins> markup inside our wrapper.
+   The <del> shows the regular price struck through; <ins> the sale price. */
+body.wse-stylesheet-enabled .wse-swatch-image-price del {
+	opacity:     .55;
+	font-weight: 400;
+	margin-right: 4px;
+}
+body.wse-stylesheet-enabled .wse-swatch-image-price ins {
+	color:           #9500a5;    /* ZYMARG Primary — matches the price widget on-sale color */
+	text-decoration: none;
+	font-weight:     700;
+}
+
+/* Tighten the WooCommerce-rendered .woocommerce-Price-amount wrapper
+   so it doesn't introduce extra layout shift inside our small badge. */
+body.wse-stylesheet-enabled .wse-swatch-image-price .woocommerce-Price-amount {
+	white-space: nowrap;
+}
+
+/* When the image-label position is "hover" or "hidden", the price would
+   look misplaced floating without an anchor. Hide it in those modes too. */
+body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hover  .wse-swatch-image-price,
+body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hidden .wse-swatch-image-price {
+	display: none !important;
+}

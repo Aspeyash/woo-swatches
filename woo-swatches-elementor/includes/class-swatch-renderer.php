@@ -446,6 +446,16 @@ class WSE_Swatch_Renderer {
 						? (string) ( wp_get_attachment_image_url( $local_img_id, 'wse_swatch' ) ?: wc_placeholder_img_src( 'wse_swatch' ) )
 						: $this->get_image_with_fallback( $product, $attribute, $option_value, 0 );
 				}
+				// v1.2.3 (Issue 7) — Per-swatch price for the optional
+				// "Show Price Under Image Swatches" Widget 1 control.
+				// Always computed (cheap — uses the request-scoped variation
+				// cache) so the data is available; visibility is gated by
+				// the .wse-show-image-price class on the parent .wse-attr-block.
+				$swatch['price_html'] = $this->get_variation_price_html_for_value(
+					$product,
+					$attribute,
+					$option_value
+				);
 				break;
 
 			// label and button use only value + label — no extra data needed
@@ -545,6 +555,83 @@ class WSE_Swatch_Renderer {
 			}
 		}
 		return $this->variation_cache[ $id ];
+	}
+
+	/**
+	 * v1.2.3 (Issue 7) — Returns the formatted display price HTML for the
+	 * lowest-priced available variation matching a specific option value.
+	 *
+	 * Used by the optional "Show Price Under Image Swatches" Widget 1
+	 * control. Returns the LOWEST display_price among matching variations
+	 * (so multi-attribute products like color×size pick the cheapest
+	 * size for the chosen color), wrapped in WC's standard wc_price()
+	 * markup. Sale-aware: when the matched variation is on sale, the
+	 * returned HTML includes both regular and sale prices in WC's standard
+	 * <ins> + <del> structure.
+	 *
+	 * Empty-string attribute values in a variation mean "any term matches";
+	 * those are skipped here because they don't have a value-specific price.
+	 *
+	 * @param  \WC_Product $product
+	 * @param  string      $attribute
+	 * @param  string      $value
+	 * @return string                Formatted price HTML, or '' when no
+	 *                                matching variation has a price.
+	 */
+	private function get_variation_price_html_for_value(
+		\WC_Product $product,
+		string $attribute,
+		string $value
+	): string {
+
+		if ( ! $product instanceof \WC_Product_Variable ) {
+			return '';
+		}
+
+		$attr_key   = 'attribute_' . sanitize_title( $attribute );
+		$variations = $this->get_available_variations( $product );
+
+		$best_var = null;
+		$best_price = null;
+
+		foreach ( $variations as $v ) {
+			$attr_val = $v['attributes'][ $attr_key ] ?? null;
+			if ( null === $attr_val || '' === $attr_val ) {
+				continue; // wildcard — skip
+			}
+			if ( $attr_val !== $value ) {
+				continue;
+			}
+			$price = isset( $v['display_price'] ) ? (float) $v['display_price'] : null;
+			if ( null === $price ) {
+				continue;
+			}
+			if ( null === $best_price || $price < $best_price ) {
+				$best_price = $price;
+				$best_var   = $v;
+			}
+		}
+
+		if ( null === $best_var ) {
+			return '';
+		}
+
+		// Use WC's wc_price() for canonical formatting. When on sale, also
+		// include the regular price as <del>; matches WC's standard
+		// price-display markup so existing themes / accessibility tooling
+		// recognise the structure.
+		$display_price   = (float) ( $best_var['display_price']         ?? 0 );
+		$display_regular = (float) ( $best_var['display_regular_price'] ?? 0 );
+
+		if ( $display_regular > $display_price && $display_price > 0 ) {
+			return sprintf(
+				'<del aria-hidden="true">%s</del> <ins>%s</ins>',
+				wc_price( $display_regular ),
+				wc_price( $display_price )
+			);
+		}
+
+		return wc_price( $display_price );
 	}
 
 	/**

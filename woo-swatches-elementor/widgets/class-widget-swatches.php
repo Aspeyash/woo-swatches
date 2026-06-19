@@ -773,6 +773,12 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 				if ( $show_label_non_color ) {
 					$attr_block_classes[] = 'wse-force-show-label';
 				}
+				// v1.2.3 (Issue 7) — Show price under image swatches (Widget 1 toggle).
+				// When ON, .wse-show-image-price on .wse-attr-block reveals the
+				// per-swatch price <span> that's always rendered in image.php.
+				if ( 'image' === $swatch_type && 'yes' === ( $settings['show_price'] ?? 'no' ) ) {
+					$attr_block_classes[] = 'wse-show-image-price';
+				}
 				?>
 
 				<div class="<?php echo esc_attr( implode( ' ', $attr_block_classes ) ); ?>"

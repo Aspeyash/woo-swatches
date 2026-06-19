@@ -115,6 +115,25 @@ $tabindex           = ( $is_selected || $is_first_focusable ) ? '0' : '-1';
 	?>
 	<span class="wse-swatch-image-label"><?php echo esc_html( $label ); ?></span>
 
+	<?php
+	/**
+	 * v1.2.3 (Issue 7) — Per-swatch price below the label.
+	 *
+	 * Always rendered into the DOM (when a price is available); CSS
+	 * hides it by default and shows it only when the parent
+	 * .wse-attr-block carries the .wse-show-image-price class set by
+	 * Widget 1's "Show Price Under Image Swatches" control.
+	 *
+	 * The price HTML comes from WC's wc_price() helper so it respects
+	 * currency formatting, decimal separators, and tax-display rules.
+	 * On sale, both regular and sale prices render in WC's standard
+	 * <del> + <ins> markup.
+	 */
+	if ( ! empty( $swatch['price_html'] ) ) :
+	?>
+	<span class="wse-swatch-image-price"><?php echo wp_kses_post( $swatch['price_html'] ); ?></span>
+	<?php endif; ?>
+
 	<span class="wse-checkmark" aria-hidden="true">
 		<svg width="12" height="12" viewBox="0 0 12 12" fill="none"
 		     xmlns="http://www.w3.org/2000/svg">
