@@ -543,16 +543,33 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 	}
 
 	/**
-	 * Resolves a layout key to a template path (Phase 2 ships vertical-thumbs
-	 * only; future phases add horizontal / stacked / grid / mobile-carousel).
+	 * Resolves a layout key to a template path.
+	 *
+	 * Layout family routing:
+	 *   vertical_left / vertical_right / horizontal_below / horizontal_above
+	 *     → layouts/vertical-thumbs.php  (one template; CSS @media + parent
+	 *       class drive the flex-direction differences within the family)
+	 *   stacked → layouts/stacked.php  (no thumbs, all images stacked
+	 *       full-size; Allbirds / H&M minimal pattern)
+	 *   grid    → layouts/grid.php     (no thumbs, 2-col grid all images
+	 *       at once; Shopify Dawn pattern)
 	 *
 	 * @param string $layout_key
 	 * @return string
 	 */
 	private function resolve_layout_template( string $layout_key ): string {
-		// Phase 2: every layout key falls through to vertical-thumbs as a
-		// safe default until the rest of the templates land in Phase 3.
-		return 'layouts/vertical-thumbs.php';
+		switch ( $layout_key ) {
+			case 'stacked':
+				return 'layouts/stacked.php';
+			case 'grid':
+				return 'layouts/grid.php';
+			case 'vertical_left':
+			case 'vertical_right':
+			case 'horizontal_below':
+			case 'horizontal_above':
+			default:
+				return 'layouts/vertical-thumbs.php';
+		}
 	}
 
 	/**

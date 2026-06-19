@@ -245,3 +245,201 @@ body.wse-stylesheet-enabled .zymarg-vig-zoom-lens {
 	background:     rgba( 255, 255, 255, .15 );
 	border-radius:  4px;
 }
+
+
+
+/* ─── Phase 3: Layout family — Horizontal thumbs (above / below) ────────── */
+/* horizontal_below = thumbs strip BELOW main image; the most common
+   default e-commerce pattern (Adidas / Zara / WooCommerce default).
+   horizontal_above mirrors with column-reverse. Implemented on the same
+   .zymarg-vig-layout--vertical wrapper since the HTML structure is
+   identical — only flex-direction changes. */
+
+body.wse-stylesheet-enabled .zymarg-vig--layout-d-horizontal_below .zymarg-vig-layout--vertical {
+	flex-direction: column;
+}
+body.wse-stylesheet-enabled .zymarg-vig--layout-d-horizontal_above .zymarg-vig-layout--vertical {
+	flex-direction: column-reverse;
+}
+
+/* When in horizontal layout, the thumbs strip is now horizontal too. */
+body.wse-stylesheet-enabled .zymarg-vig--layout-d-horizontal_below .zymarg-vig-thumbs--vertical,
+body.wse-stylesheet-enabled .zymarg-vig--layout-d-horizontal_above .zymarg-vig-thumbs--vertical {
+	flex-direction:  row;
+	max-height:      none;
+	max-width:       100%;
+	overflow-x:      auto;
+	overflow-y:      visible;
+	padding-right:   0;
+	padding-bottom:  4px;        /* room for horizontal scrollbar */
+}
+
+/* ─── Phase 3: Layout family — Stacked vertical ─────────────────────────── */
+/* Allbirds / H&M / Patagonia minimal pattern. All images full-size in a
+   single column. No thumbnail strip rendered (separate template). */
+
+body.wse-stylesheet-enabled .zymarg-vig-layout--stacked {
+	display:        flex;
+	flex-direction: column;
+	gap:            16px;
+	width:          100%;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-layout--stacked .zymarg-vig-main {
+	width:  100%;
+}
+
+/* ─── Phase 3: Layout family — Grid 2-column ────────────────────────────── */
+/* Shopify Dawn pattern. All images visible at once in a 2-column grid.
+   Collapses to 1 column at tablet for usability. */
+
+body.wse-stylesheet-enabled .zymarg-vig-layout--grid {
+	display:               grid;
+	grid-template-columns: repeat( 2, 1fr );
+	gap:                   16px;
+	width:                 100%;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-layout--grid .zymarg-vig-main {
+	width:  100%;
+}
+
+@media ( max-width: 1024px ) {
+	body.wse-stylesheet-enabled .zymarg-vig-layout--grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* ─── Phase 3: Tablet layout overrides ──────────────────────────────────── */
+/* Tablet @media uses the .zymarg-vig--layout-t-{key} class on the wrapper
+   to override the desktop layout family. Within-family overrides (e.g.
+   vertical_left desktop → horizontal_below tablet) work CSS-only because
+   they share the same HTML structure. Cross-family overrides (e.g.
+   vertical_left desktop → stacked tablet) don't morph the rendered HTML
+   — the desktop layout's structure stays in place; tablet/mobile classes
+   only modify visual presentation within the thumb-based family. */
+
+@media ( max-width: 1024px ) {
+	body.wse-stylesheet-enabled .zymarg-vig--layout-t-horizontal_below .zymarg-vig-layout--vertical {
+		flex-direction: column;
+	}
+	body.wse-stylesheet-enabled .zymarg-vig--layout-t-horizontal_above .zymarg-vig-layout--vertical {
+		flex-direction: column-reverse;
+	}
+	body.wse-stylesheet-enabled .zymarg-vig--layout-t-vertical_left .zymarg-vig-layout--vertical {
+		flex-direction: row;
+	}
+	body.wse-stylesheet-enabled .zymarg-vig--layout-t-vertical_right .zymarg-vig-layout--vertical {
+		flex-direction: row-reverse;
+	}
+
+	body.wse-stylesheet-enabled .zymarg-vig--layout-t-horizontal_below .zymarg-vig-thumbs--vertical,
+	body.wse-stylesheet-enabled .zymarg-vig--layout-t-horizontal_above .zymarg-vig-thumbs--vertical {
+		flex-direction:  row;
+		max-height:      none;
+		max-width:       100%;
+		overflow-x:      auto;
+		overflow-y:      visible;
+		padding-right:   0;
+		padding-bottom:  4px;
+	}
+
+	body.wse-stylesheet-enabled .zymarg-vig--layout-t-vertical_left .zymarg-vig-thumbs--vertical,
+	body.wse-stylesheet-enabled .zymarg-vig--layout-t-vertical_right .zymarg-vig-thumbs--vertical {
+		flex-direction: column;
+		max-height:     none;
+		overflow-x:     visible;
+		overflow-y:     auto;
+		padding-right:  4px;
+		padding-bottom: 0;
+	}
+}
+
+/* ─── Phase 3: Mobile carousel (the ZYMARG hybrid layout) ───────────────── */
+/*
+ * Per ZYMARG product spec for v1.3.0:
+ *   On mobile (≤768px) the gallery shows BOTH:
+ *     1. A swipeable main-image carousel at the top (single image visible,
+ *        scroll-snap horizontal scrolling for swipe gestures).
+ *     2. ALL thumbnails STACKED VERTICALLY below the carousel, one per row.
+ *        Lets users either swipe through the hero OR scroll the thumb list
+ *        and tap to jump to a specific image — best of both navigation
+ *        patterns.
+ *
+ * Pure CSS implementation using scroll-snap for the carousel; no JS needed
+ * for the swipe behaviour (Phase 4 adds the dot indicators / arrows).
+ */
+
+@media ( max-width: 768px ) {
+
+	/* Active when mobile_layout = mobile_carousel */
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_carousel .zymarg-vig-layout--vertical {
+		flex-direction: column;
+		gap:            12px;
+	}
+
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_carousel .zymarg-vig-main-wrap {
+		order:           1;       /* main carousel up top */
+		width:           100%;
+		overflow-x:      auto;
+		overflow-y:      hidden;
+		scroll-snap-type: x mandatory;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_carousel .zymarg-vig-main {
+		flex:            0 0 100%;
+		scroll-snap-align: center;
+	}
+
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_carousel .zymarg-vig-thumbs--vertical {
+		order:           2;       /* stacked thumbs below */
+		flex-direction:  column;
+		max-height:      none;    /* no inner scroll — let page scroll */
+		max-width:       100%;
+		gap:             8px;
+		overflow:        visible;
+		padding:         0;
+	}
+
+	/* Stack thumbs full-width on mobile so each is easily tappable. */
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_carousel .zymarg-vig-thumb {
+		width:           100%;
+		height:          auto;
+		aspect-ratio:    var( --zymarg-vig-aspect-ratio );
+		max-height:      120px;   /* cap so the thumb list isn't a huge scroll */
+	}
+
+	/* mobile_stacked = no carousel, just stacked vertical (Allbirds / H&M
+	   feel even at desktop, but specifically for mobile feeds). */
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_stacked .zymarg-vig-thumbs--vertical {
+		display: none;
+	}
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_stacked .zymarg-vig-layout--vertical {
+		flex-direction: column;
+	}
+
+	/* mobile_layout = horizontal_below: standard horizontal thumb strip
+	   below main on mobile. */
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-horizontal_below .zymarg-vig-layout--vertical {
+		flex-direction: column;
+	}
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-horizontal_below .zymarg-vig-thumbs--vertical {
+		flex-direction:  row;
+		max-height:      none;
+		overflow-x:      auto;
+		overflow-y:      visible;
+	}
+
+	/* Sticky main image off on mobile regardless of desktop setting —
+	   sticky on a small viewport hides too much content. */
+	body.wse-stylesheet-enabled .zymarg-vig-sticky-yes .zymarg-vig-main-wrap {
+		position: static;
+	}
+
+	/* Always 1-column on mobile for grid layout. */
+	body.wse-stylesheet-enabled .zymarg-vig-layout--grid {
+		grid-template-columns: 1fr;
+		gap: 12px;
+	}
+}
