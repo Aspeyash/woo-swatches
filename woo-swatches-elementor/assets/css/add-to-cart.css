@@ -574,3 +574,32 @@ body.wse-stylesheet-enabled .wse-qty-stepper--no-buttons {
 body.wse-stylesheet-enabled .wse-no-inline-price .woocommerce-variation-price {
 	display: none;
 }
+
+
+
+/* ─── v1.2.1 (B2) — Force quantity-button icon visibility ─────────────────── */
+/* Belt-and-braces sizing for the icon glyph regardless of whether it's an
+   <svg>, <i> (Font Awesome / Elementor icons), or our hand-drawn fallback.
+   Some icon libraries leave width/height inheriting from the parent button,
+   which collapses to 0 in certain themes. Forcing currentColor + explicit
+   sizing guarantees a visible glyph. */
+
+body.wse-stylesheet-enabled .wse-qty-btn > * {
+	pointer-events: none;        /* clicks always reach the <button> itself */
+}
+
+body.wse-stylesheet-enabled .wse-qty-btn svg,
+body.wse-stylesheet-enabled .wse-qty-btn i,
+body.wse-stylesheet-enabled .wse-qty-btn .wse-qty-icon {
+	display:     block;
+	width:       var( --wse-qty-icon-size, 14px );
+	height:      var( --wse-qty-icon-size, 14px );
+	font-size:   var( --wse-qty-icon-size, 14px );
+	line-height: 1;
+	fill:        currentColor;
+	color:       currentColor;
+}
+
+/* When the rendered output is the hand-drawn fallback (no Elementor icon
+   selected, or icon picker failed), nothing extra is needed — the SVG
+   already has `stroke="currentColor"`. */

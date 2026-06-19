@@ -66,10 +66,28 @@ if ( ! $show_buttons ) {
 			aria-label="<?php esc_attr_e( 'Decrease quantity', 'woo-swatches-elementor' ); ?>"
 			tabindex="-1">
 			<?php
+			/**
+			 * v1.2.1 (B2/B3) — Capture-then-fallback icon rendering.
+			 *
+			 * Previous code called Icons_Manager::render_icon() directly. When
+			 * the user's Elementor icon picker library failed to load (B3) and
+			 * they saved an empty/invalid icon value, render_icon() echoed
+			 * nothing and the button rendered with no visible glyph (B2). We
+			 * now buffer the Icons_Manager output and fall through to the
+			 * hand-drawn inline SVG when the buffer is empty — guaranteeing
+			 * a visible icon regardless of Elementor state.
+			 */
+			$_minus_html = '';
 			if ( class_exists( '\Elementor\Icons_Manager' ) && ! empty( $decrease_icon['value'] ) ) {
+				ob_start();
 				\Elementor\Icons_Manager::render_icon( $decrease_icon, array( 'aria-hidden' => 'true' ) );
+				$_minus_html = trim( (string) ob_get_clean() );
+			}
+			if ( '' !== $_minus_html ) {
+				echo $_minus_html; // phpcs:ignore WordPress.Security.EscapeOutput
 			} else {
-				echo '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 7h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+				// Hand-drawn fallback — guaranteed visible.
+				echo '<svg class="wse-qty-icon wse-qty-icon-fallback" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 7h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 			}
 			?>
 		</button>
@@ -94,10 +112,17 @@ if ( ! $show_buttons ) {
 			aria-label="<?php esc_attr_e( 'Increase quantity', 'woo-swatches-elementor' ); ?>"
 			tabindex="-1">
 			<?php
+			// v1.2.1 (B2/B3) — see decrease-button comment above.
+			$_plus_html = '';
 			if ( class_exists( '\Elementor\Icons_Manager' ) && ! empty( $increase_icon['value'] ) ) {
+				ob_start();
 				\Elementor\Icons_Manager::render_icon( $increase_icon, array( 'aria-hidden' => 'true' ) );
+				$_plus_html = trim( (string) ob_get_clean() );
+			}
+			if ( '' !== $_plus_html ) {
+				echo $_plus_html; // phpcs:ignore WordPress.Security.EscapeOutput
 			} else {
-				echo '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 7h8M7 3v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+				echo '<svg class="wse-qty-icon wse-qty-icon-fallback" width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 7h8M7 3v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 			}
 			?>
 		</button>
