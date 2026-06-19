@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.2.3
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,82 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.3.0 =
+**Minor: Widget 4 — ZYMARG Variation Image Gallery (the big one).**
+
+Brand-new product-image gallery widget that automatically flips to show the matching variation's image when the customer picks a swatch. Built from a fresh study of how Nike, Apple, Adidas, ASOS, Zara, H&M, Sephora, Allbirds, Amazon, and Shopify Dawn all handle this — synthesized into 5 layout patterns and 1 mobile hybrid.
+
+**Layouts (responsive — pick one per device)**
+
+* **Vertical thumbs LEFT + main right** *(default desktop, Apple / Nike / Sephora pattern)*
+* **Vertical thumbs RIGHT + main left** *(mirrored variant)*
+* **Horizontal thumbs BELOW main** *(Adidas / Zara / WooCommerce default pattern)*
+* **Horizontal thumbs ABOVE main**
+* **Stacked vertical** *(Allbirds / H&M minimal — every image rendered full-size, no thumb strip)*
+* **Grid 2-column** *(Shopify Dawn — all images visible at once)*
+* **Mobile hybrid (default)**: swipeable carousel main + stacked vertical thumbs below — gives mobile users both swipe-to-browse and tap-thumb-to-jump
+* **Per-device thumb visibility toggles** — separate "Show thumbnails" switchers for Desktop / Tablet / Mobile so you can hide thumbs on small screens without changing the layout
+
+**Variation sync**
+
+* Listens to WooCommerce's `found_variation` and `reset_data` jQuery events on the parent variations form on the same page (auto-paired by product ID via the existing Form Registry, no manual config)
+* Maps variation IDs to their `image_id` (and falls back to the parent gallery if the variation has no override). Includes a `wse_variation_image_ids` filter for 3rd-party integrations that want to inject extra images per variation (multi-image-per-variation support roadmap)
+* Cross-fade / slide / instant transition options with CLS-safe duration (≤500ms)
+* All images preloaded into the same DOM at server-render time so swatch clicks never trigger network requests
+
+**Interactions**
+
+* **Hover-zoom lens** (desktop only — Amazon-style magnifier with cursor-tracked transform-origin on a layered hi-res image, disabled on touch devices since pinch-zoom works natively)
+* **Click-to-lightbox** with shared body-level modal: focus restore on close, Esc / arrow / backdrop-click to close, image counter, prev/next arrows, keyboard nav
+* **Mobile carousel** with swipe-friendly snap layout + dot indicators wired to scroll position
+* **Thumbnail keyboard nav** (focused thumb → arrow keys cycle through siblings)
+* **Sticky main image on desktop** (Apple / Sephora pattern — main stays in viewport while customer scrolls description)
+* **Sale badge overlay** with editable text and 4 corner positions
+* **Lazy-load thumbs below the fold** for fewer initial requests on mobile
+
+**Style tab — full control over every visual element (~50 controls)**
+
+1. **Main Image** — padding (responsive), border-radius (drives `--zymarg-vig-radius`), border, box-shadow, image fit (cover / contain)
+2. **Thumbnails (Normal / Hover / Active tabs)** — size, gap, radius, border, opacity, hover lift, active border color/width/opacity. Sizes are responsive sliders driving `--zymarg-vig-thumbs-size` / `-gap` per device
+3. **Zoom Lens** *(condition: hover-zoom enabled)* — lens size (drives `--zymarg-vig-lens-size`, read by gallery.js at runtime), shape (rounded square / circle), background, border color and width
+4. **Sale Badge** *(condition: badge enabled)* — position (4 corners via prefix-class), background, text color, full typography group, padding (responsive), border-radius, box-shadow
+5. **Carousel Dots (mobile)** — size, gap, color, active color (all driven by new CSS vars `--zymarg-vig-dot-*`)
+6. **Lightbox** *(condition: lightbox enabled)* — backdrop color, close/arrow icon color, button background, hover background, counter color
+7. **Animation** — transition type (cross-fade / slide / instant), duration in ms (≤500ms keeps image swaps out of CLS budget)
+
+**Image / aspect-ratio controls**
+
+* Aspect ratio: 1:1 / 4:5 / 3:4 / 16:9 / Auto (uses original)
+* Main image size: any registered WP image size (default `woocommerce_single`)
+* Thumbnail size: any registered WP image size (default `woocommerce_gallery_thumbnail`)
+* Placeholder color while images load (default ZYMARG Surface Container `#eaedff`)
+
+**Architecture**
+
+* CSS-variable-first design — every visual property exposed as `--zymarg-vig-*` on the widget root so Elementor Style controls are simple `--var: {{VALUE}}` setters with full editor live-preview
+* All visual rules gated by `body.wse-stylesheet-enabled` (the existing global stylesheet kill-switch)
+* Server-side render pre-builds the variation→images map and renders the active main image directly, so non-JS users still see one of the variation images
+* Reduced-motion media query disables transitions and hover-lift for `prefers-reduced-motion: reduce`
+* Brand-locked default palette (Primary `#9500a5`, Surface Container `#eaedff`, Outline Variant `#d8bfd3`) — no off-brand colors anywhere
+
+**Files added / changed**
+
+* `widgets/class-widget-variation-image-gallery.php` — Widget 4 class (1372 LOC, ~50 Style controls)
+* `templates/gallery/main-image.php` — hero figure (used by every layout)
+* `templates/gallery/thumbnail.php` — single thumb button
+* `templates/gallery/layouts/vertical-thumbs.php` — vertical thumbs left/right
+* `templates/gallery/layouts/stacked.php` — Allbirds / H&M pattern
+* `templates/gallery/layouts/grid.php` — Shopify Dawn pattern
+* `assets/css/gallery.css` (+ .min) — base layout, vars, sale-badge positions, sticky, reduced-motion
+* `assets/css/gallery-lightbox.css` (+ .min) — lightbox modal, dots indicator
+* `assets/js/gallery.js` (+ .min) — variation sync, hover-zoom, lightbox, mobile dots, keyboard nav
+* `includes/class-plugin.php` — Widget 4 registration
+* `includes/class-assets.php` — gallery handles registration
+
+**Migration**
+
+Drop-in replacement for v1.2.3. No DB schema changes. After install, hard-refresh (Ctrl+F5) and clear caches (Elementor → Tools → Regenerate CSS, Hostinger Cache Manager → Purge All). Drop the new "ZYMARG Variation Image Gallery" widget from Elementor's panel onto your single-product template (typically replacing your current product-images element).
 
 = 1.2.3 =
 **Patch: 6 bug fixes + 4 features + 9 Tier 0 text controls.**
@@ -548,10 +624,16 @@ This release replaces the dual-form architecture with a single canonical form pe
 
 == Roadmap ==
 
-= 1.3.0 (planned) =
-* Widget 4 — ZYMARG Variation Image Gallery: a product-image gallery widget that automatically flips to show the matching variation's image (and gallery, where available) when a swatch is selected via Widget 1. Designed to live in the gallery column of a product page and stay in sync with all variation widgets through the existing Form Registry coordination.
+= 1.4.0 (planned) =
+* Multiple images per variation (currently variations expose one image; we'll wire up the `wse_variation_image_ids` filter into a first-class admin UI so vendors can attach multiple images per variation directly).
+* Video support in the gallery (per-variation YouTube/Vimeo/MP4 embeds with poster frame in the thumb strip).
+* Pinch-zoom on mobile lightbox (currently relies on the OS native pinch — we'll layer a `transform: scale()` model with bounded panning).
+* Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.3.0 =
+Minor release. Adds Widget 4 — ZYMARG Variation Image Gallery: a brand-new product-image gallery widget that auto-flips to the matching variation image when a swatch is selected. 6 desktop layouts (vertical thumbs L/R, horizontal thumbs above/below, stacked, grid 2-col), mobile hybrid (swipe carousel + stacked thumbs), per-device thumb visibility, hover-zoom lens, click-to-lightbox, sale badge, sticky main, full Elementor Style tab with ~50 controls. Drop-in replacement for v1.2.3, no DB migration. Hard-refresh after install.
 
 = 1.2.3 =
 Patch release. Fixes 6 issues from live testing: simple-product stepper now responsive (max=-1 sentinel handled), F5 responsive widths now respected (specificity fixed), smart heading visible on variable on-sale products (back-compat fallback fixed), new "Show Sale Dot on Swatches" toggle (independent from tooltip). Features: Quantity input width range bumped (now supports % and em), Add to Cart Full Width is now responsive per device with the button stacked below the stepper. "Show Price Under Image Swatches" feature actually built (was scaffolding only in v1.2.2). Plus 9 new Tier 0 text controls for editable Clear/Choose-option/OOS labels and stepper aria/title attributes. Drop-in replacement for v1.2.2, no DB migration. Hard-refresh after install.
