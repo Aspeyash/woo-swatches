@@ -33,6 +33,8 @@ $color        = (string) ( $swatch['color']       ?? '#e0e0e0' );
 $classes = array( 'wse-swatch', 'wse-swatch-color' );
 if ( $is_selected )   { $classes[] = 'selected'; }
 if ( ! $is_available ) { $classes[] = 'disabled'; }
+// v1.2.1 (S2) — Sale dot.
+if ( ! empty( $swatch['is_on_sale'] ) ) { $classes[] = 'wse-on-sale'; }
 
 // B5 — tabindex 0 for selected OR first-focusable (when no default selection),
 // -1 for everyone else. swatches.js manages roving tabindex from there.

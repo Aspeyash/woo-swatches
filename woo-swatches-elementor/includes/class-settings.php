@@ -178,6 +178,37 @@ class WSE_Settings extends WC_Settings_Page {
 				'id'   => 'wse_archive_section',
 			),
 
+			// ── v1.2.1 (F2) — Sticky Add to Cart (moved from Widget 2) ────
+			array(
+				'title' => esc_html__( 'Sticky Add to Cart', 'woo-swatches-elementor' ),
+				'type'  => 'title',
+				'desc'  => esc_html__( 'Pin Widget 2 (Add to Cart) to the bottom of the viewport on the chosen breakpoints. Applies site-wide to every product page so customers always have a clear path to add to cart on mobile.', 'woo-swatches-elementor' ),
+				'id'    => 'wse_sticky_section',
+			),
+			array(
+				'title'   => esc_html__( 'Sticky on Desktop (≥ 1025 px)', 'woo-swatches-elementor' ),
+				'id'      => 'wse_sticky_desktop',
+				'type'    => 'checkbox',
+				'default' => 'no',
+			),
+			array(
+				'title'   => esc_html__( 'Sticky on Tablet (768–1024 px)', 'woo-swatches-elementor' ),
+				'id'      => 'wse_sticky_tablet',
+				'type'    => 'checkbox',
+				'default' => 'no',
+			),
+			array(
+				'title'   => esc_html__( 'Sticky on Mobile (≤ 767 px)', 'woo-swatches-elementor' ),
+				'id'      => 'wse_sticky_mobile',
+				'type'    => 'checkbox',
+				'default' => 'yes',
+				'desc'    => esc_html__( 'Recommended ON. Mobile shoppers benefit most from a persistently visible Add to Cart.', 'woo-swatches-elementor' ),
+			),
+			array(
+				'type' => 'sectionend',
+				'id'   => 'wse_sticky_section',
+			),
+
 			// ── v1.2.1 (F5) — Swatch Sizes (responsive) ───────────────────
 			array(
 				'title' => esc_html__( 'Swatch Sizes', 'woo-swatches-elementor' ),
