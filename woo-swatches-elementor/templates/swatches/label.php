@@ -58,7 +58,11 @@ $tabindex           = ( $is_selected || $is_first_focusable ) ? '0' : '-1';
  */
 $aria_label = $label;
 if ( ! $is_available ) {
-	$aria_label .= ' ' . __( '(unavailable)', 'woo-swatches-elementor' );
+	// v1.2.3 Tier 0 — Editable out-of-stock suffix via Widget 1 setting.
+	$aria_label .= ' ' . apply_filters(
+		'wse_oos_label_suffix',
+		__( '(unavailable)', 'woo-swatches-elementor' )
+	);
 }
 ?>
 <li class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>"

@@ -57,6 +57,14 @@ if ( '-1' === $max || -1 === $args['max'] ) {
 	$max = '';
 }
 
+// v1.2.3 Tier 0 — Pull text overrides from settings with safe defaults.
+// Aria-labels stay accessible; title attributes are optional (empty by default).
+$aria_qty       = (string) ( $settings['qty_input_aria_label']    ?? __( 'Quantity',          'woo-swatches-elementor' ) );
+$aria_decrease  = (string) ( $settings['qty_decrease_aria_label'] ?? __( 'Decrease quantity', 'woo-swatches-elementor' ) );
+$aria_increase  = (string) ( $settings['qty_increase_aria_label'] ?? __( 'Increase quantity', 'woo-swatches-elementor' ) );
+$title_decrease = (string) ( $settings['qty_decrease_title']      ?? '' );
+$title_increase = (string) ( $settings['qty_increase_title']      ?? '' );
+
 $show_buttons   = ( $settings['show_qty_stepper_buttons'] ?? 'yes' ) === 'yes';
 $decrease_icon  = $settings['decrease_icon'] ?? array( 'value' => 'eicon-minus', 'library' => 'eicons' );
 $increase_icon  = $settings['increase_icon'] ?? array( 'value' => 'eicon-plus',  'library' => 'eicons' );
@@ -74,7 +82,8 @@ if ( ! $show_buttons ) {
 	<?php if ( $show_buttons ) : ?>
 		<button type="button"
 			class="wse-qty-btn wse-qty-btn--minus"
-			aria-label="<?php esc_attr_e( 'Decrease quantity', 'woo-swatches-elementor' ); ?>"
+			aria-label="<?php echo esc_attr( $aria_decrease ); ?>"
+			<?php if ( '' !== $title_decrease ) : ?>title="<?php echo esc_attr( $title_decrease ); ?>"<?php endif; ?>
 			tabindex="-1">
 			<?php
 			/**
@@ -139,12 +148,13 @@ if ( ! $show_buttons ) {
 		inputmode="numeric"
 		pattern="[0-9]*"
 		autocomplete="off"
-		aria-label="<?php esc_attr_e( 'Quantity', 'woo-swatches-elementor' ); ?>"/>
+		aria-label="<?php echo esc_attr( $aria_qty ); ?>"/>
 
 	<?php if ( $show_buttons ) : ?>
 		<button type="button"
 			class="wse-qty-btn wse-qty-btn--plus"
-			aria-label="<?php esc_attr_e( 'Increase quantity', 'woo-swatches-elementor' ); ?>"
+			aria-label="<?php echo esc_attr( $aria_increase ); ?>"
+			<?php if ( '' !== $title_increase ) : ?>title="<?php echo esc_attr( $title_increase ); ?>"<?php endif; ?>
 			tabindex="-1">
 			<?php
 			// v1.2.2 — see decrease-button comment above for the three-layer

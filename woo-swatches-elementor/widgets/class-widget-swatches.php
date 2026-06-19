@@ -245,6 +245,50 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 			'condition' => array( 'swatch_limit!' => '0' ),
 		) );
 
+		// ── v1.2.3 Tier 0 — Editable text overrides ────────────────────────
+		// Per the senior-developer "advanced Elementor control over every
+		// text" feedback, this batch makes the most-visible hardcoded
+		// strings editable per Widget 1 instance. All defaults match the
+		// previous hardcoded values so existing widget instances render
+		// identically without any user action.
+		$this->add_control( 'tier0_heading', array(
+			'label'     => esc_html__( 'Text Overrides', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::HEADING,
+			'separator' => 'before',
+		) );
+
+		$this->add_control( 'clear_text', array(
+			'label'       => esc_html__( '"Clear" link text', 'woo-swatches-elementor' ),
+			'description' => esc_html__( 'Reset link shown after a swatch is selected. Hide it via the Show Clear Button toggle above.', 'woo-swatches-elementor' ),
+			'type'        => \Elementor\Controls_Manager::TEXT,
+			'default'     => esc_html__( 'Clear', 'woo-swatches-elementor' ),
+		) );
+
+		$this->add_control( 'choose_option_placeholder', array(
+			'label'       => esc_html__( 'Dropdown placeholder text', 'woo-swatches-elementor' ),
+			'description' => esc_html__( 'The "Choose an option" placeholder shown by the WooCommerce native dropdown for unsupported swatch types.', 'woo-swatches-elementor' ),
+			'type'        => \Elementor\Controls_Manager::TEXT,
+			'default'     => esc_html__( 'Choose an option', 'woo-swatches-elementor' ),
+		) );
+
+		$this->add_control( 'selected_value_prefix', array(
+			'label'       => esc_html__( 'Selected value prefix', 'woo-swatches-elementor' ),
+			'description' => esc_html__( 'Optional text before the selected option name. e.g. "Selected: " produces "Selected: Blue". Leave empty to just show the value.', 'woo-swatches-elementor' ),
+			'type'        => \Elementor\Controls_Manager::TEXT,
+			'default'     => '',
+			'condition'   => array(
+				'show_label'           => 'yes',
+				'show_selected_value'  => 'yes',
+			),
+		) );
+
+		$this->add_control( 'oos_label_suffix', array(
+			'label'       => esc_html__( 'Out-of-stock suffix', 'woo-swatches-elementor' ),
+			'description' => esc_html__( 'Text appended to a swatch\'s screen-reader label when the variation is out of stock. e.g. "Blue (unavailable)".', 'woo-swatches-elementor' ),
+			'type'        => \Elementor\Controls_Manager::TEXT,
+			'default'     => esc_html__( '(unavailable)', 'woo-swatches-elementor' ),
+		) );
+
 		$this->end_controls_section();
 	}
 
@@ -731,6 +775,22 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 		// The canonical form (Widget 2, or JS-wrapped synthetic) owns the selects.
 		$emit_select_false = function () { return false; };
 		add_filter( 'wse_renderer_emit_select', $emit_select_false, 99 );
+
+		// v1.2.3 Tier 0 — Per-widget text overrides flow to the renderer
+		// templates via temporary filters. Each filter is removed at the
+		// end of this render() so other Widget 1 instances on the same
+		// page (with different settings) get their own overrides clean.
+		$tier0_clear_text  = (string) ( $settings['clear_text']                ?? __( 'Clear',             'woo-swatches-elementor' ) );
+		$tier0_choose_text = (string) ( $settings['choose_option_placeholder'] ?? __( 'Choose an option',  'woo-swatches-elementor' ) );
+		$tier0_oos_suffix  = (string) ( $settings['oos_label_suffix']          ?? __( '(unavailable)',     'woo-swatches-elementor' ) );
+
+		$tier0_clear_filter  = static function () use ( $tier0_clear_text )  { return $tier0_clear_text; };
+		$tier0_choose_filter = static function () use ( $tier0_choose_text ) { return $tier0_choose_text; };
+		$tier0_oos_filter    = static function () use ( $tier0_oos_suffix )  { return $tier0_oos_suffix; };
+
+		add_filter( 'wse_clear_button_text',          $tier0_clear_filter );
+		add_filter( 'wse_choose_option_placeholder',  $tier0_choose_filter );
+		add_filter( 'wse_oos_label_suffix',           $tier0_oos_filter );
 		?>
 		<div <?php echo $this->get_render_attribute_string( 'widget_wrap' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>>
 
@@ -791,10 +851,13 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 
 						<?php if ( 'yes' === $settings['show_selected_value'] ) : ?>
 						<span class="wse-attr-selected-val"
-						      data-attribute="<?php echo esc_attr( $attr_name ); ?>">
+						      data-attribute="<?php echo esc_attr( $attr_name ); ?>"
+						      data-prefix="<?php echo esc_attr( $settings['selected_value_prefix'] ?? '' ); ?>">
 							<?php
 							if ( $selected_val ) {
-								echo esc_html( ucwords( str_replace( array( '-', '_' ), ' ', $selected_val ) ) );
+								// v1.2.3 Tier 0 — optional prefix before the value.
+								$tier0_prefix = (string) ( $settings['selected_value_prefix'] ?? '' );
+								echo esc_html( $tier0_prefix . ucwords( str_replace( array( '-', '_' ), ' ', $selected_val ) ) );
 							}
 							?>
 						</span>
@@ -852,6 +915,13 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 		</div><!-- .wse-widget-swatches -->
 		<?php
 		remove_filter( 'wse_renderer_emit_select', $emit_select_false, 99 );
+
+		// v1.2.3 Tier 0 — Remove the per-render text-override filters so
+		// other Widget 1 instances on the same page (with different
+		// settings) start clean.
+		remove_filter( 'wse_clear_button_text',         $tier0_clear_filter );
+		remove_filter( 'wse_choose_option_placeholder', $tier0_choose_filter );
+		remove_filter( 'wse_oos_label_suffix',          $tier0_oos_filter );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

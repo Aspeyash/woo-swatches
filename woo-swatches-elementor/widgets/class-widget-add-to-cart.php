@@ -333,6 +333,70 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			)
 		);
 
+		// ── v1.2.3 Tier 0 — Editable accessibility text overrides ─────────
+		// Aria-labels and titles for the stepper controls. Defaults match
+		// the previous hardcoded values so existing widget instances keep
+		// rendering identically. Per the senior-developer "advanced control
+		// over every text" feedback.
+		$this->add_control( 'tier0_qty_heading', array(
+			'label'     => esc_html__( 'Accessibility & Title Text', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::HEADING,
+			'separator' => 'before',
+			'condition' => array( 'show_quantity' => 'yes' ),
+		) );
+
+		$this->add_control( 'qty_input_aria_label', array(
+			'label'       => esc_html__( 'Quantity field aria-label', 'woo-swatches-elementor' ),
+			'description' => esc_html__( 'Screen-reader label for the quantity number input.', 'woo-swatches-elementor' ),
+			'type'        => \Elementor\Controls_Manager::TEXT,
+			'default'     => esc_html__( 'Quantity', 'woo-swatches-elementor' ),
+			'condition'   => array( 'show_quantity' => 'yes' ),
+		) );
+
+		$this->add_control( 'qty_decrease_aria_label', array(
+			'label'       => esc_html__( 'Decrease button aria-label', 'woo-swatches-elementor' ),
+			'description' => esc_html__( 'Screen-reader label for the [-] decrement button.', 'woo-swatches-elementor' ),
+			'type'        => \Elementor\Controls_Manager::TEXT,
+			'default'     => esc_html__( 'Decrease quantity', 'woo-swatches-elementor' ),
+			'condition'   => array(
+				'show_quantity'             => 'yes',
+				'show_qty_stepper_buttons'  => 'yes',
+			),
+		) );
+
+		$this->add_control( 'qty_increase_aria_label', array(
+			'label'       => esc_html__( 'Increase button aria-label', 'woo-swatches-elementor' ),
+			'description' => esc_html__( 'Screen-reader label for the [+] increment button.', 'woo-swatches-elementor' ),
+			'type'        => \Elementor\Controls_Manager::TEXT,
+			'default'     => esc_html__( 'Increase quantity', 'woo-swatches-elementor' ),
+			'condition'   => array(
+				'show_quantity'             => 'yes',
+				'show_qty_stepper_buttons'  => 'yes',
+			),
+		) );
+
+		$this->add_control( 'qty_decrease_title', array(
+			'label'       => esc_html__( 'Decrease button hover-title', 'woo-swatches-elementor' ),
+			'description' => esc_html__( 'Optional title attribute (mouse hover tooltip). Leave empty to omit. Different from the aria-label which is for screen readers.', 'woo-swatches-elementor' ),
+			'type'        => \Elementor\Controls_Manager::TEXT,
+			'default'     => '',
+			'condition'   => array(
+				'show_quantity'             => 'yes',
+				'show_qty_stepper_buttons'  => 'yes',
+			),
+		) );
+
+		$this->add_control( 'qty_increase_title', array(
+			'label'       => esc_html__( 'Increase button hover-title', 'woo-swatches-elementor' ),
+			'description' => esc_html__( 'Optional title attribute (mouse hover tooltip). Leave empty to omit.', 'woo-swatches-elementor' ),
+			'type'        => \Elementor\Controls_Manager::TEXT,
+			'default'     => '',
+			'condition'   => array(
+				'show_quantity'             => 'yes',
+				'show_qty_stepper_buttons'  => 'yes',
+			),
+		) );
+
 		$this->end_controls_section();
 
 		// ── Button section ────────────────────────────────────────────────

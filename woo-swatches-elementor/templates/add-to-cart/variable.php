@@ -102,7 +102,10 @@ $default_attributes   = $product->get_default_attributes();
 					'attribute'        => $attribute_name,
 					'product'          => $product,
 					'selected'         => $selected,
-					'show_option_none' => esc_html__( 'Choose an option', 'woo-swatches-elementor' ),
+					'show_option_none' => apply_filters(
+						'wse_choose_option_placeholder',
+						esc_html__( 'Choose an option', 'woo-swatches-elementor' )
+					),
 				)
 			);
 		endforeach;

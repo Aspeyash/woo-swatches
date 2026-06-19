@@ -97,7 +97,13 @@ $form_id    = WSE_Form_Registry::instance()->get_form_id( $product->get_id() );
 				__( 'Clear %s selection', 'woo-swatches-elementor' ),
 				$attr_label
 		   ) ); ?>">
-			<?php esc_html_e( 'Clear', 'woo-swatches-elementor' ); ?>
+			<?php
+			// v1.2.3 Tier 0 — Editable Clear-link text via Widget 1 setting.
+			echo esc_html( apply_filters(
+				'wse_clear_button_text',
+				__( 'Clear', 'woo-swatches-elementor' )
+			) );
+			?>
 		</a>
 
 	</fieldset>
