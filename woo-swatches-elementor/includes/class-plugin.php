@@ -350,9 +350,17 @@ class WSE_Plugin {
 		// canonical form's variation events. See widgets/class-widget-price.php.
 		require_once WSE_PATH . 'widgets/class-widget-price.php';
 
+		// v1.3.0 — Widget 4 (ZYMARG Variation Image Gallery). Renders the
+		// product gallery with 5 desktop layout options, mobile swipe
+		// carousel, hover-zoom, lightbox, and per-variation image swap
+		// driven by the canonical form's found_variation events. See
+		// widgets/class-widget-variation-image-gallery.php.
+		require_once WSE_PATH . 'widgets/class-widget-variation-image-gallery.php';
+
 		$widgets_manager->register( new WSE_Widget_Swatches() );
 		$widgets_manager->register( new WSE_Widget_Add_To_Cart() );
 		$widgets_manager->register( new WSE_Widget_Price() );
+		$widgets_manager->register( new WSE_Widget_Variation_Image_Gallery() );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

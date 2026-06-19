@@ -1,0 +1,51 @@
+/**
+ * WooSwatches for Elementor — ZYMARG Variation Image Gallery (v1.3.0)
+ *
+ * All visual rules are gated by body.wse-stylesheet-enabled so when the
+ * "Plugin Stylesheet" toggle is off in WC → Settings → WooSwatches, the
+ * theme's CSS has full control. The lightbox lives in a separate
+ * gallery-lightbox.css to keep the base load light on pages that don't
+ * use the lightbox feature.
+ *
+ * Custom-property strategy: every layout / sizing / spacing value is
+ * driven by --zymarg-vig-* variables on .zymarg-vig so Elementor Style
+ * controls write through {{WRAPPER}} selectors without specificity wars.
+ *
+ * Phase 1 (this commit) ships only the scaffold styles so the widget
+ * renders without layout shift in the Elementor editor preview. Phase
+ * 2 will fill in the full layout system.
+ *
+ * @package WooSwatchesElementor
+ * @since   1.3.0
+ */
+
+/* ─── Scaffold (Phase 1) ─────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .zymarg-vig {
+	--zymarg-vig-aspect-ratio:        1 / 1;        /* square default */
+	--zymarg-vig-thumbs-size:         72px;
+	--zymarg-vig-thumbs-gap:          8px;
+	--zymarg-vig-active-color:        #9500a5;       /* ZYMARG Primary */
+	--zymarg-vig-placeholder-bg:      #eaedff;       /* ZYMARG Surface Container */
+	--zymarg-vig-transition-ms:       200;
+
+	display:        block;
+	width:          100%;
+	box-sizing:     border-box;
+	font-family:    inherit;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig--scaffold {
+	padding:        2rem;
+	background:     var( --zymarg-vig-placeholder-bg );
+	border:         2px dashed var( --zymarg-vig-active-color );
+	border-radius:  8px;
+	text-align:     center;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-scaffold-note {
+	font-style: italic;
+	font-size:  .9rem;
+	color:      #534152;                            /* ZYMARG Text Muted */
+	opacity:    .85;
+}

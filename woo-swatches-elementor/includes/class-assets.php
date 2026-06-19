@@ -133,6 +133,17 @@ class WSE_Assets {
 			$v,
 			true
 		);
+
+		// v1.3.0 — Widget 4 (ZYMARG Variation Image Gallery) variation sync,
+		// thumbnail clicks, hover-zoom lens, lightbox, and mobile swipe
+		// carousel. Loaded only when Widget 4 is in the layout.
+		wp_register_script(
+			'wse-gallery',
+			$u . 'gallery' . $s . '.js',
+			array( 'jquery', 'wc-add-to-cart-variation' ),
+			$v,
+			true
+		);
 	}
 
 	/**
@@ -185,6 +196,24 @@ class WSE_Assets {
 			'wse-price',
 			$u . 'price.css',
 			array(),
+			$v
+		);
+
+		// v1.3.0 — Widget 4 (ZYMARG Variation Image Gallery) stylesheet.
+		// Two separate handles: gallery.css for the always-loaded base
+		// (layout, thumbs, main image) and gallery-lightbox.css for the
+		// lightbox UI. The lightbox sheet is registered separately so the
+		// base CSS stays light on pages that don't use the lightbox feature.
+		wp_register_style(
+			'wse-gallery',
+			$u . 'gallery.css',
+			array(),
+			$v
+		);
+		wp_register_style(
+			'wse-gallery-lightbox',
+			$u . 'gallery-lightbox.css',
+			array( 'wse-gallery' ),
 			$v
 		);
 	}
@@ -409,6 +438,10 @@ class WSE_Assets {
 			// v1.2.0 — Widget 3 (ZYMARG Price)
 			'price_js'                  => 'wse-price',
 			'price_css'                 => 'wse-price',
+			// v1.3.0 — Widget 4 (ZYMARG Variation Image Gallery)
+			'gallery_js'                => 'wse-gallery',
+			'gallery_css'               => 'wse-gallery',
+			'gallery_lightbox_css'      => 'wse-gallery-lightbox',
 		);
 		return $map[ $asset ] ?? '';
 	}
