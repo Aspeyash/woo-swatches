@@ -114,6 +114,7 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 		$this->register_section_style_zoom_lens();
 		$this->register_section_style_sale_badge();
 		$this->register_section_style_dots();
+		$this->register_section_style_counter();   // v1.3.2 (F6)
 		$this->register_section_style_lightbox();
 	}
 
@@ -196,6 +197,7 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 					'mobile_carousel'  => esc_html__( 'Swipe carousel + stacked thumbs below (default mobile)', 'woo-swatches-elementor' ),
 					'mobile_stacked'   => esc_html__( 'Stacked vertical (no carousel — long scroll feed)',     'woo-swatches-elementor' ),
 					'horizontal_below' => esc_html__( 'Horizontal thumbs below main',                            'woo-swatches-elementor' ),
+					'horizontal_above' => esc_html__( 'Horizontal thumbs above main',                            'woo-swatches-elementor' ),
 				),
 			)
 		);
@@ -288,6 +290,23 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 			'type'         => \Elementor\Controls_Manager::SWITCHER,
 			'return_value' => 'yes',
 			'default'      => 'yes',
+		) );
+
+		// v1.3.2 (F6) — Image counter overlay (mobile + tablet only).
+		$this->add_control( 'show_image_counter', array(
+			'label'        => esc_html__( 'Show image counter (mobile / tablet)', 'woo-swatches-elementor' ),
+			'description'  => esc_html__( 'Renders a small overlay at bottom-left of the main image with the current/total slide count. Shown only at tablet (≤1024px) and mobile (≤768px) breakpoints — desktop has thumbs visible so the counter would be redundant.', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'return_value' => 'yes',
+			'default'      => 'yes',
+		) );
+
+		$this->add_control( 'image_counter_format', array(
+			'label'       => esc_html__( 'Counter format', 'woo-swatches-elementor' ),
+			'type'        => \Elementor\Controls_Manager::TEXT,
+			'default'     => '{current} / {total}',
+			'description' => esc_html__( 'Use {current} and {total} as placeholders. Examples: "1 / 3", "Image 1 of 3", "1 of 3 photos".', 'woo-swatches-elementor' ),
+			'condition'   => array( 'show_image_counter' => 'yes' ),
 		) );
 
 		$this->add_control( 'show_video_indicator', array(
@@ -904,6 +923,87 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 	 * instances per page is rare and Elementor will inject its own
 	 * specificity).
 	 */
+	/**
+	 * v1.3.2 (F6) — Style → Image Counter (mobile / tablet overlay).
+	 *
+	 * Targets the .zymarg-vig-counter span rendered inside .zymarg-vig-main-wrap.
+	 * Visibility is gated by show_image_counter (Display section) plus a
+	 * @media query in CSS that hides the counter on desktop.
+	 */
+	private function register_section_style_counter(): void {
+
+		$this->start_controls_section(
+			'section_style_counter',
+			array(
+				'label'     => esc_html__( 'Image Counter', 'woo-swatches-elementor' ),
+				'tab'       => \Elementor\Controls_Manager::TAB_STYLE,
+				'condition' => array( 'show_image_counter' => 'yes' ),
+			)
+		);
+
+		$this->add_control( 'counter_bg', array(
+			'label'     => esc_html__( 'Background', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::COLOR,
+			'default'   => 'rgba(19,27,46,0.75)',
+			'description' => esc_html__( 'ZYMARG Text Body at 75%% opacity by default.', 'woo-swatches-elementor' ),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-counter' => 'background: {{VALUE}};',
+			),
+		) );
+
+		$this->add_control( 'counter_color', array(
+			'label'   => esc_html__( 'Text color', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::COLOR,
+			'default' => '#ffffff',
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-counter' => 'color: {{VALUE}};',
+			),
+		) );
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'counter_typography',
+				'selector' => '{{WRAPPER}} .zymarg-vig-counter',
+			)
+		);
+
+		$this->add_control( 'counter_padding', array(
+			'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-vig-counter' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_control( 'counter_radius', array(
+			'label'      => esc_html__( 'Border radius', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::SLIDER,
+			'range'      => array( 'px' => array( 'min' => 0, 'max' => 32, 'step' => 1 ), '%' => array( 'min' => 0, 'max' => 50, 'step' => 1 ) ),
+			'size_units' => array( 'px', '%' ),
+			'default'    => array( 'unit' => 'px', 'size' => 4 ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-vig-counter' => 'border-radius: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_control( 'counter_position', array(
+			'label'   => esc_html__( 'Position', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SELECT,
+			'default' => 'bottom_left',
+			'options' => array(
+				'bottom_left'  => esc_html__( 'Bottom left (default)', 'woo-swatches-elementor' ),
+				'bottom_right' => esc_html__( 'Bottom right',         'woo-swatches-elementor' ),
+				'top_left'     => esc_html__( 'Top left',             'woo-swatches-elementor' ),
+				'top_right'    => esc_html__( 'Top right',            'woo-swatches-elementor' ),
+			),
+			'prefix_class' => 'zymarg-vig-counter-pos-',
+		) );
+
+		$this->end_controls_section();
+	}
+
 	private function register_section_style_lightbox(): void {
 
 		$this->start_controls_section(
@@ -1053,16 +1153,27 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 			$layout_template = $this->resolve_layout_template( $desktop_layout );
 
 			$layout_args = array(
-				'images'           => $current,
-				'active_index'     => 0,
-				'show_zoom'        => 'yes' === ( $settings['show_zoom']        ?? 'yes' ),
-				'show_lightbox'    => 'yes' === ( $settings['show_lightbox']    ?? 'yes' ),
-				'show_sale_badge'  => 'yes' === ( $settings['show_sale_badge']  ?? 'yes' ),
-				'sale_badge_text'  => (string) ( $settings['sale_badge_text']   ?? __( 'Sale', 'woo-swatches-elementor' ) ),
-				'is_on_sale'       => $is_on_sale,
-				'lazy_load_thumbs' => 'yes' === ( $settings['lazy_load_thumbs'] ?? 'yes' ),
-				'show_arrows'      => 'yes' === ( $settings['show_arrows']      ?? 'yes' ),
-				'show_dots'        => 'yes' === ( $settings['show_dots']        ?? 'yes' ),
+				'images'                  => $current,
+				'active_index'            => 0,
+				'show_zoom'               => 'yes' === ( $settings['show_zoom']        ?? 'yes' ),
+				'show_lightbox'           => 'yes' === ( $settings['show_lightbox']    ?? 'yes' ),
+				'show_sale_badge'         => 'yes' === ( $settings['show_sale_badge']  ?? 'yes' ),
+				'sale_badge_text'         => (string) ( $settings['sale_badge_text']   ?? __( 'Sale', 'woo-swatches-elementor' ) ),
+				'is_on_sale'              => $is_on_sale,
+				'lazy_load_thumbs'        => 'yes' === ( $settings['lazy_load_thumbs'] ?? 'yes' ),
+				'show_arrows'             => 'yes' === ( $settings['show_arrows']      ?? 'yes' ),
+				'show_dots'               => 'yes' === ( $settings['show_dots']        ?? 'yes' ),
+				// v1.3.2 (F4) — Render a horizontal scroll-snap carousel of
+				// ALL images inside .zymarg-vig-main-wrap when the mobile
+				// layout is mobile_carousel. CSS gates the carousel to mobile
+				// bp only; on desktop/tablet the single .zymarg-vig-main hero
+				// is shown instead. v1.3.0–v1.3.1 only rendered the single
+				// hero, leaving nothing to swipe through on mobile.
+				'mobile_carousel_enabled' => 'mobile_carousel' === $mobile_layout,
+				// v1.3.2 (F6) — Image counter overlay format string. JS
+				// substitutes {current} / {total} placeholders.
+				'show_image_counter'      => 'yes' === ( $settings['show_image_counter']   ?? 'yes' ),
+				'image_counter_format'    => (string) ( $settings['image_counter_format'] ?? '{current} / {total}' ),
 			);
 
 			echo self::include_template( $layout_template, $layout_args ); // phpcs:ignore WordPress.Security.EscapeOutput

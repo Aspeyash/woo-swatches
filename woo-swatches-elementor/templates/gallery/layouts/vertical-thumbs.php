@@ -67,6 +67,67 @@ $_active = absint( $active_index ?? 0 );
 			)
 		);
 		?>
+
+		<?php /* v1.3.2 (F4) — Mobile carousel: real swipeable strip of
+		         all variation images. Hidden on desktop/tablet by CSS
+		         (only shown when --layout-m-mobile_carousel + mobile bp).
+		         The single hero <figure> above is hidden in the same
+		         media query. */ ?>
+		<?php if ( ! empty( $mobile_carousel_enabled ) ) : ?>
+			<div class="zymarg-vig-carousel"
+				role="region"
+				aria-label="<?php esc_attr_e( 'Product image carousel', 'woo-swatches-elementor' ); ?>"
+				aria-roledescription="carousel">
+				<?php foreach ( $images as $i => $img ) : ?>
+					<?php
+					$_csrc = (string) ( $img['src']    ?? '' );
+					$_calt = (string) ( $img['alt']    ?? '' );
+					$_cid  = (int)    ( $img['id']     ?? 0 );
+					$_cw   = (int)    ( $img['width']  ?? 0 );
+					$_ch   = (int)    ( $img['height'] ?? 0 );
+					?>
+					<figure class="zymarg-vig-carousel-slide<?php echo $i === $_active ? ' is-active' : ''; ?>"
+						data-image-id="<?php echo esc_attr( (string) $_cid ); ?>"
+						data-image-index="<?php echo absint( $i ); ?>"
+						aria-roledescription="slide"
+						aria-label="<?php
+							echo esc_attr( sprintf(
+								/* translators: 1: current slide index, 2: total */
+								__( '%1$d of %2$d', 'woo-swatches-elementor' ),
+								$i + 1,
+								count( $images )
+							) );
+						?>">
+						<img class="zymarg-vig-carousel-img"
+							src="<?php echo esc_url( $_csrc ); ?>"
+							alt="<?php echo esc_attr( $_calt ); ?>"
+							<?php if ( $_cw > 0 ) : ?>width="<?php echo (int) $_cw; ?>"<?php endif; ?>
+							<?php if ( $_ch > 0 ) : ?>height="<?php echo (int) $_ch; ?>"<?php endif; ?>
+							loading="<?php echo 0 === $i ? 'eager' : 'lazy'; ?>"
+							decoding="async"/>
+					</figure>
+				<?php endforeach; ?>
+			</div><!-- .zymarg-vig-carousel -->
+		<?php endif; ?>
+
+		<?php /* v1.3.2 (F6) — Image counter overlay. JS keeps the
+		         {current} / {total} text in sync. CSS gates visibility
+		         to mobile + tablet bps. */ ?>
+		<?php if ( ! empty( $show_image_counter ) && count( $images ) > 1 ) : ?>
+			<span class="zymarg-vig-counter"
+				data-format="<?php echo esc_attr( $image_counter_format ?? '{current} / {total}' ); ?>"
+				data-total="<?php echo absint( count( $images ) ); ?>"
+				aria-live="polite">
+				<?php
+				echo esc_html( str_replace(
+					array( '{current}', '{total}' ),
+					array( (string) ( $_active + 1 ), (string) count( $images ) ),
+					(string) ( $image_counter_format ?? '{current} / {total}' )
+				) );
+				?>
+			</span>
+		<?php endif; ?>
+
 	</div><!-- .zymarg-vig-main-wrap -->
 
 </div><!-- .zymarg-vig-layout -->

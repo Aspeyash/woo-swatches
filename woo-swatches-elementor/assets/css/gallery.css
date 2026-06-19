@@ -82,17 +82,39 @@ body.wse-stylesheet-enabled .zymarg-vig-thumbs--vertical {
 		+ var( --zymarg-vig-thumbs-gap ) * ( var( --zymarg-vig-thumbs-per-view ) - 1 )
 	);
 	overflow-y:     auto;
-	scrollbar-width: thin;
-	padding-right:  4px;          /* room for scrollbar without shifting */
+	scrollbar-width: none;        /* Firefox — hide scrollbar */
+	-ms-overflow-style: none;     /* IE / legacy Edge — hide scrollbar */
+	padding-right:  0;            /* no longer reserving room since scrollbar is hidden */
 }
 
-/* Hide scrollbar in WebKit when not needed (still scrollable on overflow). */
+/* v1.3.2 — Hide WebKit scrollbar entirely on the vertical thumb strip.
+   The strip is still scrollable via wheel / drag; we just don't render
+   the scrollbar chrome. */
 body.wse-stylesheet-enabled .zymarg-vig-thumbs--vertical::-webkit-scrollbar {
-	width: 4px;
+	width:  0;
+	height: 0;
+	display: none;
 }
-body.wse-stylesheet-enabled .zymarg-vig-thumbs--vertical::-webkit-scrollbar-thumb {
-	background: rgba( 0, 0, 0, .15 );
-	border-radius: 2px;
+body.wse-stylesheet-enabled .zymarg-vig-thumbs--vertical::-webkit-scrollbar-thumb,
+body.wse-stylesheet-enabled .zymarg-vig-thumbs--vertical::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+/* v1.3.2 — Sweeping scrollbar-hide rule for every scrollable gallery
+   element. Covers the horizontal thumb strip (mobile carousel + tablet
+   horizontal_below/above) and the mobile-carousel main-wrap which also
+   scrolls horizontally. The strips remain scrollable; only the chrome
+   is hidden. */
+body.wse-stylesheet-enabled .zymarg-vig-thumbs::-webkit-scrollbar,
+body.wse-stylesheet-enabled .zymarg-vig-main-wrap::-webkit-scrollbar {
+	width:   0;
+	height:  0;
+	display: none;
+}
+body.wse-stylesheet-enabled .zymarg-vig-thumbs,
+body.wse-stylesheet-enabled .zymarg-vig-main-wrap {
+	scrollbar-width: none;        /* Firefox */
+	-ms-overflow-style: none;     /* IE / legacy Edge */
 }
 
 /* ─── Single thumbnail ──────────────────────────────────────────────────── */
@@ -292,7 +314,9 @@ body.wse-stylesheet-enabled .zymarg-vig--layout-d-horizontal_above .zymarg-vig-t
 	overflow-x:      auto;
 	overflow-y:      visible;
 	padding-right:   0;
-	padding-bottom:  4px;        /* room for horizontal scrollbar */
+	padding-bottom:  0;          /* v1.3.2 — no scrollbar reserved (hidden) */
+	scrollbar-width: none;        /* Firefox */
+	-ms-overflow-style: none;     /* IE / legacy Edge */
 }
 
 /* ─── Phase 3: Layout family — Stacked vertical ─────────────────────────── */
@@ -402,15 +426,14 @@ body.wse-stylesheet-enabled .zymarg-vig-layout--grid .zymarg-vig-main {
 	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_carousel .zymarg-vig-main-wrap {
 		order:           1;       /* main carousel up top */
 		width:           100%;
-		overflow-x:      auto;
-		overflow-y:      hidden;
-		scroll-snap-type: x mandatory;
-		-webkit-overflow-scrolling: touch;
+		overflow:        visible; /* the .zymarg-vig-carousel child is the scroll container */
+		position:        relative;
 	}
 
-	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_carousel .zymarg-vig-main {
-		flex:            0 0 100%;
-		scroll-snap-align: center;
+	/* v1.3.2 (F4) — Hide the single hero figure on mobile_carousel; the
+	   .zymarg-vig-carousel below is the real scrollable strip. */
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_carousel .zymarg-vig-main-wrap > .zymarg-vig-main {
+		display: none;
 	}
 
 	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_carousel .zymarg-vig-thumbs--vertical {
@@ -452,6 +475,20 @@ body.wse-stylesheet-enabled .zymarg-vig-layout--grid .zymarg-vig-main {
 		overflow-y:      visible;
 	}
 
+	/* v1.3.2 — mobile_layout = horizontal_above: same as horizontal_below
+	   but with the thumb strip reversed to sit ABOVE the main image. Uses
+	   flex column-reverse on the wrapper to flip thumb-strip order without
+	   touching template DOM. */
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-horizontal_above .zymarg-vig-layout--vertical {
+		flex-direction: column-reverse;
+	}
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-horizontal_above .zymarg-vig-thumbs--vertical {
+		flex-direction:  row;
+		max-height:      none;
+		overflow-x:      auto;
+		overflow-y:      visible;
+	}
+
 	/* Sticky main image off on mobile regardless of desktop setting —
 	   sticky on a small viewport hides too much content. */
 	body.wse-stylesheet-enabled .zymarg-vig-sticky-yes .zymarg-vig-main-wrap {
@@ -463,4 +500,103 @@ body.wse-stylesheet-enabled .zymarg-vig-layout--grid .zymarg-vig-main {
 		grid-template-columns: 1fr;
 		gap: 12px;
 	}
+}
+
+
+
+/* ─── v1.3.2 (F4) — Real mobile carousel strip ──────────────────────────── */
+/* The .zymarg-vig-carousel renders ALL variation images side-by-side in a
+   horizontal scroll-snap container. Hidden on desktop/tablet (the single
+   .zymarg-vig-main hero is shown there). At mobile bp it's the actual
+   scrollable, swipeable carousel. Each child .zymarg-vig-carousel-slide
+   is one image filling 100% of the wrap width with scroll-snap-align: center
+   so swipes always settle on a clean slide boundary. Inertial scrolling is
+   enabled on iOS via -webkit-overflow-scrolling: touch.
+
+   The strip is rendered by templates/gallery/layouts/vertical-thumbs.php
+   only when mobile_carousel_enabled is true, so non-carousel mobile layouts
+   don't pay the DOM cost.
+*/
+body.wse-stylesheet-enabled .zymarg-vig-carousel {
+	display:                    none;     /* default — only mobile_carousel mobile bp shows it */
+	width:                      100%;
+	flex-direction:             row;
+	gap:                        0;
+	overflow-x:                 auto;
+	overflow-y:                 hidden;
+	scroll-snap-type:           x mandatory;
+	scroll-behavior:            smooth;
+	-webkit-overflow-scrolling: touch;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-carousel-slide {
+	flex:               0 0 100%;
+	width:              100%;
+	margin:             0;
+	scroll-snap-align:  center;
+	scroll-snap-stop:   always;
+	background:         var( --zymarg-vig-placeholder-bg );
+	border-radius:      var( --zymarg-vig-radius );
+	aspect-ratio:       var( --zymarg-vig-aspect-ratio );
+	overflow:           hidden;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-carousel-img {
+	display:    block;
+	width:      100%;
+	height:     100%;
+	object-fit: cover;
+}
+
+@media ( max-width: 768px ) {
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_carousel .zymarg-vig-carousel {
+		display: flex;
+	}
+}
+
+/* ─── v1.3.2 (F6) — Image counter overlay ───────────────────────────────── */
+/* Positioned at bottom-left of .zymarg-vig-main-wrap, shown only on mobile
+   and tablet bps. Format string is editable in widget controls; JS
+   substitutes {current} / {total} placeholders on every navigation event
+   (thumb click, carousel scroll, arrow key, lightbox prev/next).
+*/
+body.wse-stylesheet-enabled .zymarg-vig-counter {
+	display:        none;        /* default — hidden on desktop */
+	position:       absolute;
+	bottom:         12px;
+	left:           12px;
+	z-index:        2;
+	padding:        4px 10px;
+	background:     rgba( 19, 27, 46, .75 );   /* ZYMARG Text Body @ 75% */
+	color:          #ffffff;                    /* ZYMARG Surface Lowest */
+	font-size:      .75rem;
+	font-weight:    600;
+	line-height:    1.2;
+	letter-spacing: .03em;
+	border-radius:  4px;
+	pointer-events: none;        /* purely informational; clicks pass through */
+}
+
+@media ( max-width: 1024px ) {
+	body.wse-stylesheet-enabled .zymarg-vig-counter {
+		display: inline-flex;
+	}
+}
+
+
+
+/* v1.3.2 (F6) — Counter position prefix classes (Style → Image Counter →
+   Position). Each variant clears all 4 sides then sets just two so users
+   can flip between corners without leftover offset values fighting. */
+body.wse-stylesheet-enabled .zymarg-vig-counter-pos-bottom_left .zymarg-vig-counter {
+	bottom: 12px; left: 12px; right: auto; top: auto;
+}
+body.wse-stylesheet-enabled .zymarg-vig-counter-pos-bottom_right .zymarg-vig-counter {
+	bottom: 12px; right: 12px; left: auto; top: auto;
+}
+body.wse-stylesheet-enabled .zymarg-vig-counter-pos-top_left .zymarg-vig-counter {
+	top: 12px; left: 12px; right: auto; bottom: auto;
+}
+body.wse-stylesheet-enabled .zymarg-vig-counter-pos-top_right .zymarg-vig-counter {
+	top: 12px; right: 12px; left: auto; bottom: auto;
 }

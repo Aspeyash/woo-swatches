@@ -215,6 +215,16 @@ body.wse-stylesheet-enabled .wse-swatch-wrap:last-child {
 	margin-bottom: 0;
 }
 
+/* ─── Fieldset spacing (v1.3.2) ──────────────────────────────────────────── */
+/* Adds breathing room inside the swatches <fieldset> so the swatch grid
+   doesn't sit flush against the fieldset border. Scoped to the WSE
+   fieldset class to avoid affecting any other <fieldset> elements on the
+   page (e.g. user-account or checkout forms). */
+
+body.wse-stylesheet-enabled fieldset.wse-fieldset {
+	padding: 10px;
+}
+
 /* ─── Native passthrough attribute wrapper (non-swatch types) ────────────── */
 /* Added in v1.0.3 (Bug A fix) purely so the <select> sits inside an
    ancestor carrying .variations, which wc-add-to-cart-variation.js
