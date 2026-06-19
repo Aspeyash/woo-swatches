@@ -28,7 +28,7 @@ if ( empty( $images ) ) {
 
 	<?php foreach ( $images as $i => $img ) : ?>
 		<?php
-		WSE_Widget_Variation_Image_Gallery::include_template(
+		echo WSE_Widget_Variation_Image_Gallery::include_template( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			'main-image.php',
 			array(
 				'image'           => $img,

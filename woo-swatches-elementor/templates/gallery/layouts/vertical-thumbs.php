@@ -38,7 +38,7 @@ $_active = absint( $active_index ?? 0 );
 
 		<?php foreach ( $images as $i => $img ) : ?>
 			<?php
-			WSE_Widget_Variation_Image_Gallery::include_template(
+			echo WSE_Widget_Variation_Image_Gallery::include_template( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				'thumbnail.php',
 				array(
 					'image'     => $img,
@@ -55,7 +55,7 @@ $_active = absint( $active_index ?? 0 );
 	<?php /* Main image — picks up .is-active thumb's source. */ ?>
 	<div class="zymarg-vig-main-wrap">
 		<?php
-		WSE_Widget_Variation_Image_Gallery::include_template(
+		echo WSE_Widget_Variation_Image_Gallery::include_template( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			'main-image.php',
 			array(
 				'image'           => $images[ $_active ] ?? $images[0],

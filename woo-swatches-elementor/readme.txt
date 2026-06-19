@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,25 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.3.1 =
+**Patch: gallery now actually renders.**
+
+Critical fix for v1.3.0. The new Variation Image Gallery widget (Widget 4) shipped with a template-output-discard bug: the layout templates (`vertical-thumbs.php`, `stacked.php`, `grid.php`) called the static `WSE_Widget_Variation_Image_Gallery::include_template()` helper without echoing its return value. Since the helper uses `ob_start()` + `ob_get_clean()` and **returns** the rendered HTML as a string (matching the price-widget pattern), the strings were silently discarded by PHP. Net effect: the outer `<div class="zymarg-vig">` wrapper rendered, the layout `<div class="zymarg-vig-layout">` rendered, but every image and thumbnail inside dropped on the floor — gallery looked completely empty in both the Elementor editor and the live frontend.
+
+**Fix**
+
+Added `echo` to all 4 `include_template()` calls inside the 3 layout templates:
+
+* `templates/gallery/layouts/vertical-thumbs.php` — line 41 (thumbnail loop) + line 58 (main image)
+* `templates/gallery/layouts/stacked.php` — line 33 (main-image loop, every image full-size)
+* `templates/gallery/layouts/grid.php` — line 31 (main-image loop, 2-column grid)
+
+Each call also gets a `// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped` annotation since the returned HTML is already escaped at the leaf templates (`main-image.php`, `thumbnail.php` use `esc_url`, `esc_attr`, `esc_html` on every dynamic value).
+
+**Migration**
+
+Drop-in replacement for v1.3.0. No DB schema changes, no settings reset. After install: hard-refresh (Ctrl+F5) and Elementor → Tools → Regenerate CSS to flush the editor preview. The gallery widget will now render images correctly on both the editor canvas and the live single-product page.
 
 = 1.3.0 =
 **Minor: Widget 4 — ZYMARG Variation Image Gallery (the big one).**
@@ -631,6 +650,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.3.1 =
+Critical patch for v1.3.0 gallery widget. v1.3.0 layout templates called include_template() without echoing the returned HTML, so the gallery rendered as an empty wrapper with zero images. v1.3.1 adds `echo` to all 4 include_template() calls in vertical-thumbs.php, stacked.php, grid.php. Drop-in replacement for v1.3.0, no DB migration. Hard-refresh + Regenerate CSS after install. Update strongly recommended for anyone on v1.3.0.
 
 = 1.3.0 =
 Minor release. Adds Widget 4 — ZYMARG Variation Image Gallery: a brand-new product-image gallery widget that auto-flips to the matching variation image when a swatch is selected. 6 desktop layouts (vertical thumbs L/R, horizontal thumbs above/below, stacked, grid 2-col), mobile hybrid (swipe carousel + stacked thumbs), per-device thumb visibility, hover-zoom lens, click-to-lightbox, sale badge, sticky main, full Elementor Style tab with ~50 controls. Drop-in replacement for v1.2.3, no DB migration. Hard-refresh after install.

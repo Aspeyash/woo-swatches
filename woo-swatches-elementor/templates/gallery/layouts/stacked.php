@@ -30,7 +30,7 @@ if ( empty( $images ) ) {
 		<?php
 		// Render every image as a "main" so each is full-size. Sale badge
 		// shows only on the first one — repeating would be visual noise.
-		WSE_Widget_Variation_Image_Gallery::include_template(
+		echo WSE_Widget_Variation_Image_Gallery::include_template( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			'main-image.php',
 			array(
 				'image'           => $img,
