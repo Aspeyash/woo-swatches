@@ -397,12 +397,13 @@ class WSE_Swatch_Renderer {
 			'label'        => $label,
 			'type'         => $type,
 			'is_available' => $this->is_term_available( $product, $attribute, $option_value ),
-			// v1.2.1 (S2) — Sale dot indicator. True when at least one
-			// available variation matching this option is currently on sale.
-			// v1.2.3 (Issue 3) — Gated on the wse_show_sale_dot global toggle.
-			'is_on_sale'   => 'yes' === get_option( 'wse_show_sale_dot', 'yes' )
-				? $this->is_term_on_sale( $product, $attribute, $option_value )
-				: false,
+			// v1.3.2 — Sale-dot feature retired. Hard-coded to false so the
+			// `wse-on-sale` class is never added to any rendered swatch,
+			// regardless of any DB option value or 3rd-party filter. The
+			// is_term_on_sale() helper below stays available for custom
+			// integrations that want to opt back in via a filter on the
+			// returned swatch data array.
+			'is_on_sale'   => false,
 		);
 
 		// ── Type-specific data ────────────────────────────────────────────

@@ -1,10 +1,32 @@
 /**
- * WooSwatches for Elementor — ZYMARG Price Widget JS (v1.2.0)
+ * WooSwatches for Elementor — ZYMARG Price Widget JS (v1.3.2 surgical update model)
  *
  * Subscribes each .zymarg-price[data-form-id] widget on the page to the
  * canonical form's `found_variation` and `reset_data` events fired by
  * wc-add-to-cart-variation.js, and re-renders the price in place when
  * the customer picks a variation via Widget 1 (Variation Swatches).
+ *
+ * v1.3.2 architecture change — surgical DOM updates instead of $widget.html():
+ *
+ *   The previous string-based `buildInnerHtml()` model wiped the entire
+ *   widget's inner HTML on every variation event. That destroyed sibling
+ *   elements that the server rendered alongside the price block:
+ *
+ *     - .zymarg-price-heading       (smart heading: "Limited Time Offer")
+ *     - .zymarg-price-shipping-hint (free-shipping hint)
+ *
+ *   In particular, on variable on-sale products the server-side render
+ *   correctly emitted the heading, but `reset_data` (which WC fires
+ *   during form init even before any user interaction) ran our
+ *   `restoreInitial()` -> `$widget.html(html)` chain, blowing the
+ *   heading away. Symptom: heading flashes during page load, then
+ *   disappears as soon as JS hydrates.
+ *
+ *   v1.3.2 fixes this by REMOVING only the price-specific child
+ *   elements (.zymarg-price-current / -was / -from / -sep / -range,
+ *   .zymarg-sale-badge, .zymarg-price-savings) and INSERTING new price
+ *   elements after the heading. Heading + shipping hint stay untouched
+ *   across every variation switch.
  *
  * Multiple Widget 3 instances on the same page (e.g. main column + sticky
  * cart bar + gallery sidebar) are all bound to the same canonical form
@@ -15,13 +37,6 @@
  * decimals, decimal separator, thousand separator, currency symbol, and
  * currency position are all read from WSEParams (localized in PHP via
  * the wse_frontend_params filter).
- *
- * Sale formatting (option (ii) per ZYMARG product spec):
- *   When the variation's display_price < display_regular_price, the
- *   regular price is rendered next to the current price in whichever
- *   position the user picked (subscript / beside / below). The widget's
- *   data-show-sale-badge attribute decides whether the Sale badge is
- *   appended.
  *
  * @package WooSwatchesElementor
  * @since   1.2.0
@@ -73,66 +88,115 @@
 	}
 
 	/**
-	 * Build the inner HTML for a price widget given the formatted current
-	 * price, optional regular price, and on-sale state. Mirrors the markup
-	 * produced by templates/price/{simple,variable}.php exactly so the DOM
-	 * shape stays identical between server and client renders.
+	 * Build the "savings" line text from sale + regular prices and the
+	 * widget's data-savings-format setting.
 	 *
-	 * @param {Object} parts
-	 * @param {string} parts.currentHtml   Already-formatted current/sale price.
-	 * @param {string} parts.regularHtml   Already-formatted regular price ('' if no sale).
-	 * @param {boolean} parts.isOnSale
-	 * @param {string} parts.regularPosition  subscript | beside | below | hide
-	 * @param {boolean} parts.showSaleBadge
-	 * @param {string} parts.saleBadgeText
-	 * @returns {string}                   HTML to set on .zymarg-price.
+	 * @param {jQuery} $widget
+	 * @param {number} sale
+	 * @param {number} regular
+	 * @returns {string}  '' if savings are disabled or zero.
 	 */
-	function buildInnerHtml( parts ) {
+	function buildSavingsText( $widget, sale, regular ) {
 
-		var html = '<span class="zymarg-price-current">'
-			+ escapeHtml( parts.currentHtml )
-			+ '</span>';
-
-		if ( parts.isOnSale && 'hide' !== parts.regularPosition && parts.regularHtml ) {
-
-			var posClass = 'zymarg-price-was--' + parts.regularPosition;
-
-			if ( 'subscript' === parts.regularPosition ) {
-				html += '<del class="zymarg-price-was ' + posClass + '">'
-					+ '<sub>' + escapeHtml( parts.regularHtml ) + '</sub>'
-					+ '</del>';
-			} else {
-				html += '<del class="zymarg-price-was ' + posClass + '">'
-					+ escapeHtml( parts.regularHtml )
-					+ '</del>';
-			}
+		if ( '1' !== String( $widget.data( 'savings-show' ) ) ) {
+			return '';
+		}
+		if ( ! ( regular > sale ) ) {
+			return '';
 		}
 
-		if ( parts.isOnSale && parts.showSaleBadge ) {
-			html += '<span class="zymarg-sale-badge">'
-				+ escapeHtml( parts.saleBadgeText )
-				+ '</span>';
-		}
+		var saveAmt = sale > 0 ? ( regular - sale ) : 0;
+		var savePct = regular > 0 ? Math.round( ( saveAmt / regular ) * 100 ) : 0;
+		var prefix  = $widget.data( 'savings-prefix' ) || 'Save';
+		var fmt     = $widget.data( 'savings-format' ) || 'amount_percent';
 
-		return html;
+		switch ( fmt ) {
+			case 'amount_only':
+				return prefix + ' ' + formatPrice( saveAmt );
+			case 'percent_only':
+				return prefix + ' ' + savePct + '%';
+			default:
+				return prefix + ' ' + formatPrice( saveAmt ) + ' (' + savePct + '%)';
+		}
 	}
 
 	/**
-	 * Minimal HTML-escaper for the values we control upstream (currency
-	 * formatter output, sale badge label). Defensive against the rare
-	 * case where a developer overrides decimal/thousand sep with a
-	 * markup-bearing value via filter.
+	 * v1.3.2 — Surgically update the price block of a widget.
 	 *
-	 * @param {string} s
-	 * @returns {string}
+	 * Removes the price-specific child elements (current / was / range /
+	 * from / sep / sale-badge / savings) and inserts new ones, while
+	 * preserving any sibling elements the server rendered (heading,
+	 * shipping hint, etc.). Insertion point is AFTER the heading if
+	 * present, otherwise at the start of the widget.
+	 *
+	 * Uses jQuery's `.text()` for text content so currency strings are
+	 * auto-escaped.
+	 *
+	 * @param {jQuery} $widget
+	 * @param {Object} parts
+	 * @param {string} parts.currentHtml     Already-formatted current/sale price text.
+	 * @param {string} parts.regularHtml     Already-formatted regular price text ('' if no sale).
+	 * @param {boolean} parts.isOnSale
+	 * @param {string} parts.regularPosition subscript | beside | below | hide
+	 * @param {boolean} parts.showSaleBadge
+	 * @param {string} parts.saleBadgeText
+	 * @param {string} parts.savingsText     '' if disabled or no savings.
 	 */
-	function escapeHtml( s ) {
-		return String( s )
-			.replace( /&/g, '&amp;' )
-			.replace( /</g, '&lt;' )
-			.replace( />/g, '&gt;' )
-			.replace( /"/g, '&quot;' )
-			.replace( /'/g, '&#39;' );
+	function applyPriceState( $widget, parts ) {
+
+		// 1. Remove all dynamic price-block elements that the server may
+		//    have rendered (range / current / was / from / sep) plus any
+		//    pre-existing badge / savings spans we previously injected.
+		//    Heading (.zymarg-price-heading) and shipping hint
+		//    (.zymarg-price-shipping-hint) are left in place.
+		$widget.find(
+			'.zymarg-price-range, ' +
+			'.zymarg-price-current, ' +
+			'.zymarg-price-was, ' +
+			'.zymarg-price-from, ' +
+			'.zymarg-price-sep, ' +
+			'.zymarg-sale-badge, ' +
+			'.zymarg-price-savings'
+		).remove();
+
+		// 2. Build the new elements.
+		var $newGroup = $();
+
+		var $current = $( '<span class="zymarg-price-current"></span>' ).text( parts.currentHtml );
+		$newGroup = $newGroup.add( $current );
+
+		if ( parts.isOnSale && 'hide' !== parts.regularPosition && parts.regularHtml ) {
+			var posClass = 'zymarg-price-was--' + parts.regularPosition;
+			var $was;
+			if ( 'subscript' === parts.regularPosition ) {
+				$was = $( '<del class="zymarg-price-was ' + posClass + '"><sub></sub></del>' );
+				$was.find( 'sub' ).text( parts.regularHtml );
+			} else {
+				$was = $( '<del class="zymarg-price-was ' + posClass + '"></del>' ).text( parts.regularHtml );
+			}
+			$newGroup = $newGroup.add( $was );
+		}
+
+		if ( parts.isOnSale && parts.showSaleBadge ) {
+			var $badge = $( '<span class="zymarg-sale-badge"></span>' ).text( parts.saleBadgeText );
+			$newGroup = $newGroup.add( $badge );
+		}
+
+		if ( parts.savingsText ) {
+			var $savings = $( '<span class="zymarg-price-savings"></span>' ).text( parts.savingsText );
+			$newGroup = $newGroup.add( $savings );
+		}
+
+		// 3. Insert the group: AFTER heading if present, else at start.
+		var $heading = $widget.find( '.zymarg-price-heading' ).first();
+		if ( $heading.length ) {
+			$heading.after( $newGroup );
+		} else {
+			$widget.prepend( $newGroup );
+		}
+
+		// 4. Toggle the on-sale wrapper class.
+		$widget.toggleClass( 'zymarg-price--on-sale', !! parts.isOnSale );
 	}
 
 	/**
@@ -143,52 +207,30 @@
 	 */
 	function renderVariation( $widget, variation ) {
 
-		var sale    = parseFloat( variation.display_price );
-		var regular = parseFloat( variation.display_regular_price );
+		var sale     = parseFloat( variation.display_price );
+		var regular  = parseFloat( variation.display_regular_price );
 		var isOnSale = ! isNaN( sale ) && ! isNaN( regular ) && regular > sale;
 
-		var html = buildInnerHtml( {
+		applyPriceState( $widget, {
 			currentHtml:     formatPrice( sale ),
 			regularHtml:     formatPrice( regular ),
 			isOnSale:        isOnSale,
 			regularPosition: $widget.data( 'regular-position' ) || 'subscript',
 			showSaleBadge:   '1' === String( $widget.data( 'show-sale-badge' ) ),
 			saleBadgeText:   $widget.data( 'sale-badge-text' ) || 'Sale',
+			savingsText:     buildSavingsText( $widget, sale, regular ),
 		} );
 
-		// v1.2.1 (P1) — append savings span if enabled and on sale.
-		if ( isOnSale && '1' === String( $widget.data( 'savings-show' ) ) ) {
-			var saveAmt = sale > 0 ? ( regular - sale ) : 0;
-			var savePct = regular > 0 ? Math.round( ( saveAmt / regular ) * 100 ) : 0;
-			var prefix  = $widget.data( 'savings-prefix' ) || 'Save';
-			var fmt     = $widget.data( 'savings-format' ) || 'amount_percent';
-			var saveTxt = '';
-
-			switch ( fmt ) {
-				case 'amount_only':
-					saveTxt = prefix + ' ' + formatPrice( saveAmt );
-					break;
-				case 'percent_only':
-					saveTxt = prefix + ' ' + savePct + '%';
-					break;
-				default:
-					saveTxt = prefix + ' ' + formatPrice( saveAmt ) + ' (' + savePct + '%)';
-					break;
-			}
-			html += '<span class="zymarg-price-savings">' + escapeHtml( saveTxt ) + '</span>';
-		}
-
-		$widget
-			.toggleClass( 'zymarg-price--on-sale', isOnSale )
-			.attr( 'data-variation-id', variation.variation_id || '' )
-			.html( html );
+		$widget.attr( 'data-variation-id', variation.variation_id || '' );
 	}
 
 	/**
 	 * Restore a price widget to its initial baseline (the lowest-active
 	 * + lowest-regular state from the server-side render). Triggered on
-	 * the canonical form's `reset_data` event when the customer clears
-	 * their swatch selection.
+	 * the canonical form's `reset_data` event, which WC fires during
+	 * form init *and* when the customer clears their swatch selection.
+	 *
+	 * v1.3.2 — Heading + shipping hint are preserved (see applyPriceState).
 	 *
 	 * @param {jQuery} $widget
 	 */
@@ -198,19 +240,28 @@
 		var initialRegular = $widget.data( 'initial-regular' ) || '';
 		var initialOnSale  = '1' === String( $widget.data( 'initial-on-sale' ) );
 
-		var html = buildInnerHtml( {
+		// For initial-state savings: derive from data attributes if a
+		// numeric pair was localised. We don't always have these so we
+		// keep savings to '' when reverting (the heading carries the
+		// sale-state messaging).
+		var initialSale    = parseFloat( $widget.data( 'initial-sale-amt' ) );
+		var initialReg     = parseFloat( $widget.data( 'initial-regular-amt' ) );
+		var initialSavings = '';
+		if ( initialOnSale && ! isNaN( initialSale ) && ! isNaN( initialReg ) ) {
+			initialSavings = buildSavingsText( $widget, initialSale, initialReg );
+		}
+
+		applyPriceState( $widget, {
 			currentHtml:     initialCurrent,
 			regularHtml:     initialRegular,
 			isOnSale:        initialOnSale,
 			regularPosition: $widget.data( 'regular-position' ) || 'subscript',
 			showSaleBadge:   '1' === String( $widget.data( 'show-sale-badge' ) ),
 			saleBadgeText:   $widget.data( 'sale-badge-text' ) || 'Sale',
+			savingsText:     initialSavings,
 		} );
 
-		$widget
-			.toggleClass( 'zymarg-price--on-sale', initialOnSale )
-			.removeAttr( 'data-variation-id' )
-			.html( html );
+		$widget.removeAttr( 'data-variation-id' );
 	}
 
 	/**

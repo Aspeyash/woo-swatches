@@ -124,18 +124,13 @@ class WSE_Settings extends WC_Settings_Page {
 				'default'  => 'yes',
 				'desc'     => esc_html__( 'Show a small toast notification at the bottom of the screen when a product is successfully added to the cart.', 'woo-swatches-elementor' ),
 			),
-			// v1.2.3 (Issue 3) — Sale dot indicator on swatches.
-			// Independent from the tooltip setting. Defaults ON for back-
-			// compat with v1.2.1+ behaviour. Turn OFF to suppress the
-			// small ZYMARG-purple dot in the corner of swatches that have
-			// at least one on-sale variation.
-			array(
-				'title'    => esc_html__( 'Show Sale Dot on Swatches', 'woo-swatches-elementor' ),
-				'id'       => 'wse_show_sale_dot',
-				'type'     => 'checkbox',
-				'default'  => 'yes',
-				'desc'     => esc_html__( 'When ON, a small purple dot is rendered in the corner of any swatch whose variation is on sale. Independent of the Tooltip setting above.', 'woo-swatches-elementor' ),
-			),
+			// v1.3.2 — Sale-dot feature retired (toggle removed; rendering
+			// hard-disabled in WSE_Swatch_Renderer). The wse_show_sale_dot
+			// option key is intentionally NOT cleaned up from the DB on
+			// upgrade so a future v1.4.x re-introduction can read prior
+			// preference. Setting any value has no visible effect in
+			// v1.3.2+.
+
 			array(
 				'title'    => esc_html__( 'Multi-vendor Compatibility Mode', 'woo-swatches-elementor' ),
 				'id'       => 'wse_multivendor_compat',
