@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,51 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.2.1 =
+**Polish release: 3 bug fixes + 5 features + 6 polish enhancements + 5 ZYMARG Price widget improvements.**
+
+This release addresses real-world issues surfaced from live ZYMARG site testing of v1.2.0 plus a broader UX polish pass across all three widgets.
+
+**Bug fixes (B1–B3)**
+
+* B1 — Simple-product +/- stepper buttons now respond reliably. Replaced the v1.2.0 IIFE init reassignment hack (`var _wseInit = init; init = function() { ... }`) with a clean composite `initAll()` so stepper handlers bind on simple-product pages where the v1.2.0 timing differed from variable products.
+* B2 — Decrease icon never disappears. Captures `Icons_Manager::render_icon()` output via output buffer; falls through to the hand-drawn inline SVG when empty. CSS forces explicit width/height/font-size + `currentColor` fill on every icon child.
+* B3 — Resilience against Elementor icon picker library failing to load. Hand-drawn SVG fallback always renders even if the picker stays broken; recommended icon list expanded with safe defaults.
+
+**Features (F1–F5)**
+
+* F1 — New "Stepper width mode" control on Widget 2: Auto / Custom / Full Width. Full mode makes the stepper fill its parent column with the qty input growing via flex:1 between fixed-size buttons.
+* F2 — Sticky Add to Cart toggles moved from per-widget to global admin: WC → Settings → WooSwatches → Sticky Add to Cart. Mobile defaults to ON. Per-widget controls show a pointer to the new admin location.
+* F3 — Per-type attribute name visibility above swatches. By default, the "color" / "size" label row is shown only for Color swatch types and hidden for Image / Label / Button / Dropdown (per ZYMARG product spec). New "Show Label for non-color types" override toggle on Widget 1.
+* F4 — Variation name labels under image swatches with 4 position options: Below (default per ZYMARG product spec), Above, On hover (tooltip), Hidden. Labels are always rendered; CSS drives the layout based on the selected position.
+* F5 — Responsive per-type swatch widths (global + per-widget override). New "Swatch Sizes" admin section with 12 width inputs: Color / Image / Label / Button × Desktop / Tablet / Mobile. Inline `<style>` block injected on `wp_head` priority 100; per-widget Style controls keep their override capability via `{{WRAPPER}}` selector specificity.
+
+**Polish (S1–S6)**
+
+* S1 — Selected-state image swatch labels become bold and adopt the ZYMARG Primary purple (#9500a5) for clearer selection cues.
+* S2 — On-sale swatches show a small ZYMARG Primary purple dot in the top-right corner. `class-swatch-renderer.php` gains `is_term_on_sale()` helper.
+* S3 — Smooth scroll-to-form on mobile (≤ 768 px) after swatch click. Customers see the price update / variation match / Add to Cart button without losing context.
+* S4 — Local Attribute Swatches admin metabox preview tiles now use the same rounded corners and hover lift as the frontend, giving store owners a faithful preview of their saved values.
+* S5 — Stepper button hover state lifts to ZYMARG Primary Fixed (#ffd6fb) with Primary purple border and On Primary Fixed (#36003d) text. Active uses Inverse Primary (#fea9ff).
+* S6 — Auto-flush of swatch transients on global settings save (`woocommerce_update_options_woo_swatches`). Eliminates the "I changed a setting and the page didn't update for 24 hours" support ticket.
+
+**ZYMARG Price widget enhancements (P1, P4, P5, P9, P10)**
+
+* P1 — "You save X (Y%)" indicator inline next to the price when on sale. Three formats: `Save {amount} ({percent}%)`, amount-only, percent-only. Toggleable.
+* P4 — Loading skeleton (shimmer animation) on the price block during variation lookup. Toggleable. Uses ZYMARG Surface and Surface Container as gradient stops.
+* P5 — Sale badge variants. Position: inline-after (default), inline-before, floating top-right corner with rotation, or block-above. Content: custom text, percent (-30%), amount (Save 100৳), or percent-text (30% off).
+* P9 — Free shipping threshold hint. Renders below the price with a checkmark glyph: "Free shipping over 2,000৳". Threshold and template text both customisable.
+* P10 — Smart adaptive heading above the price with 4 states:
+  * **On sale** — default text "Limited Time Offer", ZYMARG Primary purple
+  * **Sale ending ≤ 24h** — auto-overrides the sale heading with `Ends in {hours} hours!` (auto-computed from the variation's / product's `date_on_sale_to`), font-weight: 700 for urgency
+  * **Regular price** — empty by default (most stores don't display a heading on regular price); editable
+  * **Out of stock** — default text "Currently Unavailable", ZYMARG Outline grey
+  * Each state has its own toggle + text input. Server-side state computation; client-side updates would require an additional render path that is not included in v1.2.1 (variation switching uses the cached regular-state heading; reload to recompute the state for the current variation).
+
+**Migration**
+
+Drop-in replacement for v1.2.0. No DB schema changes. The activator detects v1.1.x → v1.2.1 upgrades and pins the back-compat default for the v1.2.0 inline-price toggle. Sticky toggles on existing v1.2.0 widget instances are silently superseded by the new global option (defaults: desktop=no, tablet=no, mobile=yes — same as the v1.2.0 widget defaults). Hard-refresh after install.
 
 = 1.2.0 =
 **Minor: Widget 3 (ZYMARG Price) introduced + quantity stepper redesign in Widget 2.**
@@ -374,6 +419,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Widget 4 — ZYMARG Variation Image Gallery: a product-image gallery widget that automatically flips to show the matching variation's image (and gallery, where available) when a swatch is selected via Widget 1. Designed to live in the gallery column of a product page and stay in sync with all variation widgets through the existing Form Registry coordination.
 
 == Upgrade Notice ==
+
+= 1.2.1 =
+Polish release. Fixes 3 bugs (simple-product stepper, decrease icon, icon picker resilience) and adds 16 features/polish items: full-width stepper, sticky-to-admin, per-type attribute label rules, image-swatch label positions (above/below/hover/hidden), responsive per-type swatch widths, ZYMARG-branded stepper colours, sale-dot on swatches, mobile scroll-to-form, admin metabox preview polish, auto cache-flush on settings save, plus 5 Price-widget enhancements: "You save" indicator, loading skeleton, sale badge variants, free-shipping hint, and smart adaptive heading with 4 states (sale / ending-soon / regular / out-of-stock). Hard-refresh after install. No DB migration.
 
 = 1.2.0 =
 Minor release. New Widget 3 (ZYMARG Price) takes over price display with full sale-aware formatting and live updates when variations are selected via Widget 1. New touch-friendly +/- quantity stepper in Widget 2 with full Elementor styling control. Widget 2 gains a Show Inline Price toggle — defaults to ON for upgrades (back-compat) and OFF for fresh installs. Hard-refresh after install. No DB migration.

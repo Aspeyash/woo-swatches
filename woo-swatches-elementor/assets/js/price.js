@@ -156,6 +156,28 @@
 			saleBadgeText:   $widget.data( 'sale-badge-text' ) || 'Sale',
 		} );
 
+		// v1.2.1 (P1) — append savings span if enabled and on sale.
+		if ( isOnSale && '1' === String( $widget.data( 'savings-show' ) ) ) {
+			var saveAmt = sale > 0 ? ( regular - sale ) : 0;
+			var savePct = regular > 0 ? Math.round( ( saveAmt / regular ) * 100 ) : 0;
+			var prefix  = $widget.data( 'savings-prefix' ) || 'Save';
+			var fmt     = $widget.data( 'savings-format' ) || 'amount_percent';
+			var saveTxt = '';
+
+			switch ( fmt ) {
+				case 'amount_only':
+					saveTxt = prefix + ' ' + formatPrice( saveAmt );
+					break;
+				case 'percent_only':
+					saveTxt = prefix + ' ' + savePct + '%';
+					break;
+				default:
+					saveTxt = prefix + ' ' + formatPrice( saveAmt ) + ' (' + savePct + '%)';
+					break;
+			}
+			html += '<span class="zymarg-price-savings">' + escapeHtml( saveTxt ) + '</span>';
+		}
+
 		$widget
 			.toggleClass( 'zymarg-price--on-sale', isOnSale )
 			.attr( 'data-variation-id', variation.variation_id || '' )
@@ -240,13 +262,30 @@
 		}
 		$widget.data( 'wse-bound', true );
 
+		// v1.2.1 (P4) — Loading skeleton during variation lookup.
+		// Toggle on any select change in the canonical form; removed on
+		// found_variation/reset_data once the new state is known.
+		var skeletonEnabled = '1' === String( $widget.data( 'skeleton-enabled' ) );
+
+		if ( skeletonEnabled ) {
+			$form.on( 'change.wsePriceSkeleton', 'select', function () {
+				$widget.addClass( 'zymarg-price--loading' );
+			} );
+		}
+
 		$form.on( 'found_variation.wsePrice', function ( e, variation ) {
+			if ( skeletonEnabled ) {
+				$widget.removeClass( 'zymarg-price--loading' );
+			}
 			if ( variation && 'undefined' !== typeof variation.variation_id ) {
 				renderVariation( $widget, variation );
 			}
 		} );
 
 		$form.on( 'reset_data.wsePrice', function () {
+			if ( skeletonEnabled ) {
+				$widget.removeClass( 'zymarg-price--loading' );
+			}
 			restoreInitial( $widget );
 		} );
 	}
