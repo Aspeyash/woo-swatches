@@ -259,3 +259,38 @@ div.term-wse-image-wrap {
 .wse-hidden {
     display: none !important;
 }
+
+
+
+/* ─── v1.2.1 (S4) — Local Attribute Swatches admin preview polish ───────── */
+/* Make the colour-picker and image-upload preview UI in the product edit
+   metabox match the visual treatment of the frontend swatches: rounded
+   corners, subtle shadow, hover lift. Lets the store owner see at a glance
+   how their saved values will render on the live product page. */
+
+.wse-local-color-picker + .wp-picker-container .wp-color-result {
+    border-radius: 6px !important;
+    box-shadow:    0 1px 2px rgba( 0, 0, 0, 0.05 );
+    transition:    transform 0.12s ease, box-shadow 0.12s ease;
+}
+.wse-local-color-picker + .wp-picker-container .wp-color-result:hover {
+    transform:  translateY( -1px );
+    box-shadow: 0 2px 4px rgba( 0, 0, 0, 0.08 );
+}
+
+.wse-image-upload-wrap .wse-image-preview {
+    border:        1px solid #d0e1fb;        /* ZYMARG Secondary Container */
+    border-radius: 6px;
+    box-shadow:    0 1px 3px rgba( 19, 27, 46, 0.06 );
+    transition:    transform 0.12s ease, box-shadow 0.12s ease;
+}
+.wse-image-upload-wrap .wse-image-preview:hover {
+    transform:  translateY( -1px );
+    box-shadow: 0 2px 6px rgba( 19, 27, 46, 0.1 );
+}
+
+/* Section header gets a touch of ZYMARG branding */
+.wse-local-attr-title {
+    color:         #131b2e;                  /* ZYMARG Text Body */
+    border-bottom-color: #d0e1fb !important; /* ZYMARG Secondary Container */
+}

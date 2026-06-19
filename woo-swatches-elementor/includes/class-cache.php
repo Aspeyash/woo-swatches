@@ -442,3 +442,25 @@ class WSE_Cache {
 		return self::PREFIX . $product_id;
 	}
 }
+
+
+
+/**
+ * v1.2.1 (S6) — Auto-flush swatch cache when global plugin settings save.
+ *
+ * Hooks into WC's standard settings-saved action so that any change to
+ * Swatch Sizes, Sticky Add to Cart, OOS Behaviour, Shape, Tooltip, etc.
+ * immediately invalidates the cached swatch HTML — otherwise users would
+ * see stale visuals until the per-product transient TTL expired (default
+ * 24h). This avoids the "I changed the color and it didn't update" support
+ * ticket on every settings tweak.
+ *
+ * Hooked at priority 20 to fire AFTER WC's internal save logic completes.
+ */
+add_action( 'woocommerce_update_options_woo_swatches', static function (): void {
+	if ( class_exists( 'WSE_Cache' ) ) {
+		// flush_all returns the count of remaining transients in chunked
+		// mode; we don't care about the count here, just trigger the flush.
+		WSE_Cache::flush_all();
+	}
+}, 20 );
