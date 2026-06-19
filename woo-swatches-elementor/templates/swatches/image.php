@@ -100,6 +100,19 @@ $tabindex           = ( $is_selected || $is_first_focusable ) ? '0' : '-1';
 		     decoding="async"/>
 	<?php endif; ?>
 
+	<?php
+	/**
+	 * v1.2.1 (F4) — Variation name label.
+	 *
+	 * Always rendered into the DOM so CSS can drive the position
+	 * (above / below / hover / hidden) without re-rendering. The visible
+	 * mode is controlled by a wse-image-label-pos-* class on the parent
+	 * .wse-attr-block (set by Widget 1 from the image_label_position
+	 * setting). Defaults to "below" per the ZYMARG product spec.
+	 */
+	?>
+	<span class="wse-swatch-image-label"><?php echo esc_html( $label ); ?></span>
+
 	<span class="wse-checkmark" aria-hidden="true">
 		<svg width="12" height="12" viewBox="0 0 12 12" fill="none"
 		     xmlns="http://www.w3.org/2000/svg">

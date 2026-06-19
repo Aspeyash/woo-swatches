@@ -165,6 +165,40 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 			'condition'    => array( 'show_label' => 'yes' ),
 		) );
 
+		// v1.2.1 (F3) — Per-type attribute-name visibility.
+		// By default, the attribute name row above swatches is shown
+		// only for color-type swatches and hidden for image / label /
+		// button / dropdown types (per ZYMARG product spec). Power users
+		// can flip this toggle on to keep the label visible for ALL
+		// swatch types.
+		$this->add_control( 'show_label_non_color', array(
+			'label'        => esc_html__( 'Show Label for non-color types', 'woo-swatches-elementor' ),
+			'description'  => esc_html__( 'By default the attribute name above swatches is shown only for Color types. Turn ON to also show it for Image / Label / Button / Dropdown.', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'label_on'     => esc_html__( 'Yes', 'woo-swatches-elementor' ),
+			'label_off'    => esc_html__( 'No',  'woo-swatches-elementor' ),
+			'return_value' => 'yes',
+			'default'      => 'no',
+			'condition'    => array( 'show_label' => 'yes' ),
+		) );
+
+		// v1.2.1 (F4) — Image-swatch variation label position.
+		// Always rendered into the DOM; position is driven by the parent
+		// .wse-attr-block class wse-image-label-pos-{value}. Only applies
+		// when the attribute's swatch type is "image".
+		$this->add_control( 'image_label_position', array(
+			'label'   => esc_html__( 'Image Swatch Label Position', 'woo-swatches-elementor' ),
+			'description' => esc_html__( 'Where to display the variation name (e.g. "black", "blue") relative to each image swatch tile.', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SELECT,
+			'options' => array(
+				'below'  => esc_html__( 'Below the image (default)',     'woo-swatches-elementor' ),
+				'above'  => esc_html__( 'Above the image',               'woo-swatches-elementor' ),
+				'hover'  => esc_html__( 'On hover only',                 'woo-swatches-elementor' ),
+				'hidden' => esc_html__( 'Hidden',                        'woo-swatches-elementor' ),
+			),
+			'default' => 'below',
+		) );
+
 		$this->add_control( 'show_price', array(
 			'label'        => esc_html__( 'Show Price Under Image Swatches', 'woo-swatches-elementor' ),
 			'type'         => \Elementor\Controls_Manager::SWITCHER,
@@ -701,14 +735,49 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 		<div <?php echo $this->get_render_attribute_string( 'widget_wrap' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>>
 
 			<?php
+			// v1.2.1 (F3+F4) — read image-label position once, default below.
+			$image_label_pos = sanitize_html_class( $settings['image_label_position'] ?? 'below' );
+			if ( ! in_array( $image_label_pos, array( 'above', 'below', 'hover', 'hidden' ), true ) ) {
+				$image_label_pos = 'below';
+			}
+
+			// v1.2.1 (F3) — control whether the attribute-name row above
+			// swatches is forced visible for non-color swatch types.
+			$show_label_non_color = ( $settings['show_label_non_color'] ?? 'no' ) === 'yes';
+
 			foreach ( $product->get_variation_attributes() as $attr_name => $options ) :
 
 				$attr_label   = wc_attribute_label( $attr_name, $product );
 				$selected_val = $default_attributes[ sanitize_title( $attr_name ) ] ?? '';
+
+				// v1.2.1 (F3) — Resolve the swatch type (color/image/label/button/select)
+				// for this attribute so the wrapper carries data-type="…" and the per-type
+				// CSS rules can hide the attribute-name label row for non-color types.
+				$_product_attrs = $product->get_attributes();
+				if ( isset( $_product_attrs[ $attr_name ] ) && ! $_product_attrs[ $attr_name ]->is_taxonomy() ) {
+					$swatch_type = WSE_Local_Attributes::get_attribute_type( $product_id, $attr_name );
+				} else {
+					$swatch_type = WSE_Attribute_Types::get_attribute_type( $attr_name );
+				}
+
+				// Per-type wrapper classes.
+				$attr_block_classes = array(
+					'wse-attr-block',
+					'wse-label-' . sanitize_html_class( $settings['label_position'] ),
+				);
+				// v1.2.1 (F4) — image-label position class (only meaningful for image type).
+				if ( 'image' === $swatch_type ) {
+					$attr_block_classes[] = 'wse-image-label-pos-' . $image_label_pos;
+				}
+				// v1.2.1 (F3) — opt-in override to keep label row visible for non-color types.
+				if ( $show_label_non_color ) {
+					$attr_block_classes[] = 'wse-force-show-label';
+				}
 				?>
 
-				<div class="wse-attr-block wse-label-<?php echo esc_attr( $settings['label_position'] ); ?>"
-				     data-attribute="<?php echo esc_attr( $attr_name ); ?>">
+				<div class="<?php echo esc_attr( implode( ' ', $attr_block_classes ) ); ?>"
+				     data-attribute="<?php echo esc_attr( $attr_name ); ?>"
+				     data-type="<?php echo esc_attr( $swatch_type ); ?>">
 
 					<?php if ( 'yes' === $settings['show_label'] ) : ?>
 					<div class="wse-attr-label-row">
