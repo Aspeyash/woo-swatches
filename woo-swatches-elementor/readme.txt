@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,78 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.2.2 =
+**Patch: 4 issues fixed from live ZYMARG site testing — icon resilience + stepper dead-code removal + image-label CSS specificity fix.**
+
+Senior-developer code review combined with browser DevTools diagnostic data from the live site identified four related issues with v1.2.1 on the production environment. All four trace to two underlying root causes: (1) Elementor's icon-data manager missing the "minus"/"plus" keys on the user's installed version, and (2) my F4 image-label CSS not winning the specificity battle against Elementor's per-widget Swatch Size control.
+
+**Issue 1: Minus icon not showing in quantity stepper**
+**Issue 2: Elementor icon library not loading in the icon picker**
+**Issue 3: Quantity stepper not working on simple products (worked on variable)**
+
+Three layers of defence against the Elementor `font-icon-svg/e-icons.php` "Undefined array key 'minus'" warning that polluted the stepper button output:
+
+1. **Default control values changed from `eicon-minus`/`eicon-plus` to empty.** New widget instances render the inline-SVG fallback by default and never reach Icons_Manager. Existing widget instances that explicitly chose an Elementor icon via the picker still get that rendering through Icons_Manager.
+2. **`@`-suppression on the `Icons_Manager::render_icon()` call** so warnings don't escape onto the page even when `display_errors = on`.
+3. **Detect Elementor / PHP warning patterns** (`Warning:`, `Notice:`, `Undefined array key`, `Trying to access array offset`) in the captured output buffer and fall through to the inline-SVG fallback. Belt-and-braces — covers any future Elementor warning format change.
+
+Issue 3 (simple-product stepper) was a downstream symptom of the warning text breaking the button DOM combined with a long-standing dead-code path in `add-to-cart.js`: a function `initQuantityStepper()` that bound click handlers to `.wse-qty-plus / .wse-qty-minus` selectors which no theme actually emits. Our stepper template emits `.wse-qty-btn--minus / --plus`. The dead handlers never fired — the real stepper logic in `initQtyStepper()` (different name) handled the work but was sometimes masked by the icon warning issue. v1.2.2 deletes the dead `initQuantityStepper()` entirely. The remaining single source-of-truth handler in `initQtyStepper()` works identically on simple and variable products.
+
+**Issue 4: Image swatch variation label not visible below the image**
+
+Browser DevTools showed the label HTML was rendering correctly into the DOM but the parent `<li>` was constrained to 32×32 px. The CSS specificity audit identified Widget 1's per-instance Style → Swatch Size control as the culprit:
+
+```
+.elementor-24 .elementor-element.elementor-element-6920a34 
+  .wse-swatch.wse-swatch-color, 
+.elementor-24 .elementor-element.elementor-element-6920a34 
+  .wse-swatch.wse-swatch-image 
+{ width: 32px; height: 32px; }
+```
+
+Specificity (0, 5, 0) — five classes via the Elementor `{{WRAPPER}}` placeholder. My v1.2.1 F4 rule was:
+
+```
+body.wse-stylesheet-enabled 
+  .wse-attr-block[data-type="image"] .wse-swatch-image 
+{ width: auto; height: auto; flex-direction: column; ... }
+```
+
+Specificity (0, 4, 1) — four classes plus the body element. Elementor's rule beat mine by one class on width/height, so image swatches stayed pinned at 32×32 and the label rendered into a too-small parent. Other F4 properties (flex-direction, padding, gap, align-items) cascaded fine because Elementor's `swatch_size` doesn't touch them — hence the half-broken layout that the live screenshots showed.
+
+Fix: add `!important` to the four structural F4 properties that need to outrank per-widget Elementor styles (`width`, `height`, `flex-direction`, `overflow`). Other properties continue to cascade normally — no `!important` escalation beyond what's strictly needed.
+
+Bonus polish:
+* Inline image-swatch label gets `min-height: 1.2em` so it reserves space even mid-variation-update.
+* Removed `text-overflow: ellipsis` from labels (was clipping at `max-width: 80px` without a visible signal that text was being trimmed).
+* Added `min-width: var(--wse-swatch-image-img-w, 56px)` so image swatch parent accommodates longer label text.
+* Suppress the `swatches-tooltip` hover affordance when `image-label-pos` is `below` or `above` — with the inline label visible, a redundant hover tooltip just feels noisy. Tooltip stays enabled for color/label/button swatches and for image swatches with `hover`/`hidden` positions.
+
+**Action items on YOUR side after install (these are environmental — v1.2.2 cannot do them for you)**
+
+1. **Update Elementor and Elementor Pro to current stable.** The `Undefined array key "minus"` warning is a known issue on certain Elementor / Elementor Pro version combinations where their icon-data map drifted between releases.
+2. **Clear all caches in this order:**
+   * WP Admin → Elementor → Tools → **Regenerate CSS & Data** (click both buttons)
+   * Hostinger Cache Manager → **Purge All**
+   * LiteSpeed Cache (if active) → **Purge All**
+   * Browser hard-refresh: **Ctrl+Shift+R / Cmd+Shift+R**
+3. **Verify v1.2.2 is on disk** — Plugins page should show Version 1.2.2. If still 1.2.1 or earlier, re-upload the new zip via Plugins → Add New → Upload Plugin → "Replace current with uploaded".
+
+**Files changed**
+
+* `widgets/class-widget-add-to-cart.php` — icon control defaults emptied (Issues 1+2)
+* `templates/quantity-stepper.php` — `@`-suppress + warning detection (Issues 1+2+3)
+* `assets/js/add-to-cart.js` — `initQuantityStepper()` dead code removed (Issue 3)
+* `assets/js/add-to-cart.min.js` — regenerated
+* `assets/css/swatches.css` — F4 `!important` + label visibility + tooltip suppression (Issue 4)
+* `assets/css/swatches.min.css` — regenerated
+* `woo-swatches-elementor.php` — Version 1.2.2 + `WSE_VERSION` constant
+* `readme.txt` — Stable tag + Changelog + Upgrade Notice + new Troubleshooting section
+
+**Migration**
+
+Drop-in replacement for v1.2.1. No DB schema changes. Existing widget instances retain their settings. The icon-default change only affects widget instances that left the icon at the v1.2.0/1.2.1 default — those will switch to the inline-SVG fallback automatically (which is the recommended default going forward). Widget instances that explicitly picked an Elementor icon retain that choice.
 
 = 1.2.1 =
 **Polish release: 3 bug fixes + 5 features + 6 polish enhancements + 5 ZYMARG Price widget improvements.**
@@ -419,6 +491,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Widget 4 — ZYMARG Variation Image Gallery: a product-image gallery widget that automatically flips to show the matching variation's image (and gallery, where available) when a swatch is selected via Widget 1. Designed to live in the gallery column of a product page and stay in sync with all variation widgets through the existing Form Registry coordination.
 
 == Upgrade Notice ==
+
+= 1.2.2 =
+Patch release. Fixes 4 issues from live ZYMARG site testing: (1) minus icon invisible in quantity stepper, (2) Elementor icon picker library not loading, (3) stepper not working on simple products, (4) image swatch label not visible below image. Three of the four trace to Elementor icon-data warnings polluting our stepper output; the fourth is a CSS specificity battle against Elementor's per-widget Swatch Size control. Drop-in replacement for v1.2.1, no DB migration. After install, update Elementor + Elementor Pro to current stable, clear all caches (Elementor → Tools → Regenerate CSS, Hostinger Cache Manager → Purge All), then hard-refresh.
 
 = 1.2.1 =
 Polish release. Fixes 3 bugs (simple-product stepper, decrease icon, icon picker resilience) and adds 16 features/polish items: full-width stepper, sticky-to-admin, per-type attribute label rules, image-swatch label positions (above/below/hover/hidden), responsive per-type swatch widths, ZYMARG-branded stepper colours, sale-dot on swatches, mobile scroll-to-form, admin metabox preview polish, auto cache-flush on settings save, plus 5 Price-widget enhancements: "You save" indicator, loading skeleton, sale badge variants, free-shipping hint, and smart adaptive heading with 4 states (sale / ending-soon / regular / out-of-stock). Hard-refresh after install. No DB migration.

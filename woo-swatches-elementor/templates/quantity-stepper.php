@@ -67,21 +67,45 @@ if ( ! $show_buttons ) {
 			tabindex="-1">
 			<?php
 			/**
-			 * v1.2.1 (B2/B3) — Capture-then-fallback icon rendering.
+			 * v1.2.2 (Issues 1+2+3) — Bulletproof icon rendering.
 			 *
-			 * Previous code called Icons_Manager::render_icon() directly. When
-			 * the user's Elementor icon picker library failed to load (B3) and
-			 * they saved an empty/invalid icon value, render_icon() echoed
-			 * nothing and the button rendered with no visible glyph (B2). We
-			 * now buffer the Icons_Manager output and fall through to the
-			 * hand-drawn inline SVG when the buffer is empty — guaranteeing
-			 * a visible icon regardless of Elementor state.
+			 * Live ZYMARG site testing of v1.2.1 surfaced a real-world failure:
+			 * Elementor's font-icon-svg/e-icons.php data manager was missing
+			 * the "minus" / "plus" keys on the user's installed Elementor
+			 * version. When v1.2.1 captured Icons_Manager::render_icon() output
+			 * via ob_start(), the captured buffer contained PHP warning text
+			 * like "Warning: Undefined array key 'minus' in …e-icons.php on
+			 * line 37" — which our trim() check treated as valid icon HTML
+			 * and echoed inside the <button>, producing the broken render
+			 * shown in the v1.2.2 issue report.
+			 *
+			 * Three layers of defence:
+			 *   1. Default value is '' — so on most installs Icons_Manager
+			 *      isn't called at all and the inline-SVG fallback wins.
+			 *   2. @-suppress the render_icon() call so warnings don't
+			 *      escape into the output stream even when display_errors=on.
+			 *   3. Detect warning patterns ("Warning:", "Notice:", "Undefined
+			 *      array key") in the captured buffer and fall through to the
+			 *      fallback — defensive belt-and-braces.
 			 */
 			$_minus_html = '';
 			if ( class_exists( '\Elementor\Icons_Manager' ) && ! empty( $decrease_icon['value'] ) ) {
 				ob_start();
-				\Elementor\Icons_Manager::render_icon( $decrease_icon, array( 'aria-hidden' => 'true' ) );
+				@\Elementor\Icons_Manager::render_icon( $decrease_icon, array( 'aria-hidden' => 'true' ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 				$_minus_html = trim( (string) ob_get_clean() );
+
+				// Detect Elementor / PHP warning text in the captured buffer.
+				if (
+					'' !== $_minus_html
+					&& (
+						false !== stripos( $_minus_html, 'Warning:' )
+						|| false !== stripos( $_minus_html, 'Notice:' )
+						|| false !== stripos( $_minus_html, 'Undefined array key' )
+						|| false !== stripos( $_minus_html, 'Trying to access array offset' )
+					)
+				) {
+					$_minus_html = '';
+				}
 			}
 			if ( '' !== $_minus_html ) {
 				echo $_minus_html; // phpcs:ignore WordPress.Security.EscapeOutput
@@ -112,12 +136,25 @@ if ( ! $show_buttons ) {
 			aria-label="<?php esc_attr_e( 'Increase quantity', 'woo-swatches-elementor' ); ?>"
 			tabindex="-1">
 			<?php
-			// v1.2.1 (B2/B3) — see decrease-button comment above.
+			// v1.2.2 — see decrease-button comment above for the three-layer
+			// defence rationale (empty default + @-suppress + warning detection).
 			$_plus_html = '';
 			if ( class_exists( '\Elementor\Icons_Manager' ) && ! empty( $increase_icon['value'] ) ) {
 				ob_start();
-				\Elementor\Icons_Manager::render_icon( $increase_icon, array( 'aria-hidden' => 'true' ) );
+				@\Elementor\Icons_Manager::render_icon( $increase_icon, array( 'aria-hidden' => 'true' ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 				$_plus_html = trim( (string) ob_get_clean() );
+
+				if (
+					'' !== $_plus_html
+					&& (
+						false !== stripos( $_plus_html, 'Warning:' )
+						|| false !== stripos( $_plus_html, 'Notice:' )
+						|| false !== stripos( $_plus_html, 'Undefined array key' )
+						|| false !== stripos( $_plus_html, 'Trying to access array offset' )
+					)
+				) {
+					$_plus_html = '';
+				}
 			}
 			if ( '' !== $_plus_html ) {
 				echo $_plus_html; // phpcs:ignore WordPress.Security.EscapeOutput

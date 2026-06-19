@@ -660,28 +660,19 @@
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
-	// 7. Quantity stepper (theme-provided +/- buttons)
+	// 7. (v1.2.2) Quantity stepper - DEAD CODE REMOVED
+	//
+	// v1.0.x shipped initQuantityStepper() with theme-provided +/- selectors
+	// (.wse-qty-plus / .wse-qty-minus) that no theme actually emits. The
+	// function registered click handlers that NEVER FIRED because the
+	// selectors didn't match anything. The real stepper logic lives in
+	// initQtyStepper() further down (uses the correct .wse-qty-btn--minus
+	// / .wse-qty-btn--plus selectors).
+	//
+	// Removed in v1.2.2 after a senior-developer code review caught the
+	// dead-code namespace pollution. See the v1.2.2 changelog for the
+	// full diagnosis.
 	// ─────────────────────────────────────────────────────────────────────
-
-	function initQuantityStepper() {
-		$( document.body )
-			.off( 'click.wse-qty', '.wse-qty-plus, .wse-qty-minus' )
-			.on( 'click.wse-qty', '.wse-qty-plus, .wse-qty-minus', function () {
-				var $btn   = $( this );
-				var $input = $btn.closest( '.wse-qty-wrap' ).find( 'input.qty' );
-				var min    = parseFloat( $input.attr( 'min' ) )  || 1;
-				var max    = parseFloat( $input.attr( 'max' ) )  || Infinity;
-				var step   = parseFloat( $input.attr( 'step' ) ) || 1;
-				var val    = parseFloat( $input.val() ) || min;
-
-				if ( $btn.hasClass( 'wse-qty-plus' ) ) {
-					val = Math.min( val + step, max );
-				} else {
-					val = Math.max( val - step, min );
-				}
-				$input.val( val ).trigger( 'change' );
-			} );
-	}
 
 	// ─────────────────────────────────────────────────────────────────────
 	// 7.1  v1.1.1 — "Added to cart" toast notification
@@ -752,7 +743,7 @@
 		initAjaxAddToCart();
 		initVariationSync();
 		initPresenterQtySync();
-		initQuantityStepper();
+		// v1.2.2 — initQuantityStepper() removed (dead code, see comment block above)
 		initStickyBodyPadding();
 
 		// v1.1.3 — sweep persisted WC notices on page load so the per-widget
