@@ -44,6 +44,8 @@ if ( 'button' === $type ) {
 
 if ( $is_selected )    { $classes[] = 'selected'; }
 if ( ! $is_available ) { $classes[] = 'disabled'; }
+// v1.2.1 (S2) — Sale dot.
+if ( ! empty( $swatch['is_on_sale'] ) ) { $classes[] = 'wse-on-sale'; }
 
 // B5 — tabindex 0 for selected OR first-focusable when no default selection.
 $is_first_focusable = isset( $is_first_focusable ) ? (bool) $is_first_focusable : false;

@@ -104,6 +104,26 @@ class WSE_Activator {
 			// so their already-placed Widget 2 instances keep showing price
 			// without a manual edit.
 			'wse_widget2_inline_price_default' => 'no',
+
+			// v1.2.1 (F2) — Sticky Add to Cart, moved from per-widget
+			// controls. Mobile defaults ON (recommended), desktop+tablet OFF.
+			'wse_sticky_desktop' => 'no',
+			'wse_sticky_tablet'  => 'no',
+			'wse_sticky_mobile'  => 'yes',
+
+			// v1.2.1 (F5) — Per-type swatch widths at desktop / tablet / mobile.
+			'wse_color_w_d'  => 32,
+			'wse_color_w_t'  => 32,
+			'wse_color_w_m'  => 28,
+			'wse_image_w_d'  => 56,
+			'wse_image_w_t'  => 48,
+			'wse_image_w_m'  => 44,
+			'wse_label_w_d'  => 32,
+			'wse_label_w_t'  => 32,
+			'wse_label_w_m'  => 28,
+			'wse_button_w_d' => 48,
+			'wse_button_w_t' => 44,
+			'wse_button_w_m' => 40,
 		);
 
 		// ── Detect upgrade from < 1.2.0 and pin Widget 2 inline-price default to 'yes' ──

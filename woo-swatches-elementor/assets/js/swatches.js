@@ -633,6 +633,59 @@
 		// 4. Cross-widget click sync (only effective when Widget 1 + canonical
 		//    are wired against different scopes)
 		bindCrossWidgetSync();
+
+		// 5. v1.2.1 (S3) — Scroll to canonical form on mobile after swatch click.
+		bindMobileScrollToForm();
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// v1.2.1 (S3) — Smooth scroll-to-form on mobile after swatch click
+	//
+	// On mobile (≤768 px viewport), when a swatch is clicked anywhere on
+	// the page, gently scroll the canonical form into view so the user
+	// sees the price update / variation match / Add to Cart button without
+	// losing context. Desktop and tablet are unaffected — they have
+	// enough screen real estate to see both Widget 1 and Widget 2 already.
+	//
+	// Uses requestAnimationFrame to wait one paint frame before scrolling
+	// so the price/variation update has rendered visibly first.
+	// ─────────────────────────────────────────────────────────────────────
+
+	function bindMobileScrollToForm() {
+		var MOBILE_MAX = 768;
+
+		$( document )
+			.off( 'click.wseScrollToForm' )
+			.on( 'click.wseScrollToForm', '.wse-swatch:not(.disabled)', function () {
+
+				if ( window.innerWidth > MOBILE_MAX ) {
+					return; // desktop / tablet — skip
+				}
+
+				var $swatch     = $( this );
+				var $widgetWrap = $swatch.closest( '[data-form-id]' );
+				var formId      = $widgetWrap.data( 'form-id' )
+					|| $swatch.closest( '.wse-swatch-wrap' ).data( 'form-id' );
+
+				if ( ! formId ) { return; }
+
+				var $form = $( '#' + formId );
+				if ( ! $form.length ) { return; }
+
+				// Wait one frame so the variation match/price update has
+				// rendered first, then scroll smoothly with a small offset
+				// for the WP admin bar / sticky headers.
+				requestAnimationFrame( function () {
+					setTimeout( function () {
+						var top    = $form.offset().top;
+						var offset = ( $( '#wpadminbar' ).outerHeight() || 0 ) + 16;
+						window.scrollTo( {
+							top:      Math.max( 0, top - offset ),
+							behavior: 'smooth',
+						} );
+					}, 80 ); // small delay lets WC's variation engine paint price/availability
+				} );
+			} );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

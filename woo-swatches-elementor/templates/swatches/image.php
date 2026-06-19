@@ -44,6 +44,8 @@ $image_url    = (string) ( $swatch['image_url']   ?? '' );
 $classes = array( 'wse-swatch', 'wse-swatch-image' );
 if ( $is_selected )    { $classes[] = 'selected'; }
 if ( ! $is_available ) { $classes[] = 'disabled'; }
+// v1.2.1 (S2) — Sale dot.
+if ( ! empty( $swatch['is_on_sale'] ) ) { $classes[] = 'wse-on-sale'; }
 
 // B5 — tabindex 0 for selected OR first-focusable when no default selection.
 $is_first_focusable = isset( $is_first_focusable ) ? (bool) $is_first_focusable : false;
@@ -99,6 +101,19 @@ $tabindex           = ( $is_selected || $is_first_focusable ) ? '0' : '-1';
 		     loading="lazy"
 		     decoding="async"/>
 	<?php endif; ?>
+
+	<?php
+	/**
+	 * v1.2.1 (F4) — Variation name label.
+	 *
+	 * Always rendered into the DOM so CSS can drive the position
+	 * (above / below / hover / hidden) without re-rendering. The visible
+	 * mode is controlled by a wse-image-label-pos-* class on the parent
+	 * .wse-attr-block (set by Widget 1 from the image_label_position
+	 * setting). Defaults to "below" per the ZYMARG product spec.
+	 */
+	?>
+	<span class="wse-swatch-image-label"><?php echo esc_html( $label ); ?></span>
 
 	<span class="wse-checkmark" aria-hidden="true">
 		<svg width="12" height="12" viewBox="0 0 12 12" fill="none"

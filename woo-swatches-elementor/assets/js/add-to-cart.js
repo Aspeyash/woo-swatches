@@ -889,18 +889,20 @@
 			} );
 	}
 
-	// Hook stepper init into the existing init pass — same .off()/.on()
-	// guards already make the rest of init() idempotent for Elementor
-	// editor reloads, so adding stepper init here keeps the same contract.
-	var _wseInit = init;
-	init = function () {
-		_wseInit();
+	// v1.2.1 (B1) — Replaced the init-reassignment hack with a clean
+	// composite handler. Reassigning a function declaration (function init(){})
+	// to a function expression (init = function(){}) was technically valid in
+	// strict mode but fragile across browsers / minifiers and made the
+	// stepper handlers silently miss on simple-product pages where the timing
+	// of the IIFE / WC core scripts differs slightly from variable products.
+	function initAll() {
+		init();
 		initQtyStepper();
-	};
+	}
 
-	$( document ).ready( init );
+	$( document ).ready( initAll );
 
 	// Reinit hooks (every binding above is .off()-then-.on() idempotent).
-	$( document.body ).on( 'wse:reinit elementor/popup/show', init );
+	$( document.body ).on( 'wse:reinit elementor/popup/show', initAll );
 
 } )( jQuery, window, document );

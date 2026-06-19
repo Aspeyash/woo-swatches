@@ -397,6 +397,9 @@ class WSE_Swatch_Renderer {
 			'label'        => $label,
 			'type'         => $type,
 			'is_available' => $this->is_term_available( $product, $attribute, $option_value ),
+			// v1.2.1 (S2) — Sale dot indicator. True when at least one
+			// available variation matching this option is currently on sale.
+			'is_on_sale'   => $this->is_term_on_sale( $product, $attribute, $option_value ),
 		);
 
 		// ── Type-specific data ────────────────────────────────────────────
@@ -539,6 +542,54 @@ class WSE_Swatch_Renderer {
 			}
 		}
 		return $this->variation_cache[ $id ];
+	}
+
+	/**
+	 * v1.2.1 (S2) — Returns true if any variation matching this option
+	 * value is currently on sale. Used to drive the wse-on-sale class
+	 * on the swatch <li> which CSS renders as a small ZYMARG-purple dot
+	 * in the corner of the swatch tile.
+	 *
+	 * Empty-string attribute values in a variation mean "any term matches"
+	 * — those don't count as a sale on this specific value because they
+	 * apply equally to every option.
+	 *
+	 * @param  \WC_Product $product   Product.
+	 * @param  string      $attribute Attribute name e.g. 'pa_color'.
+	 * @param  string      $value     Term slug or option value.
+	 * @return bool
+	 */
+	private function is_term_on_sale(
+		\WC_Product $product,
+		string $attribute,
+		string $value
+	): bool {
+
+		if ( ! $product instanceof \WC_Product_Variable ) {
+			return false;
+		}
+
+		$variations = $this->get_available_variations( $product );
+		$attr_key   = 'attribute_' . sanitize_title( $attribute );
+
+		foreach ( $variations as $v ) {
+			$attr_val = $v['attributes'][ $attr_key ] ?? null;
+			if ( null === $attr_val || '' === $attr_val ) {
+				// Wildcard variation — skip; doesn't count as sale-on-this-value.
+				continue;
+			}
+			if ( $attr_val !== $value ) {
+				continue;
+			}
+			// Match — check WC's sale flag on this variation.
+			$display_price = isset( $v['display_price'] ) ? (float) $v['display_price'] : 0.0;
+			$display_reg   = isset( $v['display_regular_price'] ) ? (float) $v['display_regular_price'] : 0.0;
+			if ( $display_reg > $display_price && $display_price > 0 ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

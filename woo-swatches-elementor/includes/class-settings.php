@@ -178,6 +178,146 @@ class WSE_Settings extends WC_Settings_Page {
 				'id'   => 'wse_archive_section',
 			),
 
+			// ── v1.2.1 (F2) — Sticky Add to Cart (moved from Widget 2) ────
+			array(
+				'title' => esc_html__( 'Sticky Add to Cart', 'woo-swatches-elementor' ),
+				'type'  => 'title',
+				'desc'  => esc_html__( 'Pin Widget 2 (Add to Cart) to the bottom of the viewport on the chosen breakpoints. Applies site-wide to every product page so customers always have a clear path to add to cart on mobile.', 'woo-swatches-elementor' ),
+				'id'    => 'wse_sticky_section',
+			),
+			array(
+				'title'   => esc_html__( 'Sticky on Desktop (≥ 1025 px)', 'woo-swatches-elementor' ),
+				'id'      => 'wse_sticky_desktop',
+				'type'    => 'checkbox',
+				'default' => 'no',
+			),
+			array(
+				'title'   => esc_html__( 'Sticky on Tablet (768–1024 px)', 'woo-swatches-elementor' ),
+				'id'      => 'wse_sticky_tablet',
+				'type'    => 'checkbox',
+				'default' => 'no',
+			),
+			array(
+				'title'   => esc_html__( 'Sticky on Mobile (≤ 767 px)', 'woo-swatches-elementor' ),
+				'id'      => 'wse_sticky_mobile',
+				'type'    => 'checkbox',
+				'default' => 'yes',
+				'desc'    => esc_html__( 'Recommended ON. Mobile shoppers benefit most from a persistently visible Add to Cart.', 'woo-swatches-elementor' ),
+			),
+			array(
+				'type' => 'sectionend',
+				'id'   => 'wse_sticky_section',
+			),
+
+			// ── v1.2.1 (F5) — Swatch Sizes (responsive) ───────────────────
+			array(
+				'title' => esc_html__( 'Swatch Sizes', 'woo-swatches-elementor' ),
+				'type'  => 'title',
+				'desc'  => esc_html__( 'Per-type swatch widths at each breakpoint. Each Elementor Widget 1 instance can override these globally via its Style tab. Leave a value at 0 to inherit the default.', 'woo-swatches-elementor' ),
+				'id'    => 'wse_sizes_section',
+			),
+
+			// Color swatches (square — width = height)
+			array(
+				'title'             => esc_html__( 'Color Swatch — Desktop', 'woo-swatches-elementor' ),
+				'id'                => 'wse_color_w_d',
+				'type'              => 'number',
+				'default'           => 32,
+				'desc_tip'          => esc_html__( 'Width AND height of color swatches on screens > 1024 px (px).', 'woo-swatches-elementor' ),
+				'custom_attributes' => array( 'min' => 16, 'max' => 96, 'step' => 1 ),
+			),
+			array(
+				'title'             => esc_html__( 'Color Swatch — Tablet', 'woo-swatches-elementor' ),
+				'id'                => 'wse_color_w_t',
+				'type'              => 'number',
+				'default'           => 32,
+				'custom_attributes' => array( 'min' => 16, 'max' => 96, 'step' => 1 ),
+			),
+			array(
+				'title'             => esc_html__( 'Color Swatch — Mobile', 'woo-swatches-elementor' ),
+				'id'                => 'wse_color_w_m',
+				'type'              => 'number',
+				'default'           => 28,
+				'custom_attributes' => array( 'min' => 16, 'max' => 96, 'step' => 1 ),
+			),
+
+			// Image swatches
+			array(
+				'title'             => esc_html__( 'Image Swatch — Desktop', 'woo-swatches-elementor' ),
+				'id'                => 'wse_image_w_d',
+				'type'              => 'number',
+				'default'           => 56,
+				'desc_tip'          => esc_html__( 'Width AND height of image swatches on screens > 1024 px (px).', 'woo-swatches-elementor' ),
+				'custom_attributes' => array( 'min' => 24, 'max' => 160, 'step' => 1 ),
+			),
+			array(
+				'title'             => esc_html__( 'Image Swatch — Tablet', 'woo-swatches-elementor' ),
+				'id'                => 'wse_image_w_t',
+				'type'              => 'number',
+				'default'           => 48,
+				'custom_attributes' => array( 'min' => 24, 'max' => 160, 'step' => 1 ),
+			),
+			array(
+				'title'             => esc_html__( 'Image Swatch — Mobile', 'woo-swatches-elementor' ),
+				'id'                => 'wse_image_w_m',
+				'type'              => 'number',
+				'default'           => 44,
+				'custom_attributes' => array( 'min' => 24, 'max' => 160, 'step' => 1 ),
+			),
+
+			// Label swatches (auto-width text — control min-width)
+			array(
+				'title'             => esc_html__( 'Label Swatch — Desktop (min-width)', 'woo-swatches-elementor' ),
+				'id'                => 'wse_label_w_d',
+				'type'              => 'number',
+				'default'           => 32,
+				'desc_tip'          => esc_html__( 'Minimum width of label swatches on screens > 1024 px (px). Text content can grow beyond this.', 'woo-swatches-elementor' ),
+				'custom_attributes' => array( 'min' => 16, 'max' => 200, 'step' => 1 ),
+			),
+			array(
+				'title'             => esc_html__( 'Label Swatch — Tablet (min-width)', 'woo-swatches-elementor' ),
+				'id'                => 'wse_label_w_t',
+				'type'              => 'number',
+				'default'           => 32,
+				'custom_attributes' => array( 'min' => 16, 'max' => 200, 'step' => 1 ),
+			),
+			array(
+				'title'             => esc_html__( 'Label Swatch — Mobile (min-width)', 'woo-swatches-elementor' ),
+				'id'                => 'wse_label_w_m',
+				'type'              => 'number',
+				'default'           => 28,
+				'custom_attributes' => array( 'min' => 16, 'max' => 200, 'step' => 1 ),
+			),
+
+			// Button swatches (similar — control min-width)
+			array(
+				'title'             => esc_html__( 'Button Swatch — Desktop (min-width)', 'woo-swatches-elementor' ),
+				'id'                => 'wse_button_w_d',
+				'type'              => 'number',
+				'default'           => 48,
+				'desc_tip'          => esc_html__( 'Minimum width of button swatches on screens > 1024 px (px). Text content can grow beyond this.', 'woo-swatches-elementor' ),
+				'custom_attributes' => array( 'min' => 24, 'max' => 240, 'step' => 1 ),
+			),
+			array(
+				'title'             => esc_html__( 'Button Swatch — Tablet (min-width)', 'woo-swatches-elementor' ),
+				'id'                => 'wse_button_w_t',
+				'type'              => 'number',
+				'default'           => 44,
+				'custom_attributes' => array( 'min' => 24, 'max' => 240, 'step' => 1 ),
+			),
+			array(
+				'title'             => esc_html__( 'Button Swatch — Mobile (min-width)', 'woo-swatches-elementor' ),
+				'id'                => 'wse_button_w_m',
+				'type'              => 'number',
+				'default'           => 40,
+				'custom_attributes' => array( 'min' => 24, 'max' => 240, 'step' => 1 ),
+			),
+
+			array(
+				'type' => 'sectionend',
+				'id'   => 'wse_sizes_section',
+			),
+
 			// ── Performance ───────────────────────────────────────────────
 			array(
 				'title' => esc_html__( 'Performance', 'woo-swatches-elementor' ),

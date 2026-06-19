@@ -64,7 +64,18 @@ $wrapper_classes[] = 'zymarg-price--style-' . sanitize_html_class( $default_styl
 	data-initial-on-sale="<?php echo $is_on_sale ? '1' : '0'; ?>"
 	data-regular-position="<?php echo esc_attr( $regular_position ); ?>"
 	data-show-sale-badge="<?php echo $show_sale_badge ? '1' : '0'; ?>"
-	data-sale-badge-text="<?php echo esc_attr( $sale_badge_text ); ?>">
+	data-sale-badge-text="<?php echo esc_attr( $sale_badge_text ); ?>"
+	data-heading-state="<?php echo esc_attr( $heading_state ?? 'regular' ); ?>"
+	data-savings-show="<?php echo ( ! empty( $savings_show ) ) ? '1' : '0'; ?>"
+	data-savings-format="<?php echo esc_attr( $savings_format ?? 'amount_percent' ); ?>"
+	data-savings-prefix="<?php echo esc_attr( $savings_prefix ?? __( 'Save', 'woo-swatches-elementor' ) ); ?>"
+	data-badge-position="<?php echo esc_attr( $badge_position ?? 'inline_after' ); ?>"
+	data-badge-content="<?php echo esc_attr( $badge_content ?? 'text_only' ); ?>"
+	<?php if ( ! empty( $skeleton_show ) ) : ?>data-skeleton-enabled="1"<?php endif; ?>>
+
+	<?php if ( ! empty( $heading_text ) ) : ?>
+		<span class="zymarg-price-heading zymarg-price-heading--<?php echo esc_attr( $heading_state ?? 'regular' ); ?>"><?php echo esc_html( $heading_text ); ?></span>
+	<?php endif; ?>
 
 	<?php if ( 'range' === $default_style ) : ?>
 		<span class="zymarg-price-range">
@@ -127,6 +138,34 @@ $wrapper_classes[] = 'zymarg-price--style-' . sanitize_html_class( $default_styl
 
 	<?php if ( $is_on_sale && $show_sale_badge ) : ?>
 		<span class="zymarg-sale-badge"><?php echo esc_html( $sale_badge_text ); ?></span>
+	<?php endif; ?>
+
+	<?php
+	// v1.2.1 (P1) — Lowest savings indicator (only shown on sale).
+	if ( $is_on_sale && ! empty( $savings_show ) && (float) $price_data['regular'] > (float) $price_data['current'] ) :
+		$_save_amt = (float) ( $price_data['regular'] - $price_data['current'] );
+		$_save_pct = (float) $price_data['regular'] > 0 ? (int) round( ( $_save_amt / (float) $price_data['regular'] ) * 100 ) : 0;
+		$_save_amt_html = WSE_Widget_Price::format_price( $_save_amt );
+		$_savings_format = $savings_format ?? 'amount_percent';
+		$_savings_html = '';
+		switch ( $_savings_format ) {
+			case 'amount_only':
+				$_savings_html = sprintf( '%s %s', esc_html( $savings_prefix ?? '' ), esc_html( $_save_amt_html ) );
+				break;
+			case 'percent_only':
+				$_savings_html = sprintf( '%s %d%%', esc_html( $savings_prefix ?? '' ), (int) $_save_pct );
+				break;
+			case 'amount_percent':
+			default:
+				$_savings_html = sprintf( '%s %s (%d%%)', esc_html( $savings_prefix ?? '' ), esc_html( $_save_amt_html ), (int) $_save_pct );
+				break;
+		}
+		?>
+		<span class="zymarg-price-savings"><?php echo $_savings_html; // phpcs:ignore WordPress.Security.EscapeOutput ?></span>
+	<?php endif; ?>
+
+	<?php if ( ! empty( $shipping_html ) ) : ?>
+		<span class="zymarg-price-shipping-hint"><?php echo esc_html( $shipping_html ); ?></span>
 	<?php endif; ?>
 
 </div>

@@ -371,3 +371,105 @@ body.wse-stylesheet-enabled .wse-swatch-button.selected {
 	box-shadow:    none;
 	font-weight:   700;
 }
+
+
+
+/* ─── v1.2.1 (F3) — Per-type attribute-name visibility ─────────────────── */
+/* By default, the attribute name row ("color" / "size" etc.) is shown only
+   for Color swatch type. For Image / Label / Button / Dropdown types it is
+   hidden because the swatch glyph itself communicates the choice (image
+   thumbnail, text label, button label). The .wse-force-show-label class
+   on .wse-attr-block (set when the user flips on "Show Label for non-color
+   types" in Widget 1) overrides this rule and re-shows the label. */
+
+body.wse-stylesheet-enabled .wse-attr-block[data-type="image"]  .wse-attr-label-row,
+body.wse-stylesheet-enabled .wse-attr-block[data-type="label"]  .wse-attr-label-row,
+body.wse-stylesheet-enabled .wse-attr-block[data-type="button"] .wse-attr-label-row,
+body.wse-stylesheet-enabled .wse-attr-block[data-type="select"] .wse-attr-label-row {
+	display: none;
+}
+
+body.wse-stylesheet-enabled .wse-attr-block.wse-force-show-label .wse-attr-label-row {
+	display: flex;
+}
+
+/* ─── v1.2.1 (F4) — Image-swatch variation label positioning ───────────── */
+/* The label is always rendered in image.php; this CSS controls the
+   visual presentation based on the wse-image-label-pos-{value} class
+   the widget adds to .wse-attr-block for image-type attributes. */
+
+/* Base — vertical column layout for image swatches with labels */
+body.wse-stylesheet-enabled .wse-attr-block[data-type="image"] .wse-swatch-image {
+	display:        inline-flex;
+	flex-direction: column;
+	align-items:    center;
+	width:          auto;
+	height:         auto;
+	padding:        4px;
+	gap:            4px;
+}
+
+body.wse-stylesheet-enabled .wse-attr-block[data-type="image"] .wse-swatch-image .wse-swatch-img {
+	width:  var( --wse-swatch-image-img-w, 56px );
+	height: var( --wse-swatch-image-img-h, 56px );
+	object-fit: cover;
+	border-radius: inherit;
+}
+
+body.wse-stylesheet-enabled .wse-swatch-image-label {
+	display:     block;
+	font-size:   .75rem;
+	line-height: 1.2;
+	color:       inherit;
+	text-align:  center;
+	white-space: nowrap;
+	max-width:   var( --wse-swatch-image-img-w, 80px );
+	overflow:    hidden;
+	text-overflow: ellipsis;
+}
+
+/* Default position: below the image (simple flex column above already
+   produces this). The .wse-image-label-pos-below variant is just the
+   default, no extra rules needed beyond the base above. */
+
+/* Position: above */
+body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-above .wse-swatch-image {
+	flex-direction: column-reverse;
+}
+
+/* Position: on hover only */
+body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hover .wse-swatch-image-label {
+	position:        absolute;
+	bottom:          calc( 100% + 6px );
+	left:            50%;
+	transform:       translateX( -50% );
+	background:      #131b2e;        /* ZYMARG Text Body */
+	color:           #ffffff;        /* ZYMARG Surface Lowest */
+	padding:         3px 8px;
+	border-radius:   4px;
+	font-size:       .7rem;
+	white-space:     nowrap;
+	opacity:         0;
+	pointer-events:  none;
+	transition:      opacity .12s ease;
+	z-index:         5;
+}
+body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hover .wse-swatch-image:hover .wse-swatch-image-label,
+body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hover .wse-swatch-image:focus-within .wse-swatch-image-label {
+	opacity: 1;
+}
+
+/* Position: hidden — completely suppressed */
+body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hidden .wse-swatch-image-label {
+	display: none;
+}
+
+/* ─── v1.2.1 (S1) — Selected-state image-label boldness ─────────────────── */
+/* When an image swatch is selected, its label below becomes bold so the
+   selection reads cleanly even when the .selected border ring is subtle
+   on themes that override --wse-swatch-active-color. */
+
+body.wse-stylesheet-enabled .wse-swatch-image.selected .wse-swatch-image-label {
+	font-weight: 700;
+	color:       #9500a5;            /* ZYMARG Primary */
+}

@@ -147,52 +147,27 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 		$this->add_control(
 			'sticky_heading',
 			array(
-				'label' => esc_html__( 'Sticky Behavior (per device)', 'woo-swatches-elementor' ),
+				'label' => esc_html__( 'Sticky Behavior', 'woo-swatches-elementor' ),
 				'type'  => \Elementor\Controls_Manager::HEADING,
 			)
 		);
 
+		// v1.2.1 (F2) — Per-widget sticky toggles moved to admin.
+		// Sticky-on-mobile is a site-wide UX decision, not a per-widget
+		// one. Configured globally at WC -> Settings -> WooSwatches ->
+		// Sticky Add to Cart so every product page enforces the same
+		// rule. Existing per-widget values from v1.2.0 and earlier are
+		// silently ignored — the global option takes precedence.
 		$this->add_control(
 			'sticky_intro',
 			array(
 				'type' => \Elementor\Controls_Manager::RAW_HTML,
-				'raw'  => '<div style="font-size:11px;color:#475569;margin-bottom:6px;">' . esc_html__( 'When enabled for a device, this widget pins to the bottom of the viewport on that breakpoint. The Add to Cart button stays functional.', 'woo-swatches-elementor' ) . '</div>',
-			)
-		);
-
-		$this->add_control(
-			'sticky_desktop',
-			array(
-				'label'        => esc_html__( 'Sticky on Desktop (≥ 1025px)', 'woo-swatches-elementor' ),
-				'type'         => \Elementor\Controls_Manager::SWITCHER,
-				'label_on'     => esc_html__( 'On',  'woo-swatches-elementor' ),
-				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
-				'return_value' => 'yes',
-				'default'      => 'no',
-			)
-		);
-
-		$this->add_control(
-			'sticky_tablet',
-			array(
-				'label'        => esc_html__( 'Sticky on Tablet (768–1024px)', 'woo-swatches-elementor' ),
-				'type'         => \Elementor\Controls_Manager::SWITCHER,
-				'label_on'     => esc_html__( 'On',  'woo-swatches-elementor' ),
-				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
-				'return_value' => 'yes',
-				'default'      => 'no',
-			)
-		);
-
-		$this->add_control(
-			'sticky_mobile',
-			array(
-				'label'        => esc_html__( 'Sticky on Mobile (≤ 767px)', 'woo-swatches-elementor' ),
-				'type'         => \Elementor\Controls_Manager::SWITCHER,
-				'label_on'     => esc_html__( 'On',  'woo-swatches-elementor' ),
-				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
-				'return_value' => 'yes',
-				'default'      => 'no',
+				'raw'  => '<div style="font-size:11px;color:#475569;line-height:1.5;">'
+					. esc_html__( 'Sticky behaviour for desktop, tablet, and mobile is configured globally at:', 'woo-swatches-elementor' )
+					. '<br><strong>WooCommerce → Settings → WooSwatches → Sticky Add to Cart</strong>'
+					. '<br>'
+					. esc_html__( 'This ensures the same sticky rule applies to every product page across the store.', 'woo-swatches-elementor' )
+					. '</div>',
 			)
 		);
 
@@ -579,6 +554,26 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 		);
 
 		// ── Sizing ───────────────────────────────────────────────────────
+		// v1.2.1 (F1) — Width mode: Auto / Custom / Full.
+		// "Full" makes the stepper fill its parent (qty input grows via
+		// flex:1, buttons keep their fixed size). "Custom" exposes the
+		// total-width slider below. "Auto" lets contents drive the size.
+		$this->add_control(
+			'qty_stepper_width_mode',
+			array(
+				'label'        => esc_html__( 'Stepper width mode', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SELECT,
+				'default'      => 'auto',
+				'options'      => array(
+					'auto'   => esc_html__( 'Auto (content-based)', 'woo-swatches-elementor' ),
+					'custom' => esc_html__( 'Custom width',         'woo-swatches-elementor' ),
+					'full'   => esc_html__( 'Full width of parent', 'woo-swatches-elementor' ),
+				),
+				'prefix_class' => 'wse-qty-mode-',
+				'description'  => esc_html__( 'Full Width fills the parent column; the quantity field grows to fill the space between the [-] and [+] buttons.', 'woo-swatches-elementor' ),
+			)
+		);
+
 		$this->add_responsive_control(
 			'qty_stepper_total_width',
 			array(
@@ -591,6 +586,10 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 				),
 				'selectors'  => array(
 					'{{WRAPPER}} .wse-qty-stepper' => 'width: {{SIZE}}{{UNIT}};',
+				),
+				// v1.2.1 (F1) — only relevant in Custom mode.
+				'condition'  => array(
+					'qty_stepper_width_mode' => 'custom',
 				),
 			)
 		);
@@ -837,13 +836,16 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 		// Feature B (v1.1.0) + v1.1.1 — sticky classes apply to BOTH presenter
 		// AND canonical wrappers. v1.1.0 originally scoped these to presenter
 		// only; v1.1.1 lets a single-widget canonical setup go sticky directly.
-		if ( 'yes' === ( $settings['sticky_desktop'] ?? 'no' ) ) {
+		// v1.2.1 (F2) — sticky settings moved to global admin: WC -> Settings
+		// -> WooSwatches -> Sticky Add to Cart. Reads global option directly
+		// so every product page enforces the same store-wide sticky rule.
+		if ( 'yes' === get_option( 'wse_sticky_desktop', 'no' ) ) {
 			$wrapper_class .= ' wse-sticky-desktop';
 		}
-		if ( 'yes' === ( $settings['sticky_tablet']  ?? 'no' ) ) {
+		if ( 'yes' === get_option( 'wse_sticky_tablet', 'no' ) ) {
 			$wrapper_class .= ' wse-sticky-tablet';
 		}
-		if ( 'yes' === ( $settings['sticky_mobile']  ?? 'no' ) ) {
+		if ( 'yes' === get_option( 'wse_sticky_mobile', 'yes' ) ) {
 			$wrapper_class .= ' wse-sticky-mobile';
 		}
 

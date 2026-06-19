@@ -35,7 +35,13 @@ if ( $is_on_sale ) {
 ?>
 <div class="<?php echo esc_attr( implode( ' ', $wrapper_classes ) ); ?>"
 	data-product-id="<?php echo absint( $product->get_id() ); ?>"
-	data-product-type="simple">
+	data-product-type="simple"
+	data-heading-state="<?php echo esc_attr( $heading_state ?? 'regular' ); ?>"
+	<?php if ( ! empty( $skeleton_show ) ) : ?>data-skeleton-enabled="1"<?php endif; ?>>
+
+	<?php if ( ! empty( $heading_text ) ) : ?>
+		<span class="zymarg-price-heading zymarg-price-heading--<?php echo esc_attr( $heading_state ?? 'regular' ); ?>"><?php echo esc_html( $heading_text ); ?></span>
+	<?php endif; ?>
 
 	<?php
 	WSE_Widget_Price::include_part(
@@ -56,8 +62,48 @@ if ( $is_on_sale ) {
 		?>
 	<?php endif; ?>
 
-	<?php if ( $is_on_sale && $show_sale_badge ) : ?>
-		<span class="zymarg-sale-badge"><?php echo esc_html( $sale_badge_text ); ?></span>
+	<?php
+	// v1.2.1 (P1) — "Save X (Y%)" indicator.
+	if ( $is_on_sale && ! empty( $savings_show ) && ! empty( $savings_data['amount'] ) ) :
+		$_savings_text = (string) ( $savings_format ?? 'amount_percent' );
+		$_savings_html = '';
+		switch ( $_savings_text ) {
+			case 'amount_only':
+				$_savings_html = sprintf( '%s %s', esc_html( $savings_prefix ), esc_html( $savings_data['amount_html'] ) );
+				break;
+			case 'percent_only':
+				$_savings_html = sprintf( '%s %d%%', esc_html( $savings_prefix ), (int) $savings_data['percent'] );
+				break;
+			case 'amount_percent':
+			default:
+				$_savings_html = sprintf( '%s %s (%d%%)', esc_html( $savings_prefix ), esc_html( $savings_data['amount_html'] ), (int) $savings_data['percent'] );
+				break;
+		}
+		?>
+		<span class="zymarg-price-savings"><?php echo $_savings_html; // phpcs:ignore WordPress.Security.EscapeOutput ?></span>
+	<?php endif; ?>
+
+	<?php
+	// v1.2.1 (P5) — Sale badge with position/content variants.
+	if ( $is_on_sale && $show_sale_badge ) :
+		$_pos     = $badge_position ?? 'inline_after';
+		$_content = $badge_content  ?? 'text_only';
+		$_text    = $sale_badge_text;
+
+		// Compute content based on the chosen variant.
+		if ( 'percent' === $_content && ! empty( $savings_data['percent'] ) ) {
+			$_text = sprintf( '-%d%%', (int) $savings_data['percent'] );
+		} elseif ( 'amount' === $_content && ! empty( $savings_data['amount_html'] ) ) {
+			$_text = sprintf( '%s %s', esc_html__( 'Save', 'woo-swatches-elementor' ), $savings_data['amount_html'] );
+		} elseif ( 'percent_text' === $_content && ! empty( $savings_data['percent'] ) ) {
+			$_text = sprintf( '%d%% off', (int) $savings_data['percent'] );
+		}
+		?>
+		<span class="zymarg-sale-badge zymarg-sale-badge--<?php echo esc_attr( $_pos ); ?>"><?php echo esc_html( $_text ); ?></span>
+	<?php endif; ?>
+
+	<?php if ( ! empty( $shipping_html ) ) : ?>
+		<span class="zymarg-price-shipping-hint"><?php echo esc_html( $shipping_html ); ?></span>
 	<?php endif; ?>
 
 </div>
