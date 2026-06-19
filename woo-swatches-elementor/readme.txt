@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.2.2
+Stable tag: 1.2.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,67 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.2.3 =
+**Patch: 6 bug fixes + 4 features + 9 Tier 0 text controls.**
+
+This release addresses six issues spotted during live ZYMARG site testing of v1.2.2 plus implements the first wave ("Tier 0") of the senior-developer "advanced Elementor control over every text element" feedback. **No DB migration**, drop-in replacement for v1.2.2.
+
+**Bug fixes**
+
+* **Issue 1a — Stepper buttons disabled on simple products.** Root cause: WooCommerce's `get_max_purchase_quantity()` returns `-1` as the "no max" sentinel. v1.2.0 stepper template did not strip `max="-1"` from the rendered `<input>`, so the stepper JS read it as a real upper bound. With val=1 and max=-1, the check `val >= max` was always true, so `[+]` was disabled forever on simple products. Belt-and-braces fix: template strips `max` when value is `-1` or empty; JS `readBounds()` defensively treats `-1` as "no max" too.
+* **Issue 5 — F5 responsive per-type swatch widths not working.** Same root cause as v1.2.2 Issue 4 image-label fix: F5 inline CSS at specificity (0,2,1) was beaten by Elementor's per-widget Swatch Size `{{WRAPPER}}` selectors at (0,5,0). Added `!important` on width / height / min-width across all three breakpoints. Per-widget overrides still possible via Elementor Custom CSS with `!important`.
+* **Issue 6 — Smart heading missing on variable on-sale products.** Back-compat bug in `resolve_heading_text()`: the fallback chain was hardcoded as `?? 'no'` but the control's actual default is `'yes'` for the sale state. For widget instances saved BEFORE the heading controls existed (pre-v1.2.0 widgets), settings array does not contain the `heading_*_show` keys, so the `?? 'no'` fallback ran and suppressed the heading. v1.2.3 each map entry carries a `show_default` matching the control's actual default, so legacy widget instances inherit the editor's would-be default.
+* **Issue 3 — Sale dot showing even when tooltip OFF.** New global setting **WC → Settings → WooSwatches → Show Sale Dot on Swatches** (default ON for back-compat). Independent from the tooltip setting since they're semantically different features (sale-state indicator vs hover label). When OFF, the renderer skips computing `is_term_on_sale()` so the sale-dot CSS hook has nothing to attach to.
+
+**Features**
+
+* **Issue 2 — Quantity input width capped at 160px.** Bumped the slider range from `{px: 40-160}` to `{px: 40-600, %: 10-100, em: 2-30}`. Added `%` and `em` units so the qty field can pair naturally with wide layouts.
+* **Issue 3+4 — Add to cart Full Width responsive + stacked layout.** Two new switcher controls: Full Width Button — Tablet (≤1024px) and Full Width Button — Mobile (≤768px). When any device's full-width is on, `.wse-qty-atc-row` switches to `flex-direction: column` with the stepper on top and the full-width button stacked below. Cascade follows Elementor's standard breakpoint order (mobile rule overrides tablet, tablet overrides desktop).
+* **Issue 7 — "Show Price Under Image Swatches" feature built from scratch.** v1.2.2 had a Widget 1 control with this label but **no implementation** — the toggle did nothing. v1.2.3 builds it end-to-end: server-side computes the lowest display price for each option value via a new `get_variation_price_html_for_value()` helper; image template always renders `<span class="wse-swatch-image-price">` when a price is available; CSS gates visibility on the parent `.wse-attr-block.wse-show-image-price` class added by Widget 1 when the toggle is on. Sale-aware (renders `<del>regular</del> <ins>sale</ins>` markup when on sale). Hidden automatically when image-label position is `hover` or `hidden` (orphaned price would look misplaced without label context).
+
+**Tier 0 — Editable text overrides (9 new controls)**
+
+Per senior-developer review, this batch makes the most-visible hardcoded user-facing strings editable per Widget instance. Defaults match the previous values so existing instances render identically.
+
+Widget 1 → Content tab → Swatches → "Text Overrides" sub-heading:
+1. **`clear_text`** — Reset link text (default `Clear`)
+2. **`choose_option_placeholder`** — WC dropdown placeholder (default `Choose an option`)
+3. **`selected_value_prefix`** — Optional prefix before the selected option name. e.g. `Selected: ` → `Selected: Blue`. Empty by default.
+4. **`oos_label_suffix`** — Out-of-stock screen-reader suffix (default `(unavailable)`)
+
+Widget 2 → Content tab → Quantity → "Accessibility & Title Text" sub-heading:
+5. **`qty_input_aria_label`** — Quantity field aria-label (default `Quantity`)
+6. **`qty_decrease_aria_label`** — `[-]` button aria-label (default `Decrease quantity`)
+7. **`qty_increase_aria_label`** — `[+]` button aria-label (default `Increase quantity`)
+8. **`qty_decrease_title`** — `[-]` button hover-title (empty by default)
+9. **`qty_increase_title`** — `[+]` button hover-title (empty by default)
+
+**Architecture note for Tier 0**
+
+Widget 2 controls flow naturally — `$settings` is in scope inside `templates/quantity-stepper.php` via `include`. Widget 1 templates (`wrapper.php`, `label.php`) are called from `WSE_Swatch_Renderer` (hooked on a WC filter, decoupled from Widget 1's `render()`). v1.2.3 wires Widget 1 text overrides via temporary filters added at the start of `render()` and removed at the end. Templates use `apply_filters()` with the hardcoded value as fallback so non-Widget-1 callers (legacy / direct render paths) still work without breaking.
+
+**Files changed**
+
+* `templates/quantity-stepper.php` — Issue 1a max=-1 guard, Tier 0 aria/title attrs
+* `assets/js/add-to-cart.js` (+ .min) — Issue 1a defensive `readBounds()`
+* `widgets/class-widget-price.php` — Issue 6 `show_default` fallbacks
+* `includes/class-assets.php` — Issue 5 `!important` on F5 inline CSS
+* `includes/class-settings.php` — Issue 3 sale-dot toggle
+* `includes/class-activator.php` — Issue 3 default
+* `includes/class-swatch-renderer.php` — Issue 3 toggle respected, Issue 7 price helper
+* `widgets/class-widget-add-to-cart.php` — Issues 2, 3, 4 + Tier 0 W2 controls
+* `assets/css/add-to-cart.css` (+ .min) — Issues 3, 4 stacked layout rules
+* `widgets/class-widget-swatches.php` — Issue 7 visibility class + Tier 0 W1 controls + filter wiring
+* `templates/swatches/image.php` — Issue 7 price `<span>` render
+* `templates/swatches/wrapper.php` — Tier 0 Clear-text filter
+* `templates/swatches/label.php` — Tier 0 OOS-suffix filter
+* `templates/add-to-cart/variable.php` — Tier 0 Choose-an-option filter
+* `assets/css/swatches.css` (+ .min) — Issue 7 price-display CSS
+
+**Migration**
+
+Drop-in replacement for v1.2.2. No DB schema changes. Hard-refresh + clear caches after install (Elementor → Tools → Regenerate CSS, Hostinger Cache Manager → Purge All).
 
 = 1.2.2 =
 **Patch: 4 issues fixed from live ZYMARG site testing — icon resilience + stepper dead-code removal + image-label CSS specificity fix.**
@@ -491,6 +552,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Widget 4 — ZYMARG Variation Image Gallery: a product-image gallery widget that automatically flips to show the matching variation's image (and gallery, where available) when a swatch is selected via Widget 1. Designed to live in the gallery column of a product page and stay in sync with all variation widgets through the existing Form Registry coordination.
 
 == Upgrade Notice ==
+
+= 1.2.3 =
+Patch release. Fixes 6 issues from live testing: simple-product stepper now responsive (max=-1 sentinel handled), F5 responsive widths now respected (specificity fixed), smart heading visible on variable on-sale products (back-compat fallback fixed), new "Show Sale Dot on Swatches" toggle (independent from tooltip). Features: Quantity input width range bumped (now supports % and em), Add to Cart Full Width is now responsive per device with the button stacked below the stepper. "Show Price Under Image Swatches" feature actually built (was scaffolding only in v1.2.2). Plus 9 new Tier 0 text controls for editable Clear/Choose-option/OOS labels and stepper aria/title attributes. Drop-in replacement for v1.2.2, no DB migration. Hard-refresh after install.
 
 = 1.2.2 =
 Patch release. Fixes 4 issues from live ZYMARG site testing: (1) minus icon invisible in quantity stepper, (2) Elementor icon picker library not loading, (3) stepper not working on simple products, (4) image swatch label not visible below image. Three of the four trace to Elementor icon-data warnings polluting our stepper output; the fourth is a CSS specificity battle against Elementor's per-widget Swatch Size control. Drop-in replacement for v1.2.1, no DB migration. After install, update Elementor + Elementor Pro to current stable, clear all caches (Elementor → Tools → Regenerate CSS, Hostinger Cache Manager → Purge All), then hard-refresh.
