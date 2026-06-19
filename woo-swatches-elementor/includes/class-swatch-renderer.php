@@ -399,7 +399,10 @@ class WSE_Swatch_Renderer {
 			'is_available' => $this->is_term_available( $product, $attribute, $option_value ),
 			// v1.2.1 (S2) — Sale dot indicator. True when at least one
 			// available variation matching this option is currently on sale.
-			'is_on_sale'   => $this->is_term_on_sale( $product, $attribute, $option_value ),
+			// v1.2.3 (Issue 3) — Gated on the wse_show_sale_dot global toggle.
+			'is_on_sale'   => 'yes' === get_option( 'wse_show_sale_dot', 'yes' )
+				? $this->is_term_on_sale( $product, $attribute, $option_value )
+				: false,
 		);
 
 		// ── Type-specific data ────────────────────────────────────────────

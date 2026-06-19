@@ -46,6 +46,17 @@ $input_name    = (string) ( $args['input_name']    ?? 'quantity' );
 $input_id      = (string) ( $args['input_id']      ?? '' );
 $input_classes = (array)  ( $args['input_classes'] ?? array( 'input-text', 'qty', 'text', 'wse-canonical-qty' ) );
 
+// v1.2.3 (Issue 1a) — Treat WC's "no max" sentinel value (-1) as empty.
+// $product->get_max_purchase_quantity() returns -1 when the product has no
+// stock cap. Without this, the rendered HTML carries max="-1" which the
+// stepper JS interpreted as a real upper bound: any val >= -1 is true,
+// so the [+] button stayed disabled forever on simple products. Now we
+// strip the max attribute entirely when the value is empty OR -1, and
+// the JS readBounds() helper treats both as "no max".
+if ( '-1' === $max || -1 === $args['max'] ) {
+	$max = '';
+}
+
 $show_buttons   = ( $settings['show_qty_stepper_buttons'] ?? 'yes' ) === 'yes';
 $decrease_icon  = $settings['decrease_icon'] ?? array( 'value' => 'eicon-minus', 'library' => 'eicons' );
 $increase_icon  = $settings['increase_icon'] ?? array( 'value' => 'eicon-plus',  'library' => 'eicons' );

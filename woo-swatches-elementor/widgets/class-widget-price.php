@@ -1052,11 +1052,41 @@ class WSE_Widget_Price extends \Elementor\Widget_Base {
 	 */
 	private function resolve_heading_text( string $state, \WC_Product $product, array $settings ): string {
 
+		// v1.2.3 (Issue 6) — Map now carries `show_default` matching each
+		// control's actual default. For widget instances saved BEFORE the
+		// heading controls were introduced, `$settings[$cfg['show']]` is
+		// missing entirely; v1.2.2 used `?? 'no'` which suppressed the
+		// heading on every legacy widget instance — exactly what the live
+		// site reproduced (heading visible on the simple-product Belt
+		// widget, missing on the variable-product Nike shoes widget).
+		// The fix matches each fallback to the control's true default so
+		// legacy widget instances inherit the same behaviour the editor
+		// would otherwise show.
 		$map = array(
-			'sale'             => array( 'show' => 'heading_sale_show',    'text' => 'heading_sale_text',    'default' => __( 'Limited Time Offer', 'woo-swatches-elementor' ) ),
-			'sale-ending-soon' => array( 'show' => 'heading_ending_show',  'text' => 'heading_ending_text',  'default' => __( 'Ends in {hours} hours!', 'woo-swatches-elementor' ) ),
-			'regular'          => array( 'show' => 'heading_regular_show', 'text' => 'heading_regular_text', 'default' => '' ),
-			'oos'              => array( 'show' => 'heading_oos_show',     'text' => 'heading_oos_text',     'default' => __( 'Currently Unavailable', 'woo-swatches-elementor' ) ),
+			'sale'             => array(
+				'show'         => 'heading_sale_show',
+				'show_default' => 'yes',
+				'text'         => 'heading_sale_text',
+				'default'      => __( 'Limited Time Offer', 'woo-swatches-elementor' ),
+			),
+			'sale-ending-soon' => array(
+				'show'         => 'heading_ending_show',
+				'show_default' => 'yes',
+				'text'         => 'heading_ending_text',
+				'default'      => __( 'Ends in {hours} hours!', 'woo-swatches-elementor' ),
+			),
+			'regular'          => array(
+				'show'         => 'heading_regular_show',
+				'show_default' => 'no',
+				'text'         => 'heading_regular_text',
+				'default'      => '',
+			),
+			'oos'              => array(
+				'show'         => 'heading_oos_show',
+				'show_default' => 'yes',
+				'text'         => 'heading_oos_text',
+				'default'      => __( 'Currently Unavailable', 'woo-swatches-elementor' ),
+			),
 		);
 
 		if ( ! isset( $map[ $state ] ) ) {
@@ -1064,7 +1094,7 @@ class WSE_Widget_Price extends \Elementor\Widget_Base {
 		}
 
 		$cfg = $map[ $state ];
-		if ( ( $settings[ $cfg['show'] ] ?? 'no' ) !== 'yes' ) {
+		if ( ( $settings[ $cfg['show'] ] ?? $cfg['show_default'] ) !== 'yes' ) {
 			return '';
 		}
 

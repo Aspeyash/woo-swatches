@@ -98,6 +98,10 @@ class WSE_Activator {
 			// v1.1.1 — Show toast notification on successful AJAX add-to-cart.
 			'wse_show_added_toast' => 'yes',
 
+			// v1.2.3 (Issue 3) — Sale dot indicator on swatches.
+			// Independent of the tooltip setting; defaults ON for back-compat.
+			'wse_show_sale_dot' => 'yes',
+
 			// v1.2.0 — Default for Widget 2's "Show inline price" toggle on
 			// NEW widget instances. New installs get 'no' (Widget 3 owns the
 			// price). Existing v1.1.x installs are migrated to 'yes' below

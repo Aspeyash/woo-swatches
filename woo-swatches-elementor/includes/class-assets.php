@@ -470,31 +470,40 @@ class WSE_Assets {
 		// Build the inline stylesheet. We intentionally write to
 		// .wse-swatch-{type} directly so the values cascade to the
 		// existing --wse-swatch-size etc. used in swatches.css.
+		// v1.2.3 (Issue 5) — !important on the structural width/height
+		// rules. v1.2.1 shipped without !important assuming our 0,2,1
+		// specificity would beat the cascade, but Elementor's per-widget
+		// Swatch Size control (added in v1.2.0 via {{WRAPPER}} selectors)
+		// resolves at 0,5,0 specificity and beat F5 cleanly. Same root
+		// cause as v1.2.2's Issue 4 image-label fix. The !important here
+		// makes the global Swatch Sizes section the source of truth for
+		// per-type widths; per-widget overrides via Elementor's Custom
+		// CSS still work but require !important on the user side too.
 		$css = '';
 
 		// Desktop (always applies as base; media queries below override).
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-color{--wse-swatch-size:' . $sizes['color']['d'] . 'px;width:' . $sizes['color']['d'] . 'px;height:' . $sizes['color']['d'] . 'px;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-color{--wse-swatch-size:' . $sizes['color']['d'] . 'px;width:' . $sizes['color']['d'] . 'px!important;height:' . $sizes['color']['d'] . 'px!important;}';
 		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image{--wse-swatch-size:' . $sizes['image']['d'] . 'px;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image .wse-swatch-img{width:' . $sizes['image']['d'] . 'px;height:' . $sizes['image']['d'] . 'px;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-label{min-width:' . $sizes['label']['d'] . 'px;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-button{min-width:' . $sizes['button']['d'] . 'px;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image .wse-swatch-img{width:' . $sizes['image']['d'] . 'px!important;height:' . $sizes['image']['d'] . 'px!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-label{min-width:' . $sizes['label']['d'] . 'px!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-button{min-width:' . $sizes['button']['d'] . 'px!important;}';
 
 		// Tablet
 		$css .= '@media (max-width:1024px){';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-color{--wse-swatch-size:' . $sizes['color']['t'] . 'px;width:' . $sizes['color']['t'] . 'px;height:' . $sizes['color']['t'] . 'px;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-color{--wse-swatch-size:' . $sizes['color']['t'] . 'px;width:' . $sizes['color']['t'] . 'px!important;height:' . $sizes['color']['t'] . 'px!important;}';
 		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image{--wse-swatch-size:' . $sizes['image']['t'] . 'px;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image .wse-swatch-img{width:' . $sizes['image']['t'] . 'px;height:' . $sizes['image']['t'] . 'px;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-label{min-width:' . $sizes['label']['t'] . 'px;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-button{min-width:' . $sizes['button']['t'] . 'px;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image .wse-swatch-img{width:' . $sizes['image']['t'] . 'px!important;height:' . $sizes['image']['t'] . 'px!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-label{min-width:' . $sizes['label']['t'] . 'px!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-button{min-width:' . $sizes['button']['t'] . 'px!important;}';
 		$css .= '}';
 
 		// Mobile
 		$css .= '@media (max-width:768px){';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-color{--wse-swatch-size:' . $sizes['color']['m'] . 'px;width:' . $sizes['color']['m'] . 'px;height:' . $sizes['color']['m'] . 'px;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-color{--wse-swatch-size:' . $sizes['color']['m'] . 'px;width:' . $sizes['color']['m'] . 'px!important;height:' . $sizes['color']['m'] . 'px!important;}';
 		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image{--wse-swatch-size:' . $sizes['image']['m'] . 'px;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image .wse-swatch-img{width:' . $sizes['image']['m'] . 'px;height:' . $sizes['image']['m'] . 'px;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-label{min-width:' . $sizes['label']['m'] . 'px;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-button{min-width:' . $sizes['button']['m'] . 'px;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image .wse-swatch-img{width:' . $sizes['image']['m'] . 'px!important;height:' . $sizes['image']['m'] . 'px!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-label{min-width:' . $sizes['label']['m'] . 'px!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-button{min-width:' . $sizes['button']['m'] . 'px!important;}';
 		$css .= '}';
 
 		echo "\n<style id=\"wse-swatch-sizes-inline\">" . $css . "</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped

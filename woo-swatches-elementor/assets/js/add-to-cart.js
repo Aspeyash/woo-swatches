@@ -803,9 +803,16 @@
 		var min  = parseFloat( $input.attr( 'min' ) );
 		var max  = $input.attr( 'max' );
 		var step = parseFloat( $input.attr( 'step' ) );
+		// v1.2.3 (Issue 1a) — Treat WC's -1 ("no max") sentinel and
+		// missing-attr / null / undefined as "no max". Defensive in case
+		// the template-level guard misses an edge case.
+		var hasMax = ( '' !== max
+			&& 'undefined' !== typeof max
+			&& null !== max
+			&& '-1' !== String( max ).trim() );
 		return {
 			min:  isNaN( min )  ? 0  : min,
-			max:  ( '' === max || 'undefined' === typeof max || null === max ) ? '' : parseFloat( max ),
+			max:  hasMax ? parseFloat( max ) : '',
 			step: isNaN( step ) || step <= 0 ? 1 : step,
 		};
 	}
