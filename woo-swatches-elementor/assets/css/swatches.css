@@ -401,10 +401,12 @@ body.wse-stylesheet-enabled .wse-attr-block.wse-force-show-label .wse-attr-label
 /* Base — vertical column layout for image swatches with labels */
 body.wse-stylesheet-enabled .wse-attr-block[data-type="image"] .wse-swatch-image {
 	display:        inline-flex;
-	flex-direction: column;
+	flex-direction: column !important;       /* v1.2.2 — beats Elementor swatch_size {{WRAPPER}} specificity */
 	align-items:    center;
-	width:          auto;
-	height:         auto;
+	width:          auto !important;          /* v1.2.2 (Issue 4) — forced over Elementor's per-widget swatch_size */
+	height:         auto !important;          /* v1.2.2 (Issue 4) — forced over Elementor's per-widget swatch_size */
+	min-width:      var( --wse-swatch-image-img-w, 56px );  /* v1.2.2 — accommodate longer image swatches with labels */
+	overflow:       visible !important;       /* v1.2.2 — base .wse-swatch has overflow:hidden which clips the label */
 	padding:        4px;
 	gap:            4px;
 }
@@ -417,15 +419,15 @@ body.wse-stylesheet-enabled .wse-attr-block[data-type="image"] .wse-swatch-image
 }
 
 body.wse-stylesheet-enabled .wse-swatch-image-label {
-	display:     block;
+	display:     block !important;          /* v1.2.2 — guarantee visibility against any cascading display:none rule */
 	font-size:   .75rem;
 	line-height: 1.2;
 	color:       inherit;
 	text-align:  center;
 	white-space: nowrap;
+	min-height:  1.2em;                       /* v1.2.2 — reserve space even mid-variation-update */
 	max-width:   var( --wse-swatch-image-img-w, 80px );
 	overflow:    hidden;
-	text-overflow: ellipsis;
 }
 
 /* Default position: below the image (simple flex column above already
@@ -472,4 +474,20 @@ body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hidden .wse-swat
 body.wse-stylesheet-enabled .wse-swatch-image.selected .wse-swatch-image-label {
 	font-weight: 700;
 	color:       #9500a5;            /* ZYMARG Primary */
+}
+
+
+
+/* ─── v1.2.2 (Issue 4 polish) — Suppress hover tooltip when inline label is active ── */
+/* The plugin's swatches-tooltip system shows the variation name as a small
+   dark tooltip on hover. When the user has set image-label-position to
+   "below" or "above", the inline label is the primary affordance and a
+   second tooltip on hover would feel redundant. Suppress the tooltip in
+   that case so users see exactly one label per swatch. */
+
+body.wse-tooltip-enabled .wse-attr-block.wse-image-label-pos-below  .wse-swatch-image:hover::after,
+body.wse-tooltip-enabled .wse-attr-block.wse-image-label-pos-below  .wse-swatch-image:focus-visible::after,
+body.wse-tooltip-enabled .wse-attr-block.wse-image-label-pos-above  .wse-swatch-image:hover::after,
+body.wse-tooltip-enabled .wse-attr-block.wse-image-label-pos-above  .wse-swatch-image:focus-visible::after {
+	display: none !important;
 }
