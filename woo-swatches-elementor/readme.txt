@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.3.1
+Stable tag: 1.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,65 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.3.2 =
+**Patch: 2 critical fixes + 6 gallery features + 2 UX upgrades.**
+
+Drop-in replacement for v1.3.1, no DB migration. Update strongly recommended for everyone on v1.3.0 / v1.3.1.
+
+**Bug fixes**
+
+* **B1 — Smart heading + savings span disappeared after page load on variable on-sale products.** Server-side render correctly emitted the smart heading ("LIMITED TIME OFFER" / etc.) plus the "Save Xৎ (Y%)" savings line, but `price.js` blew them away on every WooCommerce variation event. Root cause: the JS used `$widget.html(html)` to update prices, which destroyed sibling elements that the server rendered alongside the price block (`.zymarg-price-heading`, `.zymarg-price-shipping-hint`, `.zymarg-price-savings`). v1.3.2 refactors `price.js` to **surgical DOM updates** via a new `applyPriceState()` function that only touches `.zymarg-price-current`, `.zymarg-price-was`, `.zymarg-sale-badge`, `.zymarg-price-savings` — heading and shipping-hint elements are never touched across found_variation / reset_data events. New `buildSavingsText()` helper extracted so both initial-restore and per-variation paths produce the same formatted savings string.
+
+* **B2 — Sale dot still showing on swatches even with the v1.2.3 toggle off.** The "Show Sale Dot on Swatches" feature is retired. The renderer now hard-codes `is_on_sale => false` on every swatch data array regardless of any saved DB option value, so the `wse-on-sale` class can never be added. The settings UI toggle is removed from `WC → Settings → WooSwatches`. The `wse_show_sale_dot` option key is intentionally NOT cleaned up from the DB (preserves prior preference for any future re-introduction). The CSS rules for `.wse-on-sale::after` stay in `add-to-cart.css` as harmless no-ops, and the `is_term_on_sale()` helper remains available for custom integrations that want to opt back in via a filter.
+
+**Features**
+
+* **F1 — Fieldset padding inside swatches widget.** Adds `body.wse-stylesheet-enabled fieldset.wse-fieldset { padding: 10px; }` to `swatches.css`. Scoped to `.wse-fieldset` so unrelated `<fieldset>` elements on the page (user-account forms, checkout, etc.) are not affected.
+
+* **F2 — WebKit scrollbar fully hidden on the gallery thumbnail strip.** Previously the vertical strip showed a 4px tinted scrollbar and the horizontal/mobile-carousel strips showed the browser default. v1.3.2 hides them entirely via `::-webkit-scrollbar { width: 0; height: 0; display: none }` plus `scrollbar-width: none` (Firefox) and `-ms-overflow-style: none` (IE / legacy Edge). Strips remain scrollable; only the chrome is hidden.
+
+* **F3 — "Horizontal thumbs above main" added to the Mobile Layout dropdown.** Previously only Desktop and Tablet had this option. Mobile dropdown now offers all 4 layouts: mobile_carousel (default), mobile_stacked, horizontal_below, horizontal_above. Implemented via `flex-direction: column-reverse` on the layout wrapper at the mobile breakpoint.
+
+* **F4 — Real mobile carousel: main image actually swipes now.** v1.3.0 / v1.3.1 mobile_carousel layout claimed CSS-only swipe via `scroll-snap-type: x mandatory` on `.zymarg-vig-main-wrap` — but the wrap only contained ONE image, so there was nothing to swipe through. v1.3.2 adds a new `<div class="zymarg-vig-carousel">` element that renders ALL variation images as `<figure class="zymarg-vig-carousel-slide">` siblings in a horizontal scroll-snap strip. Hidden on desktop / tablet (the single `.zymarg-vig-main` hero is shown there); the carousel becomes the visible scroll container at mobile bp. Full bidirectional sync with the thumb strip via a new RAF-throttled scroll observer in `gallery.js` (scrolling the carousel updates the active thumb + dot indicator + counter; clicking a thumb scrolls the carousel to that slide). `loading="eager"` on slide 0, `loading="lazy"` on the rest. iOS inertial scrolling enabled via `-webkit-overflow-scrolling: touch`. Pure CSS swipe — no touch handlers fighting the browser's native scroll thread.
+
+* **F5 — Full keyboard navigation on the thumbnail strip.** Previously only ArrowLeft / ArrowRight worked. v1.3.2 adds:
+  - **ArrowUp** / **ArrowDown** (so vertical-strip layouts work as users expect)
+  - **Home** — jump to the first image
+  - **End** — jump to the last image
+  - **Enter** / **Space** when focus is on the main figure — opens the lightbox
+  - **Roving tabindex**: `switchToIndex()` now maintains `tabindex="0"` on the new active thumb and `tabindex="-1"` on all others, plus moves focus to the new active thumb after a click. Result: arrow keys keep firing without the user needing to re-tab. Defensive: skips intercepting keys inside form inputs.
+
+* **F6 — Image counter overlay (mobile + tablet only).** New "1 / 3" style counter rendered at bottom-left of the main image, hidden on desktop (where thumbnails are visible so a counter would be redundant). New controls:
+  - **Display** section (Content tab): "Show image counter" switcher (default ON) + "Counter format" text field (default `{current} / {total}` — supports any custom format like "Image 1 of 3" or "1 of 3 photos").
+  - **Style** section: "Image Counter" with background color, text color, typography group, padding (Dimensions), border-radius slider, and a position dropdown with 4 corners (bottom-left, bottom-right, top-left, top-right) via prefix_class.
+  - The counter text auto-updates on every navigation event (thumb click, swipe, arrow key, dot click, lightbox prev/next) via `updateImageCounter()`.
+
+**UX upgrades**
+
+* **S1 — Lightbox swipe gestures (mobile).** Touch swipe inside the lightbox stage now navigates prev / next. Touch handlers track horizontal delta on `touchstart` / `touchmove` / `touchend`; a swipe must be ≥ 50px horizontal travel and ≤ 60px vertical travel to register (so accidental vertical scroll attempts don't trigger navigation). Matches Apple / Sephora / Amazon mobile lightbox UX.
+
+* **S3 — Mouse drag-to-scroll on the thumbnail strip (desktop).** Click + drag the thumb strip to scroll horizontally or vertically (axis follows CSS flex-direction). 5px drag threshold distinguishes a drag from a click — single thumb clicks still work normally. The post-drag click is swallowed via a `wse-was-dragging` flag so users don't accidentally jump to a thumb they didn't intend to select. Apple Store / Nike pattern.
+
+**Architecture note**
+
+`gallery.js` was refactored from ~498 LOC to ~840 LOC. Every input source (thumb click, arrow key, dot click, carousel scroll, lightbox prev/next, swipe gesture, keyboard) now routes through a single `switchToIndex(state, index, listOverride, opts)` function. This eliminates the previous duplicate-state bugs where (e.g.) clicking a thumb updated the dots but not the counter, or a carousel scroll updated the counter but not the active thumb. New helpers: `updateImageCounter`, `scrollCarouselToIndex`, `buildCarouselSlideHtml`, `bindCarouselScroll`, `bindThumbDragScroll`, `bindLightboxSwipe`. RAF-throttling on the carousel scroll observer keeps the iOS scroll thread smooth.
+
+**Files changed**
+
+* `assets/js/price.js` (+ .min) — B1 surgical DOM updates
+* `assets/js/gallery.js` (+ .min) — F4/F5/F6/S1/S3 (498 → 844 LOC)
+* `assets/css/swatches.css` (+ .min) — F1 fieldset padding
+* `assets/css/gallery.css` (+ .min) — F2 hide scrollbars, F3 mobile horizontal_above, F4 carousel/counter styles, F6 counter positions
+* `includes/class-swatch-renderer.php` — B2 hard-disable sale dot
+* `includes/class-settings.php` — B2 remove toggle UI
+* `includes/class-activator.php` — B2 remove default option
+* `widgets/class-widget-variation-image-gallery.php` — F3 mobile dropdown option, F4 mobile_carousel_enabled wiring, F6 controls + Style section
+* `templates/gallery/layouts/vertical-thumbs.php` — F4 carousel block, F6 counter span
+
+**Migration**
+
+Drop-in replacement for v1.3.1. No DB schema changes, no settings reset. After install: hard-refresh (Ctrl+F5) and Elementor → Tools → Regenerate CSS to flush the editor preview. New widgets get sensible defaults (counter ON, position bottom-left, format `{current} / {total}`); existing widget instances inherit the same defaults via the `??` fallback chain.
 
 = 1.3.1 =
 **Patch: gallery now actually renders.**
@@ -650,6 +709,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.3.2 =
+Patch + features. Critical fixes: smart heading + savings line no longer disappear after page load on variable on-sale products (price.js refactored to surgical DOM updates); sale dot on swatches retired (was showing despite the toggle being off). Gallery widget gets 6 new features: scoped fieldset padding, hidden scrollbar on thumb strips, "Horizontal above" added to mobile layout dropdown, REAL mobile swipe carousel (v1.3.0/v1.3.1 only had 1 image to swipe through), full keyboard nav (Up/Down + Home/End + roving tabindex), and image counter overlay with editable format string ({current} / {total}). Plus 2 UX upgrades: lightbox swipe gestures and mouse drag-to-scroll on thumbnails. Drop-in replacement for v1.3.1, no DB migration. Hard-refresh + Regenerate CSS after install.
 
 = 1.3.1 =
 Critical patch for v1.3.0 gallery widget. v1.3.0 layout templates called include_template() without echoing the returned HTML, so the gallery rendered as an empty wrapper with zero images. v1.3.1 adds `echo` to all 4 include_template() calls in vertical-thumbs.php, stacked.php, grid.php. Drop-in replacement for v1.3.0, no DB migration. Hard-refresh + Regenerate CSS after install. Update strongly recommended for anyone on v1.3.0.
