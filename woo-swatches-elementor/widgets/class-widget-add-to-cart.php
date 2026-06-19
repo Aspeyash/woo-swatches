@@ -357,10 +357,40 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 		$this->add_control(
 			'button_full_width',
 			array(
-				'label'        => esc_html__( 'Full Width Button', 'woo-swatches-elementor' ),
+				'label'        => esc_html__( 'Full Width Button — Desktop', 'woo-swatches-elementor' ),
+				'description'  => esc_html__( 'Stretch the Add to Cart button to fill its column on desktop. Stacks the button below the quantity stepper.', 'woo-swatches-elementor' ),
 				'type'         => \Elementor\Controls_Manager::SWITCHER,
 				'return_value' => 'yes',
 				'default'      => 'no',
+			)
+		);
+
+		// v1.2.3 (Issue 4) — Per-device full-width toggles.
+		// Each switcher emits its own prefix_class on the widget wrapper:
+		//   button_full_width_tablet -> wse-atc-fw-tablet-{yes|no}
+		//   button_full_width_mobile -> wse-atc-fw-mobile-{yes|no}
+		// CSS in add-to-cart.css picks up '-yes' classes inside each
+		// breakpoint's media query so the layout cascades naturally:
+		// mobile rule overrides tablet, tablet overrides desktop.
+		$this->add_control(
+			'button_full_width_tablet',
+			array(
+				'label'        => esc_html__( 'Full Width Button — Tablet (≤1024px)', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'return_value' => 'yes',
+				'default'      => 'no',
+				'prefix_class' => 'wse-atc-fw-tablet-',
+			)
+		);
+
+		$this->add_control(
+			'button_full_width_mobile',
+			array(
+				'label'        => esc_html__( 'Full Width Button — Mobile (≤768px)', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'return_value' => 'yes',
+				'default'      => 'no',
+				'prefix_class' => 'wse-atc-fw-mobile-',
 			)
 		);
 
@@ -518,9 +548,16 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			array(
 				'label'      => esc_html__( 'Width', 'woo-swatches-elementor' ),
 				'type'       => \Elementor\Controls_Manager::SLIDER,
-				'size_units' => array( 'px', 'em' ),
+				'size_units' => array( 'px', '%', 'em' ),
+				// v1.2.3 (Issue 2) — Bumped px max from 160 to 600 and added
+				// % + em units. The previous 160px ceiling made it hard to
+				// pair the qty input with a wider Add to Cart button on
+				// large layouts. The new range covers narrow (40px) through
+				// extra-wide (600px / 100%) without artificial constraint.
 				'range'      => array(
-					'px' => array( 'min' => 40, 'max' => 160 ),
+					'px' => array( 'min' => 40, 'max' => 600 ),
+					'%'  => array( 'min' => 10, 'max' => 100 ),
+					'em' => array( 'min' => 2,  'max' => 30 ),
 				),
 				'selectors'  => array(
 					'{{WRAPPER}} .wse-qty-wrap .qty' => 'width: {{SIZE}}{{UNIT}};',

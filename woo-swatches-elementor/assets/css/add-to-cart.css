@@ -667,3 +667,50 @@ body.wse-stylesheet-enabled .wse-swatch-image.wse-on-sale::after {
 	width:  10px;
 	height: 10px;
 }
+
+
+
+/* ─── v1.2.3 (Issue 3+4) — Full-width Add to Cart with stacked layout ──── */
+/* When the Full Width Button toggle is on for a given device, the button
+   stretches to fill the column AND the [-] [qty] [+] / button row switches
+   to a stacked column layout (qty stepper on top, button below). Per-device
+   classes cascade through the standard Elementor breakpoint order:
+     desktop = no media query (always applies once the class is on)
+     tablet  = max-width: 1024px
+     mobile  = max-width:  768px
+   so a mobile-only setup (mobile=yes, tablet=no, desktop=no) renders inline
+   above 768px and stacked below it. */
+
+/* Desktop — legacy class .wse-atc-full-width preserved for back-compat */
+body.wse-stylesheet-enabled .wse-atc-full-width .wse-atc-button {
+	width: 100%;
+}
+body.wse-stylesheet-enabled .wse-atc-full-width .wse-qty-atc-row {
+	flex-direction: column;
+	align-items:    stretch;
+	gap:            8px;
+}
+
+/* Tablet */
+@media ( max-width: 1024px ) {
+	body.wse-stylesheet-enabled .wse-atc-fw-tablet-yes .wse-atc-button {
+		width: 100%;
+	}
+	body.wse-stylesheet-enabled .wse-atc-fw-tablet-yes .wse-qty-atc-row {
+		flex-direction: column;
+		align-items:    stretch;
+		gap:            8px;
+	}
+}
+
+/* Mobile */
+@media ( max-width: 768px ) {
+	body.wse-stylesheet-enabled .wse-atc-fw-mobile-yes .wse-atc-button {
+		width: 100%;
+	}
+	body.wse-stylesheet-enabled .wse-atc-fw-mobile-yes .wse-qty-atc-row {
+		flex-direction: column;
+		align-items:    stretch;
+		gap:            8px;
+	}
+}
