@@ -2,32 +2,31 @@
  * WooSwatches for Elementor — ZYMARG Variation Image Gallery (v1.3.0)
  *
  * All visual rules are gated by body.wse-stylesheet-enabled so when the
- * "Plugin Stylesheet" toggle is off in WC → Settings → WooSwatches, the
- * theme's CSS has full control. The lightbox lives in a separate
- * gallery-lightbox.css to keep the base load light on pages that don't
- * use the lightbox feature.
+ * "Plugin Stylesheet" toggle is off, the theme's CSS has full control.
  *
  * Custom-property strategy: every layout / sizing / spacing value is
  * driven by --zymarg-vig-* variables on .zymarg-vig so Elementor Style
- * controls write through {{WRAPPER}} selectors without specificity wars.
+ * controls cascade through {{WRAPPER}} selectors without specificity wars.
  *
- * Phase 1 (this commit) ships only the scaffold styles so the widget
- * renders without layout shift in the Elementor editor preview. Phase
- * 2 will fill in the full layout system.
+ * Phase 2 ships the default vertical-thumbs-left layout. Phase 3 adds
+ * the other 4 layouts + responsive switching via @media queries.
  *
  * @package WooSwatchesElementor
  * @since   1.3.0
  */
 
-/* ─── Scaffold (Phase 1) ─────────────────────────────────────────────── */
+/* ─── CSS custom properties (defaults) ──────────────────────────────────── */
 
 body.wse-stylesheet-enabled .zymarg-vig {
-	--zymarg-vig-aspect-ratio:        1 / 1;        /* square default */
+	--zymarg-vig-aspect-ratio:        1 / 1;
 	--zymarg-vig-thumbs-size:         72px;
 	--zymarg-vig-thumbs-gap:          8px;
+	--zymarg-vig-thumbs-per-view:     5;
 	--zymarg-vig-active-color:        #9500a5;       /* ZYMARG Primary */
+	--zymarg-vig-active-width:        2px;
 	--zymarg-vig-placeholder-bg:      #eaedff;       /* ZYMARG Surface Container */
 	--zymarg-vig-transition-ms:       200;
+	--zymarg-vig-radius:              8px;
 
 	display:        block;
 	width:          100%;
@@ -35,17 +34,214 @@ body.wse-stylesheet-enabled .zymarg-vig {
 	font-family:    inherit;
 }
 
-body.wse-stylesheet-enabled .zymarg-vig--scaffold {
+/* ─── Editor placeholder ────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .zymarg-vig--no-product {
 	padding:        2rem;
 	background:     var( --zymarg-vig-placeholder-bg );
 	border:         2px dashed var( --zymarg-vig-active-color );
-	border-radius:  8px;
+	border-radius:  var( --zymarg-vig-radius );
 	text-align:     center;
+	color:          #534152;
+	font-style:     italic;
 }
 
-body.wse-stylesheet-enabled .zymarg-vig-scaffold-note {
-	font-style: italic;
-	font-size:  .9rem;
-	color:      #534152;                            /* ZYMARG Text Muted */
-	opacity:    .85;
+/* ─── Layout shell ──────────────────────────────────────────────────────── */
+/* The .zymarg-vig-layout div wraps the thumbs strip + main image area. The
+   layout direction is driven by class on .zymarg-vig (per-device classes
+   like .zymarg-vig--layout-d-vertical_left). Phase 3 adds @media-driven
+   tablet/mobile layout switching. */
+
+body.wse-stylesheet-enabled .zymarg-vig-layout--vertical {
+	display:        flex;
+	flex-direction: row;          /* default: vertical_left = thumbs LEFT */
+	align-items:    flex-start;
+	gap:            16px;
+	width:          100%;
+	min-width:      0;
+}
+
+/* vertical_right mirrors with row-reverse */
+body.wse-stylesheet-enabled .zymarg-vig--layout-d-vertical_right .zymarg-vig-layout--vertical {
+	flex-direction: row-reverse;
+}
+
+/* ─── Thumbnail strip ───────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .zymarg-vig-thumbs--vertical {
+	display:        flex;
+	flex-direction: column;
+	gap:            var( --zymarg-vig-thumbs-gap );
+	flex-shrink:    0;
+	max-height:     calc(
+		var( --zymarg-vig-thumbs-size ) * var( --zymarg-vig-thumbs-per-view )
+		+ var( --zymarg-vig-thumbs-gap ) * ( var( --zymarg-vig-thumbs-per-view ) - 1 )
+	);
+	overflow-y:     auto;
+	scrollbar-width: thin;
+	padding-right:  4px;          /* room for scrollbar without shifting */
+}
+
+/* Hide scrollbar in WebKit when not needed (still scrollable on overflow). */
+body.wse-stylesheet-enabled .zymarg-vig-thumbs--vertical::-webkit-scrollbar {
+	width: 4px;
+}
+body.wse-stylesheet-enabled .zymarg-vig-thumbs--vertical::-webkit-scrollbar-thumb {
+	background: rgba( 0, 0, 0, .15 );
+	border-radius: 2px;
+}
+
+/* ─── Single thumbnail ──────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .zymarg-vig-thumb {
+	display:         block;
+	width:           var( --zymarg-vig-thumbs-size );
+	height:          var( --zymarg-vig-thumbs-size );
+	padding:         0;
+	background:      var( --zymarg-vig-placeholder-bg );
+	border:          2px solid transparent;
+	border-radius:   calc( var( --zymarg-vig-radius ) * .75 );
+	cursor:          pointer;
+	overflow:        hidden;
+	transition:      border-color calc( var( --zymarg-vig-transition-ms ) * 1ms ) ease,
+	                 transform    calc( var( --zymarg-vig-transition-ms ) * 1ms ) ease,
+	                 opacity      calc( var( --zymarg-vig-transition-ms ) * 1ms ) ease;
+	flex-shrink:     0;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-thumb:hover,
+body.wse-stylesheet-enabled .zymarg-vig-thumb:focus-visible {
+	transform:       translateY( -1px );
+	border-color:    rgba( 149, 0, 165, .4 );  /* ZYMARG Primary @ 40% */
+	outline:         none;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-thumb.is-active {
+	border-color:    var( --zymarg-vig-active-color );
+	border-width:    var( --zymarg-vig-active-width );
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-thumb-img {
+	display:         block;
+	width:           100%;
+	height:          100%;
+	object-fit:      cover;
+	object-position: center;
+}
+
+/* ─── Main image area ──────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .zymarg-vig-main-wrap {
+	flex:           1 1 auto;
+	min-width:      0;
+	position:       relative;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-main {
+	position:       relative;
+	margin:         0;
+	width:          100%;
+	background:     var( --zymarg-vig-placeholder-bg );
+	border-radius:  var( --zymarg-vig-radius );
+	overflow:       hidden;
+	aspect-ratio:   var( --zymarg-vig-aspect-ratio );
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-main-img {
+	display:        block;
+	width:          100%;
+	height:         100%;
+	object-fit:     cover;
+	object-position: center;
+	transition:     opacity calc( var( --zymarg-vig-transition-ms ) * 1ms ) ease;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-main--zoomable {
+	cursor:         zoom-in;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-main--lightbox {
+	cursor:         zoom-in;
+}
+
+/* ─── Sale badge overlay ────────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .zymarg-vig-sale-badge {
+	position:       absolute;
+	top:            12px;
+	left:           12px;
+	z-index:        2;
+	display:        inline-flex;
+	align-items:    center;
+	padding:        4px 10px;
+	background:     #9500a5;       /* ZYMARG Primary */
+	color:          #ffffff;       /* ZYMARG Surface Lowest */
+	font-size:      .75rem;
+	font-weight:    600;
+	letter-spacing: .04em;
+	text-transform: uppercase;
+	border-radius:  4px;
+	box-shadow:     0 2px 6px rgba( 149, 0, 165, .25 );
+}
+
+/* ─── Aspect ratio variants ─────────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .zymarg-vig.zymarg-vig-ar-1-1  { --zymarg-vig-aspect-ratio: 1 / 1; }
+body.wse-stylesheet-enabled .zymarg-vig.zymarg-vig-ar-4-5  { --zymarg-vig-aspect-ratio: 4 / 5; }
+body.wse-stylesheet-enabled .zymarg-vig.zymarg-vig-ar-3-4  { --zymarg-vig-aspect-ratio: 3 / 4; }
+body.wse-stylesheet-enabled .zymarg-vig.zymarg-vig-ar-16-9 { --zymarg-vig-aspect-ratio: 16 / 9; }
+body.wse-stylesheet-enabled .zymarg-vig.zymarg-vig-ar-auto { --zymarg-vig-aspect-ratio: auto; }
+
+/* ─── Per-device thumb visibility (responsive toggles) ──────────────────── */
+/* prefix_class on the widget root toggles -yes / -no; CSS hides the
+   thumb strip in the matching breakpoint when the value is -no. */
+
+@media ( min-width: 1025px ) {
+	body.wse-stylesheet-enabled .zymarg-vig-thumbs-d-no .zymarg-vig-thumbs {
+		display: none;
+	}
+}
+@media ( min-width: 769px ) and ( max-width: 1024px ) {
+	body.wse-stylesheet-enabled .zymarg-vig-thumbs-t-no .zymarg-vig-thumbs {
+		display: none;
+	}
+}
+@media ( max-width: 768px ) {
+	body.wse-stylesheet-enabled .zymarg-vig-thumbs-m-no .zymarg-vig-thumbs {
+		display: none;
+	}
+}
+
+/* ─── Sticky main image (desktop) ───────────────────────────────────────── */
+
+@media ( min-width: 1025px ) {
+	body.wse-stylesheet-enabled .zymarg-vig-sticky-yes .zymarg-vig-main-wrap {
+		position:   sticky;
+		top:        24px;
+		align-self: flex-start;
+	}
+}
+
+/* ─── Reduced motion ────────────────────────────────────────────────────── */
+
+@media ( prefers-reduced-motion: reduce ) {
+	body.wse-stylesheet-enabled .zymarg-vig-thumb,
+	body.wse-stylesheet-enabled .zymarg-vig-main-img {
+		transition: none !important;
+	}
+	body.wse-stylesheet-enabled .zymarg-vig-thumb:hover,
+	body.wse-stylesheet-enabled .zymarg-vig-thumb:focus-visible {
+		transform: none;
+	}
+}
+
+/* ─── Zoom lens (placeholder — Phase 4 implements behaviour) ────────────── */
+
+body.wse-stylesheet-enabled .zymarg-vig-zoom-lens {
+	display:        none;          /* JS shows it on hover */
+	position:       absolute;
+	pointer-events: none;
+	border:         1px solid var( --zymarg-vig-active-color );
+	background:     rgba( 255, 255, 255, .15 );
+	border-radius:  4px;
 }
