@@ -337,8 +337,11 @@
 			$img.css( 'transform-origin', pctX + '% ' + pctY + '%' );
 			$img.css( 'transform', 'scale(' + ZOOM_FACTOR + ')' );
 
-			// Position lens following cursor.
-			var lensSize = 80;
+			// Position lens following cursor. Read size from CSS var so the
+			// Style → Zoom Lens → Lens size control takes effect at runtime.
+			var lensVar  = getComputedStyle( $main[0] ).getPropertyValue( '--zymarg-vig-lens-size' ).trim();
+			var lensSize = parseInt( lensVar, 10 );
+			if ( isNaN( lensSize ) || lensSize < 20 ) { lensSize = 80; }
 			$lens.css( {
 				width:  lensSize + 'px',
 				height: lensSize + 'px',

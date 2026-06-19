@@ -107,8 +107,14 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 		$this->register_section_image();
 		$this->register_section_variation_sync();
 		$this->register_section_animation();
-		// Phase 4 will add: register_section_lightbox().
-		// Phase 5 will add: full Style tab sections.
+
+		// Phase 5 — Style tab sections.
+		$this->register_section_style_main_image();
+		$this->register_section_style_thumbs();
+		$this->register_section_style_zoom_lens();
+		$this->register_section_style_sale_badge();
+		$this->register_section_style_dots();
+		$this->register_section_style_lightbox();
 	}
 
 	private function register_section_product(): void {
@@ -437,6 +443,530 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 
 		$this->end_controls_section();
 	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// Phase 5 — Style tab sections
+	// ─────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Style → Main Image.
+	 *
+	 * Targets the hero image figure (.zymarg-vig-main) and the <img> inside
+	 * (.zymarg-vig-main-img). Padding, radius, border, shadow apply to the
+	 * figure wrapper; object-fit applies to the inner image.
+	 */
+	private function register_section_style_main_image(): void {
+
+		$this->start_controls_section(
+			'section_style_main_image',
+			array(
+				'label' => esc_html__( 'Main Image', 'woo-swatches-elementor' ),
+				'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		$this->add_responsive_control( 'main_padding', array(
+			'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em', '%' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-vig-main' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_control( 'main_radius_px', array(
+			'label'      => esc_html__( 'Border radius', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::SLIDER,
+			'range'      => array( 'px' => array( 'min' => 0, 'max' => 64, 'step' => 1 ) ),
+			'default'    => array( 'unit' => 'px', 'size' => 8 ),
+			'description' => esc_html__( 'Sets --zymarg-vig-radius (used by both main image and thumbs at 75%% scale).', 'woo-swatches-elementor' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-vig' => '--zymarg-vig-radius: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Border::get_type(),
+			array(
+				'name'     => 'main_border',
+				'selector' => '{{WRAPPER}} .zymarg-vig-main',
+			)
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Box_Shadow::get_type(),
+			array(
+				'name'     => 'main_shadow',
+				'selector' => '{{WRAPPER}} .zymarg-vig-main',
+			)
+		);
+
+		$this->add_control( 'main_object_fit', array(
+			'label'   => esc_html__( 'Image fit', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SELECT,
+			'default' => 'cover',
+			'options' => array(
+				'cover'   => esc_html__( 'Cover (crop to fill — industry default)', 'woo-swatches-elementor' ),
+				'contain' => esc_html__( 'Contain (fit inside — show full image)',   'woo-swatches-elementor' ),
+			),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-main-img' => 'object-fit: {{VALUE}};',
+			),
+		) );
+
+		$this->end_controls_section();
+	}
+
+	/**
+	 * Style → Thumbnails.
+	 *
+	 * Tabs Normal / Hover / Active so each state can be styled separately.
+	 * Active state writes to --zymarg-vig-active-color / --active-width
+	 * which are also used by the zoom lens border.
+	 */
+	private function register_section_style_thumbs(): void {
+
+		$this->start_controls_section(
+			'section_style_thumbs',
+			array(
+				'label' => esc_html__( 'Thumbnails', 'woo-swatches-elementor' ),
+				'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		$this->add_responsive_control( 'thumbs_size_px', array(
+			'label'          => esc_html__( 'Thumbnail size', 'woo-swatches-elementor' ),
+			'type'           => \Elementor\Controls_Manager::SLIDER,
+			'range'          => array( 'px' => array( 'min' => 32, 'max' => 200, 'step' => 1 ) ),
+			'default'        => array( 'unit' => 'px', 'size' => 72 ),
+			'tablet_default' => array( 'unit' => 'px', 'size' => 64 ),
+			'mobile_default' => array( 'unit' => 'px', 'size' => 56 ),
+			'selectors'      => array(
+				'{{WRAPPER}} .zymarg-vig' => '--zymarg-vig-thumbs-size: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'thumbs_gap_px', array(
+			'label'          => esc_html__( 'Gap between thumbs', 'woo-swatches-elementor' ),
+			'type'           => \Elementor\Controls_Manager::SLIDER,
+			'range'          => array( 'px' => array( 'min' => 0, 'max' => 32, 'step' => 1 ) ),
+			'default'        => array( 'unit' => 'px', 'size' => 8 ),
+			'mobile_default' => array( 'unit' => 'px', 'size' => 6 ),
+			'selectors'      => array(
+				'{{WRAPPER}} .zymarg-vig' => '--zymarg-vig-thumbs-gap: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_control( 'thumbs_radius', array(
+			'label'      => esc_html__( 'Thumb border radius', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::SLIDER,
+			'range'      => array( 'px' => array( 'min' => 0, 'max' => 64, 'step' => 1 ), '%' => array( 'min' => 0, 'max' => 50, 'step' => 1 ) ),
+			'size_units' => array( 'px', '%' ),
+			'default'    => array( 'unit' => 'px', 'size' => 6 ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-vig-thumb, {{WRAPPER}} .zymarg-vig-thumb-img' => 'border-radius: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->start_controls_tabs( 'tabs_thumb_states' );
+
+		// ── Normal ────────────────────────────────────────────────────────
+		$this->start_controls_tab( 'tab_thumb_normal', array(
+			'label' => esc_html__( 'Normal', 'woo-swatches-elementor' ),
+		) );
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Border::get_type(),
+			array(
+				'name'     => 'thumb_border',
+				'selector' => '{{WRAPPER}} .zymarg-vig-thumb',
+			)
+		);
+
+		$this->add_control( 'thumb_opacity', array(
+			'label'   => esc_html__( 'Opacity', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SLIDER,
+			'range'   => array( 'px' => array( 'min' => 0.2, 'max' => 1, 'step' => 0.05 ) ),
+			'default' => array( 'unit' => 'px', 'size' => 1 ),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-thumb' => 'opacity: {{SIZE}};',
+			),
+		) );
+
+		$this->end_controls_tab();
+
+		// ── Hover ─────────────────────────────────────────────────────────
+		$this->start_controls_tab( 'tab_thumb_hover', array(
+			'label' => esc_html__( 'Hover', 'woo-swatches-elementor' ),
+		) );
+
+		$this->add_control( 'thumb_hover_border_color', array(
+			'label'   => esc_html__( 'Hover border color', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::COLOR,
+			'default' => '#bd00d1',
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-thumb:hover, {{WRAPPER}} .zymarg-vig-thumb:focus-visible' => 'border-color: {{VALUE}};',
+			),
+		) );
+
+		$this->add_control( 'thumb_hover_opacity', array(
+			'label'   => esc_html__( 'Hover opacity', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SLIDER,
+			'range'   => array( 'px' => array( 'min' => 0.2, 'max' => 1, 'step' => 0.05 ) ),
+			'default' => array( 'unit' => 'px', 'size' => 1 ),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-thumb:hover' => 'opacity: {{SIZE}};',
+			),
+		) );
+
+		$this->add_control( 'thumb_hover_lift_px', array(
+			'label'   => esc_html__( 'Hover lift (px)', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SLIDER,
+			'range'   => array( 'px' => array( 'min' => 0, 'max' => 8, 'step' => 1 ) ),
+			'default' => array( 'unit' => 'px', 'size' => 0 ),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-thumb:hover' => 'transform: translateY(-{{SIZE}}{{UNIT}});',
+			),
+		) );
+
+		$this->end_controls_tab();
+
+		// ── Active ────────────────────────────────────────────────────────
+		$this->start_controls_tab( 'tab_thumb_active', array(
+			'label' => esc_html__( 'Active', 'woo-swatches-elementor' ),
+		) );
+
+		$this->add_control( 'thumb_active_color', array(
+			'label'   => esc_html__( 'Active border color', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::COLOR,
+			'default' => '#9500a5',
+			'description' => esc_html__( 'ZYMARG Primary by default. Also used by the zoom lens border.', 'woo-swatches-elementor' ),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig' => '--zymarg-vig-active-color: {{VALUE}};',
+			),
+		) );
+
+		$this->add_control( 'thumb_active_width', array(
+			'label'   => esc_html__( 'Active border width', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SLIDER,
+			'range'   => array( 'px' => array( 'min' => 1, 'max' => 6, 'step' => 1 ) ),
+			'default' => array( 'unit' => 'px', 'size' => 2 ),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig' => '--zymarg-vig-active-width: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_control( 'thumb_active_opacity', array(
+			'label'   => esc_html__( 'Active opacity', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SLIDER,
+			'range'   => array( 'px' => array( 'min' => 0.2, 'max' => 1, 'step' => 0.05 ) ),
+			'default' => array( 'unit' => 'px', 'size' => 1 ),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-thumb.is-active' => 'opacity: {{SIZE}};',
+			),
+		) );
+
+		$this->end_controls_tab();
+
+		$this->end_controls_tabs();
+
+		$this->end_controls_section();
+	}
+
+	/**
+	 * Style → Zoom Lens.
+	 *
+	 * Visible only when Display → "Show hover-zoom lens" is on. Size is
+	 * exposed as the CSS var --zymarg-vig-lens-size which gallery.js reads
+	 * back; the rest are pure CSS overrides on .zymarg-vig-zoom-lens.
+	 */
+	private function register_section_style_zoom_lens(): void {
+
+		$this->start_controls_section(
+			'section_style_zoom_lens',
+			array(
+				'label'     => esc_html__( 'Zoom Lens', 'woo-swatches-elementor' ),
+				'tab'       => \Elementor\Controls_Manager::TAB_STYLE,
+				'condition' => array( 'show_zoom' => 'yes' ),
+			)
+		);
+
+		$this->add_control( 'lens_size_px', array(
+			'label'   => esc_html__( 'Lens size', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SLIDER,
+			'range'   => array( 'px' => array( 'min' => 40, 'max' => 240, 'step' => 4 ) ),
+			'default' => array( 'unit' => 'px', 'size' => 80 ),
+			'description' => esc_html__( 'Read by gallery.js via --zymarg-vig-lens-size.', 'woo-swatches-elementor' ),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig' => '--zymarg-vig-lens-size: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_control( 'lens_shape', array(
+			'label'   => esc_html__( 'Lens shape', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SELECT,
+			'default' => 'square',
+			'options' => array(
+				'square' => esc_html__( 'Rounded square', 'woo-swatches-elementor' ),
+				'circle' => esc_html__( 'Circle',         'woo-swatches-elementor' ),
+			),
+			'selectors_dictionary' => array(
+				'square' => '4px',
+				'circle' => '50%',
+			),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-zoom-lens' => 'border-radius: {{VALUE}};',
+			),
+		) );
+
+		$this->add_control( 'lens_bg', array(
+			'label'   => esc_html__( 'Lens background', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::COLOR,
+			'default' => 'rgba(255,255,255,0.15)',
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-zoom-lens' => 'background: {{VALUE}};',
+			),
+		) );
+
+		$this->add_control( 'lens_border_color', array(
+			'label'   => esc_html__( 'Lens border color', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::COLOR,
+			'default' => '',
+			'description' => esc_html__( 'Leave empty to inherit from active color.', 'woo-swatches-elementor' ),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-zoom-lens' => 'border-color: {{VALUE}};',
+			),
+		) );
+
+		$this->add_control( 'lens_border_width', array(
+			'label'   => esc_html__( 'Lens border width', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SLIDER,
+			'range'   => array( 'px' => array( 'min' => 0, 'max' => 4, 'step' => 1 ) ),
+			'default' => array( 'unit' => 'px', 'size' => 1 ),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-zoom-lens' => 'border-width: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->end_controls_section();
+	}
+
+	/**
+	 * Style → Sale Badge.
+	 *
+	 * Visible only when Display → "Sale badge overlay" is on. Position
+	 * uses prefix-class on the widget wrapper to switch corners.
+	 */
+	private function register_section_style_sale_badge(): void {
+
+		$this->start_controls_section(
+			'section_style_sale_badge',
+			array(
+				'label'     => esc_html__( 'Sale Badge', 'woo-swatches-elementor' ),
+				'tab'       => \Elementor\Controls_Manager::TAB_STYLE,
+				'condition' => array( 'show_sale_badge' => 'yes' ),
+			)
+		);
+
+		$this->add_control( 'sale_badge_position', array(
+			'label'   => esc_html__( 'Position', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SELECT,
+			'default' => 'top_left',
+			'options' => array(
+				'top_left'     => esc_html__( 'Top left',     'woo-swatches-elementor' ),
+				'top_right'    => esc_html__( 'Top right',    'woo-swatches-elementor' ),
+				'bottom_left'  => esc_html__( 'Bottom left',  'woo-swatches-elementor' ),
+				'bottom_right' => esc_html__( 'Bottom right', 'woo-swatches-elementor' ),
+			),
+			'prefix_class' => 'zymarg-vig-badge-',
+		) );
+
+		$this->add_control( 'sale_badge_bg', array(
+			'label'     => esc_html__( 'Background', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::COLOR,
+			'default'   => '#9500a5',
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-sale-badge' => 'background: {{VALUE}};',
+			),
+		) );
+
+		$this->add_control( 'sale_badge_color', array(
+			'label'     => esc_html__( 'Text color', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::COLOR,
+			'default'   => '#ffffff',
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-sale-badge' => 'color: {{VALUE}};',
+			),
+		) );
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'sale_badge_typography',
+				'selector' => '{{WRAPPER}} .zymarg-vig-sale-badge',
+			)
+		);
+
+		$this->add_responsive_control( 'sale_badge_padding', array(
+			'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-vig-sale-badge' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_control( 'sale_badge_radius', array(
+			'label'      => esc_html__( 'Border radius', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::SLIDER,
+			'range'      => array( 'px' => array( 'min' => 0, 'max' => 32, 'step' => 1 ), '%' => array( 'min' => 0, 'max' => 50, 'step' => 1 ) ),
+			'size_units' => array( 'px', '%' ),
+			'default'    => array( 'unit' => 'px', 'size' => 4 ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-vig-sale-badge' => 'border-radius: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Box_Shadow::get_type(),
+			array(
+				'name'     => 'sale_badge_shadow',
+				'selector' => '{{WRAPPER}} .zymarg-vig-sale-badge',
+			)
+		);
+
+		$this->end_controls_section();
+	}
+
+	/**
+	 * Style → Carousel Dots (mobile).
+	 *
+	 * Always available so it shows up even on desktop preview. The dots
+	 * themselves only appear at mobile bp + show_dots = yes (CSS-gated).
+	 */
+	private function register_section_style_dots(): void {
+
+		$this->start_controls_section(
+			'section_style_dots',
+			array(
+				'label' => esc_html__( 'Carousel Dots (mobile)', 'woo-swatches-elementor' ),
+				'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		$this->add_control( 'dot_size', array(
+			'label'   => esc_html__( 'Dot size', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SLIDER,
+			'range'   => array( 'px' => array( 'min' => 4, 'max' => 16, 'step' => 1 ) ),
+			'default' => array( 'unit' => 'px', 'size' => 8 ),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig' => '--zymarg-vig-dot-size: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_control( 'dot_gap', array(
+			'label'   => esc_html__( 'Gap between dots', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SLIDER,
+			'range'   => array( 'px' => array( 'min' => 2, 'max' => 16, 'step' => 1 ) ),
+			'default' => array( 'unit' => 'px', 'size' => 6 ),
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-dots' => 'gap: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_control( 'dot_color', array(
+			'label'   => esc_html__( 'Dot color', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::COLOR,
+			'default' => '#d8bfd3',
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig' => '--zymarg-vig-dot-color: {{VALUE}};',
+			),
+		) );
+
+		$this->add_control( 'dot_active_color', array(
+			'label'   => esc_html__( 'Active dot color', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::COLOR,
+			'default' => '#9500a5',
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig' => '--zymarg-vig-dot-active-color: {{VALUE}};',
+			),
+		) );
+
+		$this->end_controls_section();
+	}
+
+	/**
+	 * Style → Lightbox.
+	 *
+	 * The lightbox is a body-level shared modal injected by gallery.js, so
+	 * we scope styles by .zymarg-vig-lightbox (no {{WRAPPER}} prefix would
+	 * apply globally; we keep WRAPPER for parity since multiple gallery
+	 * instances per page is rare and Elementor will inject its own
+	 * specificity).
+	 */
+	private function register_section_style_lightbox(): void {
+
+		$this->start_controls_section(
+			'section_style_lightbox',
+			array(
+				'label'     => esc_html__( 'Lightbox', 'woo-swatches-elementor' ),
+				'tab'       => \Elementor\Controls_Manager::TAB_STYLE,
+				'condition' => array( 'show_lightbox' => 'yes' ),
+			)
+		);
+
+		$this->add_control( 'lightbox_backdrop', array(
+			'label'   => esc_html__( 'Backdrop color', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::COLOR,
+			'default' => 'rgba(19,27,46,0.92)',
+			'description' => esc_html__( 'ZYMARG Text Body at 92%% opacity by default.', 'woo-swatches-elementor' ),
+			'selectors' => array(
+				'.zymarg-vig-lightbox' => 'background: {{VALUE}};',
+			),
+		) );
+
+		$this->add_control( 'lightbox_btn_color', array(
+			'label'   => esc_html__( 'Close / arrow icon color', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::COLOR,
+			'default' => '#ffffff',
+			'selectors' => array(
+				'.zymarg-vig-lb-close, .zymarg-vig-lb-arrow' => 'color: {{VALUE}};',
+			),
+		) );
+
+		$this->add_control( 'lightbox_btn_bg', array(
+			'label'   => esc_html__( 'Close / arrow background', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::COLOR,
+			'default' => 'rgba(255,255,255,0.12)',
+			'selectors' => array(
+				'.zymarg-vig-lb-close, .zymarg-vig-lb-arrow' => 'background: {{VALUE}};',
+			),
+		) );
+
+		$this->add_control( 'lightbox_btn_hover_bg', array(
+			'label'   => esc_html__( 'Close / arrow hover background', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::COLOR,
+			'default' => 'rgba(255,255,255,0.24)',
+			'selectors' => array(
+				'.zymarg-vig-lb-close:hover, .zymarg-vig-lb-arrow:hover, .zymarg-vig-lb-close:focus-visible, .zymarg-vig-lb-arrow:focus-visible' => 'background: {{VALUE}};',
+			),
+		) );
+
+		$this->add_control( 'lightbox_counter_color', array(
+			'label'   => esc_html__( 'Counter color', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::COLOR,
+			'default' => 'rgba(255,255,255,0.85)',
+			'selectors' => array(
+				'.zymarg-vig-lb-counter' => 'color: {{VALUE}};',
+			),
+		) );
+
+		$this->end_controls_section();
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// Helpers
+	// ─────────────────────────────────────────────────────────────────────
 
 	/**
 	 * Returns a label-value array of all registered image sizes.

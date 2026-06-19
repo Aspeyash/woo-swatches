@@ -27,6 +27,10 @@ body.wse-stylesheet-enabled .zymarg-vig {
 	--zymarg-vig-placeholder-bg:      #eaedff;       /* ZYMARG Surface Container */
 	--zymarg-vig-transition-ms:       200;
 	--zymarg-vig-radius:              8px;
+	--zymarg-vig-lens-size:           80px;          /* Read by gallery.js */
+	--zymarg-vig-dot-size:            8px;
+	--zymarg-vig-dot-color:           #d8bfd3;       /* ZYMARG Outline Variant */
+	--zymarg-vig-dot-active-color:    #9500a5;       /* ZYMARG Primary */
 
 	display:        block;
 	width:          100%;
@@ -165,6 +169,9 @@ body.wse-stylesheet-enabled .zymarg-vig-main--lightbox {
 }
 
 /* ─── Sale badge overlay ────────────────────────────────────────────────── */
+/* Position is driven by .zymarg-vig-badge-{top_left|top_right|bottom_left|
+   bottom_right} prefix-class on the widget root (Style → Sale Badge →
+   Position). Defaults to top-left when no class is present. */
 
 body.wse-stylesheet-enabled .zymarg-vig-sale-badge {
 	position:       absolute;
@@ -182,6 +189,20 @@ body.wse-stylesheet-enabled .zymarg-vig-sale-badge {
 	text-transform: uppercase;
 	border-radius:  4px;
 	box-shadow:     0 2px 6px rgba( 149, 0, 165, .25 );
+}
+
+/* Position variants — each clears all 4 sides then sets just two. */
+body.wse-stylesheet-enabled .zymarg-vig-badge-top_left .zymarg-vig-sale-badge {
+	top: 12px; left: 12px; right: auto; bottom: auto;
+}
+body.wse-stylesheet-enabled .zymarg-vig-badge-top_right .zymarg-vig-sale-badge {
+	top: 12px; right: 12px; left: auto; bottom: auto;
+}
+body.wse-stylesheet-enabled .zymarg-vig-badge-bottom_left .zymarg-vig-sale-badge {
+	bottom: 12px; left: 12px; top: auto; right: auto;
+}
+body.wse-stylesheet-enabled .zymarg-vig-badge-bottom_right .zymarg-vig-sale-badge {
+	bottom: 12px; right: 12px; top: auto; left: auto;
 }
 
 /* ─── Aspect ratio variants ─────────────────────────────────────────────── */
