@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.3.3
+Stable tag: 1.3.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,47 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.3.4 =
+**Critical patch: prefix_class controls now actually work.**
+
+Drop-in replacement for v1.3.3, no DB migration. Update strongly recommended for everyone on v1.3.x — fixes a serious regression introduced in v1.3.3 that hid all thumbnails on desktop, plus a long-standing latent bug where the Aspect Ratio dropdown only worked at its default value.
+
+**Root cause** (single architectural fix that resolves multiple symptoms):
+
+Elementor's `prefix_class` control parameter applies the class to the widget's **OUTER** wrapper element (`.elementor-widget-…`), not to the inner `.zymarg-vig` div that the gallery's CSS selectors target. The compound CSS rules `.zymarg-vig.zymarg-vig-ar-16-9` therefore never matched (the two classes lived on different elements). 7 different controls were affected: `aspect_ratio`, `show_thumbs_desktop / _tablet / _mobile`, `sticky_main_desktop`, `counter_position`, `sale_badge_position`. Symptoms varied by control:
+* `aspect_ratio` — only the default (1:1) ever worked, dropdown choice for 4:5 / 3:4 / 16:9 / Auto did nothing
+* `show_thumbs_*` — never worked in v1.0–v1.3.2; v1.3.3's `:not(.X-yes)` "fix" actually made it worse, since `:not()` always evaluated true on `.zymarg-vig` (the `-yes` class is on the parent, never on `.zymarg-vig` itself), hiding thumbs unconditionally on desktop
+* `sticky_main_desktop`, `counter_position`, `sale_badge_position` — non-default values silently ignored
+
+**Fix**
+
+`render()` in `class-widget-variation-image-gallery.php` now mirrors all 7 prefix_class-driven classes onto the inner `.zymarg-vig` div explicitly:
+
+```php
+'zymarg-vig-ar-'           . sanitize_html_class( $settings['aspect_ratio']        ?? '1-1' ),
+'zymarg-vig-thumbs-d-'     . ( ( $settings['show_thumbs_desktop'] ?? 'yes' ) === 'yes' ? 'yes' : 'no' ),
+'zymarg-vig-thumbs-t-'     . ( ( $settings['show_thumbs_tablet']  ?? 'yes' ) === 'yes' ? 'yes' : 'no' ),
+'zymarg-vig-thumbs-m-'     . ( ( $settings['show_thumbs_mobile']  ?? 'yes' ) === 'yes' ? 'yes' : 'no' ),
+'zymarg-vig-sticky-'       . ( ( $settings['sticky_main_desktop'] ?? 'yes' ) === 'yes' ? 'yes' : 'no' ),
+'zymarg-vig-counter-pos-'  . sanitize_html_class( $settings['counter_position']    ?? 'bottom_left' ),
+'zymarg-vig-badge-'        . sanitize_html_class( $settings['sale_badge_position'] ?? 'top_left' ),
+```
+
+The compound selectors `.zymarg-vig.zymarg-vig-X` now match because both classes live on the same element. v1.3.3's `:not(.X-yes)` thumb-toggle CSS reverted to the original `.X-no` form (now correct because the `-no` class is explicitly emitted by PHP).
+
+The `prefix_class` parameter on each control is intentionally kept (so Elementor's editor live-preview can react quickly when the user toggles a value); the duplicate class on the outer wrapper is harmless.
+
+**Files changed**
+
+* `widgets/class-widget-variation-image-gallery.php` — 7 mirror classes added to `$wrapper_classes`
+* `assets/css/gallery.css` (+ .min) — 3 thumb-toggle rules reverted from `:not(.X-yes)` to compound `.X-no`
+* `woo-swatches-elementor.php` — Version 1.3.4
+* `readme.txt` — Stable tag, Changelog, Upgrade Notice
+
+**Migration**
+
+Drop-in replacement for v1.3.3. No DB schema changes, no settings reset. After install: hard-refresh (Ctrl+F5) + Elementor → Tools → Regenerate CSS + Hostinger Cache Manager → Purge All. Then verify: the Aspect Ratio dropdown should respect 4:5 / 3:4 / 16:9 / Auto choices, and the Show Thumbnails Desktop/Tablet/Mobile toggles should hide and show thumbs as labeled.
 
 = 1.3.3 =
 **Patch: 2 critical fixes + 7 gallery polish items.**
@@ -760,6 +801,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.3.4 =
+Critical patch. Fixes 7 prefix_class-driven controls that were silently broken or actively misbehaving: aspect_ratio dropdown (only 1:1 worked), show_thumbs_desktop/tablet/mobile toggles (made worse by v1.3.3 — hid thumbs on every widget), sticky_main_desktop, counter_position, sale_badge_position. Root cause was Elementor's prefix_class lands on the outer widget wrapper while the CSS targeted compound selectors on the inner div. v1.3.4 mirrors the prefix-class classes onto the inner div from PHP render() so the existing CSS rules now work as intended. Drop-in replacement for v1.3.3, no DB migration. Hard-refresh + Regenerate CSS after install IS MANDATORY.
 
 = 1.3.3 =
 Patch + polish. 2 critical fixes: (B1) "Show thumbnails Desktop/Tablet/Mobile" toggles now actually work (CSS class mismatch was masking them), (B2) sale dot on swatches retired with belt-and-braces CSS override that defeats stale caches. 7 gallery polish items: bulletproof 1:1 default with CSS fallback, keyboard nav now scrolls thumb strip to keep active thumb visible, mobile main-image touch swipe works on ALL layouts (not just mobile_carousel), counter rendered inside the figure so it's always anchored to the visible image, mobile_carousel cleanup (no stacked thumbs, no dots), thumb strip width never exceeds main image width, and a layout-audit pass adding gaps to tablet vertical and mobile stacked layouts. Drop-in replacement for v1.3.2, no DB migration. Hard-refresh + Regenerate CSS after install IS MANDATORY (browser cache may serve pre-v1.3.3 CSS otherwise).
