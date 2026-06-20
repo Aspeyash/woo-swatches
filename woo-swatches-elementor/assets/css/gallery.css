@@ -170,7 +170,11 @@ body.wse-stylesheet-enabled .zymarg-vig-main {
 	background:     var( --zymarg-vig-placeholder-bg );
 	border-radius:  var( --zymarg-vig-radius );
 	overflow:       hidden;
-	aspect-ratio:   var( --zymarg-vig-aspect-ratio );
+	/* v1.3.3 (F1) — Fallback to 1/1 if the CSS var is somehow unset.
+	   Keeps the main image bulletproof-square by default; users can still
+	   override via Image → Aspect ratio (which sets --zymarg-vig-aspect-
+	   ratio via the .zymarg-vig-ar-* prefix class). */
+	aspect-ratio:   var( --zymarg-vig-aspect-ratio, 1 / 1 );
 }
 
 body.wse-stylesheet-enabled .zymarg-vig-main-img {
@@ -236,22 +240,26 @@ body.wse-stylesheet-enabled .zymarg-vig.zymarg-vig-ar-16-9 { --zymarg-vig-aspect
 body.wse-stylesheet-enabled .zymarg-vig.zymarg-vig-ar-auto { --zymarg-vig-aspect-ratio: auto; }
 
 /* ─── Per-device thumb visibility (responsive toggles) ──────────────────── */
-/* prefix_class on the widget root toggles -yes / -no; CSS hides the
-   thumb strip in the matching breakpoint when the value is -no. */
+/* prefix_class on the widget root toggles -yes / (none); CSS hides the
+   thumb strip in the matching breakpoint when the -yes class is ABSENT.
+   v1.3.3 (B1) — Fixed from `.zymarg-vig-thumbs-d-no` (which never matched
+   since Elementor's Switcher with return_value='yes' produces either the
+   `-yes` class or no class at all) to a `:not(.-yes)` rule that correctly
+   hides the strip when the toggle is OFF. */
 
 @media ( min-width: 1025px ) {
-	body.wse-stylesheet-enabled .zymarg-vig-thumbs-d-no .zymarg-vig-thumbs {
-		display: none;
+	body.wse-stylesheet-enabled .zymarg-vig:not(.zymarg-vig-thumbs-d-yes) .zymarg-vig-thumbs {
+		display: none !important;
 	}
 }
 @media ( min-width: 769px ) and ( max-width: 1024px ) {
-	body.wse-stylesheet-enabled .zymarg-vig-thumbs-t-no .zymarg-vig-thumbs {
-		display: none;
+	body.wse-stylesheet-enabled .zymarg-vig:not(.zymarg-vig-thumbs-t-yes) .zymarg-vig-thumbs {
+		display: none !important;
 	}
 }
 @media ( max-width: 768px ) {
-	body.wse-stylesheet-enabled .zymarg-vig-thumbs-m-no .zymarg-vig-thumbs {
-		display: none;
+	body.wse-stylesheet-enabled .zymarg-vig:not(.zymarg-vig-thumbs-m-yes) .zymarg-vig-thumbs {
+		display: none !important;
 	}
 }
 
@@ -308,15 +316,31 @@ body.wse-stylesheet-enabled .zymarg-vig--layout-d-horizontal_above .zymarg-vig-l
 /* When in horizontal layout, the thumbs strip is now horizontal too. */
 body.wse-stylesheet-enabled .zymarg-vig--layout-d-horizontal_below .zymarg-vig-thumbs--vertical,
 body.wse-stylesheet-enabled .zymarg-vig--layout-d-horizontal_above .zymarg-vig-thumbs--vertical {
-	flex-direction:  row;
-	max-height:      none;
-	max-width:       100%;
-	overflow-x:      auto;
-	overflow-y:      visible;
-	padding-right:   0;
-	padding-bottom:  0;          /* v1.3.2 — no scrollbar reserved (hidden) */
-	scrollbar-width: none;        /* Firefox */
-	-ms-overflow-style: none;     /* IE / legacy Edge */
+	flex-direction:    row;
+	flex-wrap:         nowrap;     /* v1.3.3 (F6) — never wrap; overflow scrolls */
+	max-height:        none;
+	width:             100%;       /* v1.3.3 (F6) — match parent (main-wrap) width */
+	max-width:         100%;       /* never exceed main image width */
+	box-sizing:        border-box;
+	overflow-x:        auto;
+	overflow-y:        visible;
+	padding-right:     0;
+	padding-bottom:    0;
+	scrollbar-width:   none;
+	-ms-overflow-style: none;
+}
+
+/* v1.3.3 (F6) — In horizontal layouts the layout's flex column means each
+   child takes 100% of the column width. We constrain the column itself
+   to honor the main image's natural width by giving both children
+   (.zymarg-vig-main-wrap and .zymarg-vig-thumbs) the same `width: 100%`
+   AND adding `max-width: 100%` on the layout container. The visible
+   main image's aspect-ratio: 1/1 then dictates how wide the column
+   actually is at runtime; thumbs naturally honor that. */
+body.wse-stylesheet-enabled .zymarg-vig--layout-d-horizontal_below .zymarg-vig-layout--vertical,
+body.wse-stylesheet-enabled .zymarg-vig--layout-d-horizontal_above .zymarg-vig-layout--vertical {
+	max-width:    100%;
+	box-sizing:   border-box;
 }
 
 /* ─── Phase 3: Layout family — Stacked vertical ─────────────────────────── */
@@ -373,18 +397,25 @@ body.wse-stylesheet-enabled .zymarg-vig-layout--grid .zymarg-vig-main {
 	}
 	body.wse-stylesheet-enabled .zymarg-vig--layout-t-vertical_left .zymarg-vig-layout--vertical {
 		flex-direction: row;
+		gap:            16px;       /* v1.3.3 (F7) — match desktop spacing */
 	}
 	body.wse-stylesheet-enabled .zymarg-vig--layout-t-vertical_right .zymarg-vig-layout--vertical {
 		flex-direction: row-reverse;
+		gap:            16px;
 	}
 
 	body.wse-stylesheet-enabled .zymarg-vig--layout-t-horizontal_below .zymarg-vig-thumbs--vertical,
 	body.wse-stylesheet-enabled .zymarg-vig--layout-t-horizontal_above .zymarg-vig-thumbs--vertical {
 		flex-direction:  row;
+		flex-wrap:       nowrap;     /* v1.3.3 (F6) */
 		max-height:      none;
+		width:           100%;       /* v1.3.3 (F6) — match parent (main-wrap) */
 		max-width:       100%;
+		box-sizing:      border-box;
 		overflow-x:      auto;
 		overflow-y:      visible;
+		scrollbar-width: none;        /* hide scrollbar at tablet too */
+		-ms-overflow-style: none;
 		padding-right:   0;
 		padding-bottom:  4px;
 	}
@@ -446,11 +477,25 @@ body.wse-stylesheet-enabled .zymarg-vig-layout--grid .zymarg-vig-main {
 		padding:         0;
 	}
 
+	/* v1.3.3 (F5) — Hide the stacked thumbs strip on mobile_carousel.
+	   Per ZYMARG product-owner decision, mobile_carousel is now a clean
+	   "swipe carousel + counter only" layout — no thumb rail, no dots. */
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_carousel .zymarg-vig-thumbs--vertical {
+		display: none !important;
+	}
+
+	/* v1.3.3 (F5) — Hide the carousel dots on mobile_carousel. The counter
+	   (1 / N) replaces them since it's more informative and doesn't take
+	   visual space outside the image. */
+	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_carousel .zymarg-vig-dots {
+		display: none !important;
+	}
+
 	/* Stack thumbs full-width on mobile so each is easily tappable. */
 	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_carousel .zymarg-vig-thumb {
 		width:           100%;
 		height:          auto;
-		aspect-ratio:    var( --zymarg-vig-aspect-ratio );
+		aspect-ratio:    var( --zymarg-vig-aspect-ratio, 1 / 1 );
 		max-height:      120px;   /* cap so the thumb list isn't a huge scroll */
 	}
 
@@ -461,18 +506,27 @@ body.wse-stylesheet-enabled .zymarg-vig-layout--grid .zymarg-vig-main {
 	}
 	body.wse-stylesheet-enabled .zymarg-vig--layout-m-mobile_stacked .zymarg-vig-layout--vertical {
 		flex-direction: column;
+		gap:            12px;       /* v1.3.3 (F7) — visual breathing room between stacked images */
 	}
 
 	/* mobile_layout = horizontal_below: standard horizontal thumb strip
 	   below main on mobile. */
 	body.wse-stylesheet-enabled .zymarg-vig--layout-m-horizontal_below .zymarg-vig-layout--vertical {
 		flex-direction: column;
+		max-width:      100%;        /* v1.3.3 (F6) */
+		box-sizing:     border-box;
 	}
 	body.wse-stylesheet-enabled .zymarg-vig--layout-m-horizontal_below .zymarg-vig-thumbs--vertical {
 		flex-direction:  row;
+		flex-wrap:       nowrap;     /* v1.3.3 (F6) */
 		max-height:      none;
+		width:           100%;       /* match main-wrap width */
+		max-width:       100%;
+		box-sizing:      border-box;
 		overflow-x:      auto;
 		overflow-y:      visible;
+		scrollbar-width: none;
+		-ms-overflow-style: none;
 	}
 
 	/* v1.3.2 — mobile_layout = horizontal_above: same as horizontal_below
@@ -481,12 +535,20 @@ body.wse-stylesheet-enabled .zymarg-vig-layout--grid .zymarg-vig-main {
 	   touching template DOM. */
 	body.wse-stylesheet-enabled .zymarg-vig--layout-m-horizontal_above .zymarg-vig-layout--vertical {
 		flex-direction: column-reverse;
+		max-width:      100%;        /* v1.3.3 (F6) */
+		box-sizing:     border-box;
 	}
 	body.wse-stylesheet-enabled .zymarg-vig--layout-m-horizontal_above .zymarg-vig-thumbs--vertical {
 		flex-direction:  row;
+		flex-wrap:       nowrap;     /* v1.3.3 (F6) */
 		max-height:      none;
+		width:           100%;       /* v1.3.3 (F6) — match main-wrap width */
+		max-width:       100%;
+		box-sizing:      border-box;
 		overflow-x:      auto;
 		overflow-y:      visible;
+		scrollbar-width: none;
+		-ms-overflow-style: none;
 	}
 
 	/* Sticky main image off on mobile regardless of desktop setting —
@@ -519,6 +581,7 @@ body.wse-stylesheet-enabled .zymarg-vig-layout--grid .zymarg-vig-main {
 */
 body.wse-stylesheet-enabled .zymarg-vig-carousel {
 	display:                    none;     /* default — only mobile_carousel mobile bp shows it */
+	position:                   relative; /* v1.3.3 (F4) — anchor for .zymarg-vig-counter--carousel */
 	width:                      100%;
 	flex-direction:             row;
 	gap:                        0;
@@ -537,7 +600,7 @@ body.wse-stylesheet-enabled .zymarg-vig-carousel-slide {
 	scroll-snap-stop:   always;
 	background:         var( --zymarg-vig-placeholder-bg );
 	border-radius:      var( --zymarg-vig-radius );
-	aspect-ratio:       var( --zymarg-vig-aspect-ratio );
+	aspect-ratio:       var( --zymarg-vig-aspect-ratio, 1 / 1 );
 	overflow:           hidden;
 }
 

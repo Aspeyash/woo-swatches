@@ -637,35 +637,37 @@ body.wse-stylesheet-enabled .wse-qty-btn:active:not(:disabled) {
 	background:    #fea9ff;          /* ZYMARG Inverse Primary */
 }
 
-/* ─── v1.2.1 (S2) — Sale dot on swatches ────────────────────────────────── */
-/* When a variation is on sale, the swatch <li> carries the wse-on-sale
-   class added by the swatch renderer. Renders a small ZYMARG-purple dot
-   in the upper-right corner so customers can see at a glance which
-   options are discounted. */
+/* ─── v1.3.3 (B2) — Sale dot RETIRED ────────────────────────────────────── */
+/* v1.2.1 introduced a small purple dot indicator on swatches whose
+   variation was on sale. v1.2.3 made it toggleable via a global setting,
+   but per ZYMARG product-owner decision the indicator is no longer wanted
+   (visually noisy on small image swatches, and the on-sale state is
+   already communicated by the price widget's smart heading + sale badge).
+   v1.3.2 disabled it at the PHP level (renderer hardcodes is_on_sale
+   => false so the wse-on-sale class is never added). v1.3.3 removes the
+   visual rules entirely AND adds an !important override that defeats any
+   stale CSS cache or 3rd-party code that adds the class.
+
+   Kept (no-op): .wse-swatch.wse-on-sale's position:relative — harmless.
+   Removed: the ::after dot rendering on both base and image swatches.
+*/
 
 body.wse-stylesheet-enabled .wse-swatch.wse-on-sale {
 	position: relative;
 }
 
-body.wse-stylesheet-enabled .wse-swatch.wse-on-sale::after {
-	content:        '';
-	position:       absolute;
-	top:            -2px;
-	right:          -2px;
-	width:          8px;
-	height:         8px;
-	border-radius:  50%;
-	background:     #9500a5;          /* ZYMARG Primary */
-	box-shadow:     0 0 0 1.5px #ffffff;
-	z-index:        2;
-	pointer-events: none;
-}
-
-/* Make the dot a touch larger on image swatches so it's visible against
-   the image content. */
-body.wse-stylesheet-enabled .wse-swatch-image.wse-on-sale::after {
-	width:  10px;
-	height: 10px;
+/* Defeats stale CSS caches that still serve the old dot rule. */
+body.wse-stylesheet-enabled .wse-swatch.wse-on-sale::after,
+body.wse-stylesheet-enabled .wse-swatch-image.wse-on-sale::after,
+body.wse-stylesheet-enabled .wse-swatch-color.wse-on-sale::after,
+body.wse-stylesheet-enabled .wse-swatch-label.wse-on-sale::after,
+body.wse-stylesheet-enabled .wse-swatch-button.wse-on-sale::after {
+	content:    none !important;
+	display:    none !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	width:      0 !important;
+	height:     0 !important;
 }
 
 
