@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.3.2
+Stable tag: 1.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,57 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.3.3 =
+**Patch: 2 critical fixes + 7 gallery polish items.**
+
+Drop-in replacement for v1.3.2, no DB migration. Update strongly recommended for everyone on v1.3.x.
+
+**Bug fixes**
+
+* **B1 — "Show thumbnails Desktop / Tablet / Mobile" toggles did nothing.** v1.2.x added these per-device switchers to the Layout section (Content tab) but the CSS never matched the actual class Elementor produced. Root cause: CSS rule was `.zymarg-vig-thumbs-d-no` (matching the `-no` class for OFF state), but Elementor's Switcher with `return_value: 'yes'` produces either `.zymarg-vig-thumbs-d-yes` (ON) or **no class at all** (OFF). The `-no` class never existed, so the rule never matched, so the toggle did nothing. Fix: rewrote the three rules as `:not(.zymarg-vig-thumbs-d-yes)` / `-t-yes` / `-m-yes` to correctly hide the thumb strip when the `-yes` class is absent. Each rule also gets `display: none !important` so 3rd-party CSS can't override it.
+
+* **B2 — Sale dot still showing on swatches despite v1.3.2 retirement.** The PHP layer was correct (renderer hardcoded `is_on_sale => false`), but the **CSS rules for `.wse-on-sale::after` still existed in `add-to-cart.css`**. If the class got added by anything (3rd-party code, stale cache, hot-reload), the dot rendered. v1.3.3 belt-and-braces: replaced the dot CSS with an explicit `content: none !important; display: none !important; background: transparent !important; box-shadow: none !important; width: 0 !important; height: 0 !important;` override that defeats every cached / 3rd-party version of the rule across all swatch types (color, image, label, button). The dot can never render again.
+
+**Gallery polish**
+
+* **F1 — Force 1:1 main image (bulletproof).** The aspect-ratio dropdown still defaults to 1:1 (you can change it for power-user use cases like portrait products), but the underlying CSS now uses `aspect-ratio: var(--zymarg-vig-aspect-ratio, 1 / 1)` with an explicit fallback in all three usages (main figure, mobile_carousel slide, mobile_carousel inner main). If the variable somehow becomes unset, 1:1 remains in force. Combined with `object-fit: cover` (existing) and `width: 100%; height: 100%` on the inner `<img>`, any image that's not 1:1 is cleanly cropped to a centered square.
+
+* **F2 — Keyboard navigation now scrolls the thumb strip into view.** Previously when the gallery had more thumbs than the visible strip area, pressing → repeatedly would correctly switch the main image to thumb 6, 7, 8 etc. but the strip's scroll position never updated, so the active thumb (now beyond the visible area) became invisible. Fix: new `scrollThumbsToActive()` helper called from `switchToIndex()` that uses direct `el.scrollLeft / scrollTop` math (NOT `scrollIntoView()` — that walks all scrollable ancestors including the page itself, risking page jumps) to **center the active thumb in its strip without ever scrolling the page**. Works for both vertical and horizontal thumb strips; respects `prefers-reduced-motion`.
+
+* **F3 — Mobile main image swipe (touch) for ALL layouts.** v1.3.2's swipe was only enabled in `mobile_carousel` layout via the `.zymarg-vig-carousel` scroll-snap strip. For `horizontal_below`, `horizontal_above`, `mobile_stacked` — the main image was a single static figure with no swipe. v1.3.3 adds a new `bindMainSwipe()` JS handler that attaches `touchstart/move/end` to the `.zymarg-vig-main` figure and calls `navigate()` on horizontal swipes ≥ 50px (with ≤ 60px vertical tolerance so accidental vertical scrolls don't trigger). Works on every layout, every breakpoint, including touch-enabled laptops.
+
+* **F4 — Image counter rendered INSIDE the figure (always relative to the visible image).** v1.3.2 placed the counter inside `.zymarg-vig-main-wrap`, which had subtle positioning issues in `horizontal_above` layout (column-reverse flips). v1.3.3 moves the counter span into `templates/gallery/main-image.php` so it's a child of the `<figure class="zymarg-vig-main">` itself. The figure has `position: relative` and matches the visible image bounds exactly; the counter's absolute coords are now unambiguous regardless of layout. For `mobile_carousel` (where the figure is hidden and a carousel takes over), a SECOND counter is rendered inside `.zymarg-vig-carousel` (which gets `position: relative`). JS's `updateImageCounter()` now uses `.each()` to keep both counters in sync; CSS `@media` shows whichever is visible at the current breakpoint.
+
+* **F5 — Mobile carousel cleanup: no thumb rail, no dots.** Per ZYMARG product-owner decision, `mobile_carousel` layout is now a clean "swipe carousel + counter only" — no stacked thumbs strip below, no dot indicators. Two new CSS rules with `!important` lock both `.zymarg-vig-thumbs--vertical` and `.zymarg-vig-dots` to `display: none` when the layout is `mobile_carousel`. The image counter `1 / N` replaces the dots since it's more informative.
+
+* **F6 — Thumbnail strip width never exceeds main image width.** Previously in horizontal layouts (above / below) on tablet and mobile the thumb strip stretched to the full container width even when the main image (with `aspect-ratio: 1/1`) was narrower, creating an off-balanced look. v1.3.3 adds `width: 100%; max-width: 100%; box-sizing: border-box; flex-wrap: nowrap` to all 6 horizontal-thumb-strip rules (desktop / tablet / mobile × below / above) so the strip honors its parent's width and overflows horizontally with hidden scrollbar instead of stretching beyond it. Plus `max-width: 100%; box-sizing: border-box` on the layout container itself.
+
+* **F7 — Layout audit fixes.** Reviewed all 6 desktop × 6 tablet × 4 mobile layout combinations. Two small gaps fixed:
+  - Tablet `vertical_left` / `vertical_right` now have `gap: 16px` between thumb strip and main image (matching desktop spacing).
+  - Mobile `mobile_stacked` now has `gap: 12px` between stacked images for visual breathing room.
+
+  Other layouts verified working: desktop sticky-main is correctly gated to `min-width: 1025px` (not inherited at tablet); grid layouts collapse to 1-column at tablet via existing rule; tablet sticky control isn't needed (desktop-only by spec).
+
+**Architecture note**
+
+Counter rendering moved from layout templates to `main-image.php` (the leaf template), so all three layouts (vertical-thumbs, stacked, grid) get the counter automatically. JS `updateImageCounter()` was generalized from `.first()` to `.each()` so the per-layout structure (single counter inside figure, OR figure-counter + carousel-counter for mobile_carousel) is transparent to the navigation code. Total `gallery.js` growth: 844 → 971 LOC.
+
+**Files changed**
+
+* `assets/js/gallery.js` (+ .min) — F2 `scrollThumbsToActive`, F3 `bindMainSwipe`, F4 multi-counter sync
+* `assets/css/gallery.css` (+ .min) — B1 toggle fix, F1 aspect-ratio fallback, F5 carousel cleanup, F6 width constraints, F7 layout gaps, F4 carousel position-relative
+* `assets/css/add-to-cart.css` (+ .min) — B2 sale dot belt-and-braces removal
+* `templates/gallery/main-image.php` — F4 counter rendered inside figure
+* `templates/gallery/layouts/vertical-thumbs.php` — F4 pass counter args + carousel-counter
+* `templates/gallery/layouts/stacked.php` — F4 pass counter args (first image only)
+* `templates/gallery/layouts/grid.php` — F4 pass counter args (first image only)
+* `woo-swatches-elementor.php` — Version 1.3.3
+* `readme.txt` — Stable tag, Changelog, Upgrade Notice
+
+**Migration**
+
+Drop-in replacement for v1.3.2. No DB schema changes, no settings reset. After install: hard-refresh (Ctrl+F5), Elementor → Tools → Regenerate CSS, Hostinger Cache Manager → Purge All. The hard-refresh + cache clear is **mandatory** for B2 (sale dot) — the dot may still appear if the browser serves a cached pre-v1.3.3 `add-to-cart.css`.
 
 = 1.3.2 =
 **Patch: 2 critical fixes + 6 gallery features + 2 UX upgrades.**
@@ -709,6 +760,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.3.3 =
+Patch + polish. 2 critical fixes: (B1) "Show thumbnails Desktop/Tablet/Mobile" toggles now actually work (CSS class mismatch was masking them), (B2) sale dot on swatches retired with belt-and-braces CSS override that defeats stale caches. 7 gallery polish items: bulletproof 1:1 default with CSS fallback, keyboard nav now scrolls thumb strip to keep active thumb visible, mobile main-image touch swipe works on ALL layouts (not just mobile_carousel), counter rendered inside the figure so it's always anchored to the visible image, mobile_carousel cleanup (no stacked thumbs, no dots), thumb strip width never exceeds main image width, and a layout-audit pass adding gaps to tablet vertical and mobile stacked layouts. Drop-in replacement for v1.3.2, no DB migration. Hard-refresh + Regenerate CSS after install IS MANDATORY (browser cache may serve pre-v1.3.3 CSS otherwise).
 
 = 1.3.2 =
 Patch + features. Critical fixes: smart heading + savings line no longer disappear after page load on variable on-sale products (price.js refactored to surgical DOM updates); sale dot on swatches retired (was showing despite the toggle being off). Gallery widget gets 6 new features: scoped fieldset padding, hidden scrollbar on thumb strips, "Horizontal above" added to mobile layout dropdown, REAL mobile swipe carousel (v1.3.0/v1.3.1 only had 1 image to swipe through), full keyboard nav (Up/Down + Home/End + roving tabindex), and image counter overlay with editable format string ({current} / {total}). Plus 2 UX upgrades: lightbox swipe gestures and mouse drag-to-scroll on thumbnails. Drop-in replacement for v1.3.1, no DB migration. Hard-refresh + Regenerate CSS after install.
