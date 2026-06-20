@@ -31,12 +31,18 @@ if ( empty( $images ) ) {
 		echo WSE_Widget_Variation_Image_Gallery::include_template( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			'main-image.php',
 			array(
-				'image'           => $img,
-				'show_zoom'       => ! empty( $show_zoom ),
-				'show_lightbox'   => ! empty( $show_lightbox ),
-				'show_sale_badge' => ! empty( $show_sale_badge ) && 0 === $i,
-				'sale_badge_text' => (string) ( $sale_badge_text ?? '' ),
-				'is_on_sale'      => ! empty( $is_on_sale ) && 0 === $i,
+				'image'                => $img,
+				'show_zoom'            => ! empty( $show_zoom ),
+				'show_lightbox'        => ! empty( $show_lightbox ),
+				'show_sale_badge'      => ! empty( $show_sale_badge ) && 0 === $i,
+				'sale_badge_text'      => (string) ( $sale_badge_text ?? '' ),
+				'is_on_sale'           => ! empty( $is_on_sale ) && 0 === $i,
+				// v1.3.3 (F4) — Counter only on first image (grid shows all
+				// images at once; one counter is enough).
+				'show_image_counter'   => ! empty( $show_image_counter ) && 0 === $i,
+				'image_counter_format' => (string) ( $image_counter_format ?? '{current} / {total}' ),
+				'active_index'         => $i,
+				'total_count'          => count( $images ),
 			)
 		);
 		?>

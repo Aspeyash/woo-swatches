@@ -58,12 +58,18 @@ $_active = absint( $active_index ?? 0 );
 		echo WSE_Widget_Variation_Image_Gallery::include_template( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			'main-image.php',
 			array(
-				'image'           => $images[ $_active ] ?? $images[0],
-				'show_zoom'       => ! empty( $show_zoom ),
-				'show_lightbox'   => ! empty( $show_lightbox ),
-				'show_sale_badge' => ! empty( $show_sale_badge ),
-				'sale_badge_text' => (string) ( $sale_badge_text ?? '' ),
-				'is_on_sale'      => ! empty( $is_on_sale ),
+				'image'                => $images[ $_active ] ?? $images[0],
+				'show_zoom'            => ! empty( $show_zoom ),
+				'show_lightbox'        => ! empty( $show_lightbox ),
+				'show_sale_badge'      => ! empty( $show_sale_badge ),
+				'sale_badge_text'      => (string) ( $sale_badge_text ?? '' ),
+				'is_on_sale'           => ! empty( $is_on_sale ),
+				// v1.3.3 (F4) — Counter inside the figure so it's always
+				// positioned relative to the visible main image bounds.
+				'show_image_counter'   => ! empty( $show_image_counter ),
+				'image_counter_format' => (string) ( $image_counter_format ?? '{current} / {total}' ),
+				'active_index'         => $_active,
+				'total_count'          => count( $images ),
 			)
 		);
 		?>
@@ -107,25 +113,29 @@ $_active = absint( $active_index ?? 0 );
 							decoding="async"/>
 					</figure>
 				<?php endforeach; ?>
-			</div><!-- .zymarg-vig-carousel -->
-		<?php endif; ?>
 
-		<?php /* v1.3.2 (F6) — Image counter overlay. JS keeps the
-		         {current} / {total} text in sync. CSS gates visibility
-		         to mobile + tablet bps. */ ?>
-		<?php if ( ! empty( $show_image_counter ) && count( $images ) > 1 ) : ?>
-			<span class="zymarg-vig-counter"
-				data-format="<?php echo esc_attr( $image_counter_format ?? '{current} / {total}' ); ?>"
-				data-total="<?php echo absint( count( $images ) ); ?>"
-				aria-live="polite">
-				<?php
-				echo esc_html( str_replace(
-					array( '{current}', '{total}' ),
-					array( (string) ( $_active + 1 ), (string) count( $images ) ),
-					(string) ( $image_counter_format ?? '{current} / {total}' )
-				) );
-				?>
-			</span>
+				<?php /* v1.3.3 (F4) — Counter for the mobile_carousel
+				         layout: lives inside the carousel container so
+				         its position:absolute coords are relative to
+				         the carousel viewport, matching the currently
+				         centered slide. The figure's counter (rendered
+				         by main-image.php) stays hidden on this layout
+				         since the figure itself is hidden. */ ?>
+				<?php if ( ! empty( $show_image_counter ) && count( $images ) > 1 ) : ?>
+					<span class="zymarg-vig-counter zymarg-vig-counter--carousel"
+						data-format="<?php echo esc_attr( $image_counter_format ?? '{current} / {total}' ); ?>"
+						data-total="<?php echo absint( count( $images ) ); ?>"
+						aria-live="polite">
+						<?php
+						echo esc_html( str_replace(
+							array( '{current}', '{total}' ),
+							array( (string) ( $_active + 1 ), (string) count( $images ) ),
+							(string) ( $image_counter_format ?? '{current} / {total}' )
+						) );
+						?>
+					</span>
+				<?php endif; ?>
+			</div><!-- .zymarg-vig-carousel -->
 		<?php endif; ?>
 
 	</div><!-- .zymarg-vig-main-wrap -->

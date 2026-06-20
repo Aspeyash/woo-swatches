@@ -111,6 +111,7 @@
 		bindCarouselDots( state );
 		bindCarouselScroll( state );      // v1.3.2 (F4)
 		bindThumbDragScroll( state );     // v1.3.2 (S3)
+		bindMainSwipe( state );           // v1.3.3 (F3) — touch swipe on main image
 		bindZoomLens( state );
 		bindLightboxOpener( state );
 
@@ -281,6 +282,12 @@
 			scrollCarouselToIndex( state, index );
 		}
 
+		// v1.3.3 (F2) — Always scroll the thumb strip so the new active
+		// thumb is visible, regardless of how the navigation happened
+		// (arrow key, swipe, dot click, programmatic). Centers the thumb
+		// in the strip without jumping the page.
+		scrollThumbsToActive( state );
+
 		// v1.3.2 (F5) — Focus the new active thumb so arrow keys keep
 		// firing without the user needing to re-tab. Only when explicitly
 		// requested (thumb click, keyboard nav) — not on every variation
@@ -300,18 +307,72 @@
 	// ─────────────────────────────────────────────────────────────────────
 
 	function updateImageCounter( state ) {
-		var $counter = state.$widget.find( '.zymarg-vig-counter' ).first();
-		if ( ! $counter.length ) { return; }
+		// v1.3.3 (F4) — Update ALL counters in the widget, not just the
+		// first. Layouts may render multiple (e.g. mobile_carousel renders
+		// one inside the figure for non-carousel viewports + one inside
+		// the carousel for the carousel viewport; CSS shows whichever is
+		// visible at the current breakpoint). All read their format from
+		// data-format and their total from the current image list.
+		var $counters = state.$widget.find( '.zymarg-vig-counter' );
+		if ( ! $counters.length ) { return; }
 
 		var imageList = state.images[ state.currentKey ];
 		if ( ! imageList ) { return; }
 
-		var format = $counter.attr( 'data-format' ) || '{current} / {total}';
-		var text   = format
-			.replace( /\{current\}/g, String( state.currentIndex + 1 ) )
-			.replace( /\{total\}/g,   String( imageList.length ) );
+		$counters.each( function () {
+			var $c = $( this );
+			var format = $c.attr( 'data-format' ) || '{current} / {total}';
+			var text   = format
+				.replace( /\{current\}/g, String( state.currentIndex + 1 ) )
+				.replace( /\{total\}/g,   String( imageList.length ) );
+			$c.text( text );
+			$c.attr( 'data-total', String( imageList.length ) );
+		} );
+	}
 
-		$counter.text( text );
+	/**
+	 * v1.3.3 (F2) — Scroll the active thumb into view inside the thumb
+	 * strip's scroll container. Uses direct scrollLeft / scrollTop math
+	 * rather than scrollIntoView() so the page itself never jumps when
+	 * the gallery is partially in viewport. Centers the active thumb in
+	 * the strip when possible.
+	 *
+	 * Called from switchToIndex after the new active class + tabindex
+	 * are applied, so the .is-active selector resolves to the just-
+	 * activated thumb.
+	 */
+	function scrollThumbsToActive( state ) {
+		var $thumbs = state.$widget.find( '.zymarg-vig-thumbs' ).first();
+		var $active = state.$widget.find( '.zymarg-vig-thumb.is-active' ).first();
+		if ( ! $thumbs.length || ! $active.length ) { return; }
+
+		var strip = $thumbs[0];
+		var thumb = $active[0];
+		if ( ! strip || ! thumb ) { return; }
+
+		// Only scroll if the strip is actually scrollable (otherwise it's
+		// a no-op and we save an unnecessary scrollTo call).
+		var hHorizontal = strip.scrollWidth  > strip.clientWidth;
+		var hVertical   = strip.scrollHeight > strip.clientHeight;
+		if ( ! hHorizontal && ! hVertical ) { return; }
+
+		var behavior = REDUCE_MOTION ? 'auto' : 'smooth';
+
+		if ( hHorizontal ) {
+			// Center the active thumb horizontally inside the strip.
+			var targetX = thumb.offsetLeft - ( strip.clientWidth - thumb.clientWidth ) / 2;
+			targetX = Math.max( 0, Math.min( strip.scrollWidth - strip.clientWidth, targetX ) );
+			try { strip.scrollTo( { left: targetX, behavior: behavior } ); }
+			catch ( e ) { strip.scrollLeft = targetX; }
+		}
+
+		if ( hVertical ) {
+			// Center the active thumb vertically inside the strip.
+			var targetY = thumb.offsetTop - ( strip.clientHeight - thumb.clientHeight ) / 2;
+			targetY = Math.max( 0, Math.min( strip.scrollHeight - strip.clientHeight, targetY ) );
+			try { strip.scrollTo( { top: targetY, behavior: behavior } ); }
+			catch ( e ) { strip.scrollTop = targetY; }
+		}
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
@@ -571,6 +632,72 @@
 	// ─────────────────────────────────────────────────────────────────────
 	// Hover-zoom lens (desktop only — Amazon-style magnifier)
 	// ─────────────────────────────────────────────────────────────────────
+
+	// ─────────────────────────────────────────────────────────────────────
+	// v1.3.3 (F3) — Touch swipe on the main image figure
+	//
+	// In v1.3.2 we added swipe via the .zymarg-vig-carousel scroll-snap
+	// strip (mobile_carousel layout only). For all OTHER mobile layouts
+	// (horizontal_below, horizontal_above, mobile_stacked) the main image
+	// is a single static figure with no swipe. v1.3.3 adds direct touch-
+	// swipe handlers on the figure so any layout can be navigated by
+	// swiping. Same threshold logic as the lightbox swipe: ≥ 50px
+	// horizontal travel + ≤ 60px vertical travel to register.
+	//
+	// The handler is BOUND on every device (not just mobile-detected) so
+	// touch-enabled laptops / Surface devices work too. The carousel-
+	// scroll observer (bindCarouselScroll) is independent and handles
+	// mobile_carousel layout's scroll-snap on its own; the two don't
+	// conflict because in mobile_carousel the .zymarg-vig-main figure is
+	// hidden via CSS, so touchstart on it never fires there.
+	// ─────────────────────────────────────────────────────────────────────
+
+	function bindMainSwipe( state ) {
+		var $main = state.$widget.find( '.zymarg-vig-main' ).first();
+		if ( ! $main.length ) { return; }
+
+		var startX  = 0;
+		var startY  = 0;
+		var tracking = false;
+		var SWIPE_THRESHOLD       = 50; // px horizontal travel required
+		var SWIPE_VERTICAL_TOLER  = 60; // px max vertical travel
+
+		$main.on( 'touchstart.wseMainSwipe', function ( e ) {
+			var t = e.originalEvent && e.originalEvent.touches && e.originalEvent.touches[0];
+			if ( ! t ) { return; }
+			startX   = t.clientX;
+			startY   = t.clientY;
+			tracking = true;
+		} );
+
+		$main.on( 'touchmove.wseMainSwipe', function ( e ) {
+			if ( ! tracking ) { return; }
+			var t = e.originalEvent && e.originalEvent.touches && e.originalEvent.touches[0];
+			if ( ! t ) { return; }
+			var dx = Math.abs( t.clientX - startX );
+			var dy = Math.abs( t.clientY - startY );
+			// If horizontal gesture is dominant, prevent default so the
+			// page doesn't scroll vertically while we're swiping. Let
+			// vertical-dominant gestures pass through (page scroll wins).
+			if ( dx > dy && dx > 10 ) {
+				e.preventDefault();
+			}
+		} );
+
+		$main.on( 'touchend.wseMainSwipe touchcancel.wseMainSwipe', function ( e ) {
+			if ( ! tracking ) { return; }
+			tracking = false;
+			var t = e.originalEvent && e.originalEvent.changedTouches && e.originalEvent.changedTouches[0];
+			if ( ! t ) { return; }
+			var dx = t.clientX - startX;
+			var dy = t.clientY - startY;
+			if ( Math.abs( dx ) >= SWIPE_THRESHOLD && Math.abs( dy ) <= SWIPE_VERTICAL_TOLER ) {
+				// Swipe LEFT (dx negative) → next image
+				// Swipe RIGHT (dx positive) → previous image
+				navigate( state, dx < 0 ? +1 : -1, { focusThumb: false } );
+			}
+		} );
+	}
 
 	function bindZoomLens( state ) {
 		var $main = state.$widget.find( '.zymarg-vig-main--zoomable' ).first();

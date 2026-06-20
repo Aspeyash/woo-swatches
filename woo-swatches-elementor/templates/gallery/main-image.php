@@ -24,6 +24,16 @@
  *   @var string $sale_badge_text   Sale badge label text.
  *   @var bool   $is_on_sale        Is the current variation/product on sale?
  *
+ *   v1.3.3 (F4) — Counter overlay args (optional, default off). Renders
+ *   the image-counter span INSIDE the figure so it's positioned relative
+ *   to the actual visible image bounds, not the surrounding main-wrap
+ *   (which can shift in horizontal_above and other layouts).
+ *
+ *   @var bool   $show_image_counter   Counter overlay enabled?
+ *   @var string $image_counter_format Counter format (e.g. "{current} / {total}").
+ *   @var int    $active_index         Zero-based index of currently shown image.
+ *   @var int    $total_count          Total images in the current variation set.
+ *
  * @package WooSwatchesElementor
  * @since   1.3.0
  */
@@ -65,6 +75,32 @@ if ( $show_lightbox ) {
 
 	<?php if ( $show_zoom ) : ?>
 		<span class="zymarg-vig-zoom-lens" aria-hidden="true"></span>
+	<?php endif; ?>
+
+	<?php /* v1.3.3 (F4) — Counter overlay rendered INSIDE the figure so
+	         its position:absolute coords are relative to the actual
+	         visible main image (not the surrounding main-wrap which can
+	         have different bounds in horizontal_above and other layouts).
+	         CSS @media gates visibility to mobile + tablet bps. */ ?>
+	<?php
+	$_show_counter = ! empty( $show_image_counter ?? false );
+	$_total_count  = (int) ( $total_count ?? 0 );
+	if ( $_show_counter && $_total_count > 1 ) :
+		$_fmt    = (string) ( $image_counter_format ?? '{current} / {total}' );
+		$_active = (int) ( $active_index ?? 0 );
+		?>
+		<span class="zymarg-vig-counter"
+			data-format="<?php echo esc_attr( $_fmt ); ?>"
+			data-total="<?php echo absint( $_total_count ); ?>"
+			aria-live="polite">
+			<?php
+			echo esc_html( str_replace(
+				array( '{current}', '{total}' ),
+				array( (string) ( $_active + 1 ), (string) $_total_count ),
+				$_fmt
+			) );
+			?>
+		</span>
 	<?php endif; ?>
 
 </figure>
