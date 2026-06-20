@@ -1121,6 +1121,21 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 			'zymarg-vig--layout-t-' . $tablet_layout,
 			'zymarg-vig--layout-m-' . $mobile_layout,
 			'zymarg-vig--transition-' . sanitize_html_class( $settings['transition_type'] ?? 'fade' ),
+
+			// v1.3.4 — Mirror prefix_class-driven controls onto the inner
+			// .zymarg-vig div. Elementor's prefix_class attribute lands the
+			// class on its OUTER widget wrapper (.elementor-widget-…), not
+			// on .zymarg-vig — so compound CSS selectors like
+			// `.zymarg-vig.zymarg-vig-ar-16-9` never matched. Mirroring
+			// the classes here makes the existing CSS rules work without
+			// rewriting them as descendant selectors.
+			'zymarg-vig-ar-'          . sanitize_html_class( (string) ( $settings['aspect_ratio']        ?? '1-1' ) ),
+			'zymarg-vig-thumbs-d-'    . ( ( $settings['show_thumbs_desktop'] ?? 'yes' ) === 'yes' ? 'yes' : 'no' ),
+			'zymarg-vig-thumbs-t-'    . ( ( $settings['show_thumbs_tablet']  ?? 'yes' ) === 'yes' ? 'yes' : 'no' ),
+			'zymarg-vig-thumbs-m-'    . ( ( $settings['show_thumbs_mobile']  ?? 'yes' ) === 'yes' ? 'yes' : 'no' ),
+			'zymarg-vig-sticky-'      . ( ( $settings['sticky_main_desktop'] ?? 'yes' ) === 'yes' ? 'yes' : 'no' ),
+			'zymarg-vig-counter-pos-' . sanitize_html_class( (string) ( $settings['counter_position']    ?? 'bottom_left' ) ),
+			'zymarg-vig-badge-'       . sanitize_html_class( (string) ( $settings['sale_badge_position'] ?? 'top_left' ) ),
 		);
 
 		// ── Form coordination data attrs ──────────────────────────────────

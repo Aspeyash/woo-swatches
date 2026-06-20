@@ -240,25 +240,26 @@ body.wse-stylesheet-enabled .zymarg-vig.zymarg-vig-ar-16-9 { --zymarg-vig-aspect
 body.wse-stylesheet-enabled .zymarg-vig.zymarg-vig-ar-auto { --zymarg-vig-aspect-ratio: auto; }
 
 /* ─── Per-device thumb visibility (responsive toggles) ──────────────────── */
-/* prefix_class on the widget root toggles -yes / (none); CSS hides the
-   thumb strip in the matching breakpoint when the -yes class is ABSENT.
-   v1.3.3 (B1) — Fixed from `.zymarg-vig-thumbs-d-no` (which never matched
-   since Elementor's Switcher with return_value='yes' produces either the
-   `-yes` class or no class at all) to a `:not(.-yes)` rule that correctly
-   hides the strip when the toggle is OFF. */
+/* v1.3.4 — Driven by .zymarg-vig-thumbs-{d,t,m}-{yes,no} mirror classes
+   that PHP render() now emits onto .zymarg-vig directly (Elementor's
+   prefix_class lands on the OUTER widget wrapper, so v1.3.3's :not()
+   approach hid thumbs on every widget — see B1 in 1.3.4 changelog).
+   Each rule uses a compound selector `.zymarg-vig.zymarg-vig-thumbs-X-no`
+   that now correctly matches because both classes are on the same .zymarg-vig
+   element. */
 
 @media ( min-width: 1025px ) {
-	body.wse-stylesheet-enabled .zymarg-vig:not(.zymarg-vig-thumbs-d-yes) .zymarg-vig-thumbs {
+	body.wse-stylesheet-enabled .zymarg-vig.zymarg-vig-thumbs-d-no .zymarg-vig-thumbs {
 		display: none !important;
 	}
 }
 @media ( min-width: 769px ) and ( max-width: 1024px ) {
-	body.wse-stylesheet-enabled .zymarg-vig:not(.zymarg-vig-thumbs-t-yes) .zymarg-vig-thumbs {
+	body.wse-stylesheet-enabled .zymarg-vig.zymarg-vig-thumbs-t-no .zymarg-vig-thumbs {
 		display: none !important;
 	}
 }
 @media ( max-width: 768px ) {
-	body.wse-stylesheet-enabled .zymarg-vig:not(.zymarg-vig-thumbs-m-yes) .zymarg-vig-thumbs {
+	body.wse-stylesheet-enabled .zymarg-vig.zymarg-vig-thumbs-m-no .zymarg-vig-thumbs {
 		display: none !important;
 	}
 }
