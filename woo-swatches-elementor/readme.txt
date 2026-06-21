@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.3.4
+Stable tag: 1.3.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,60 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.3.5 =
+**Patch + features: 2 critical bug fixes + 4 features.**
+
+Drop-in replacement for v1.3.4. No DB schema changes; legacy integer values for the 12 admin width controls are treated as px automatically (back-compat handled via new `wse_sanitize_css_length()` helper).
+
+**Bug fixes**
+
+* **B1 — "Show Clear Button" toggle did nothing.** Pre-1.3.5 the toggle in the Widget 1 Elementor controls was being read from settings but never applied — `templates/swatches/wrapper.php` unconditionally rendered the `<a class="wse-reset-link">` element. Fix: wired through a new `wse_show_clear_button` filter following the same tier-0 pattern as `wse_clear_button_text` / `wse_choose_option_placeholder` / `wse_oos_label_suffix`. The widget's `render()` adds the filter at start (returning 'yes' or 'no' based on the `show_clear` setting) and removes it at end. `wrapper.php` checks the filter and skips the element when 'no'.
+
+* **B2 — Image swatch label position dropdown only "Below" worked.** The other three options (`above` / `hover` / `hidden`) silently did nothing despite the CSS rules existing. Two compounding root causes:
+  - The class `wse-image-label-pos-X` was only added to `.wse-attr-block` when `'image' === $swatch_type`. Local-attribute type detection sometimes returns a different string (or empty), so the gate skipped image-detected swatches.
+  - The CSS rules had no `!important`, losing specificity battles with theme styles (Astra) and Elementor per-instance Style controls.
+  
+  Fix: belt-and-braces. (1) Always emit `wse-image-label-pos-X` on every `.wse-attr-block` regardless of detected swatch_type — the CSS only does anything for elements that contain `.wse-swatch-image-label`, so harmless on non-image attributes. (2) Bumped specificity with `!important` on the 3 active position rules (`above`, `hover`, `hidden`).
+
+**Features**
+
+* **F1 — Horizontal scroll for image swatches (per-device responsive).** New three-group control set in Widget 1 → Content → Swatches → "Image Swatches — Horizontal Scroll":
+
+  - **Enable horizontal scroll** (3 switchers: Desktop / Tablet / Mobile) — defaults D=OFF, T=ON, M=ON. When ON, the image-type swatches container changes from `flex-wrap: wrap` to a single-row horizontal scroll strip with `scroll-snap-type: x proximity`. Each swatch becomes `flex: 0 0 auto; scroll-snap-align: start` so swipes settle on swatch boundaries.
+  - **Show scrollbar** (3 switchers) — defaults all OFF. When OFF, the scrollbar chrome is hidden via `::-webkit-scrollbar { display:none }` + `scrollbar-width: none` (Firefox) + `-ms-overflow-style: none` (IE/legacy Edge). Swipe still works either way; OFF gives a cleaner Amazon/Nike-style look. Conditional on the matching enable-scroll switcher being ON.
+  - **Auto-scroll active swatch into view** (3 switchers) — defaults all OFF (opt-in). When ON for a breakpoint and a swatch off-screen is selected, JS smooth-scrolls the strip's `scrollLeft` to center the active swatch in the visible area. Uses direct `scrollLeft` math (NOT `scrollIntoView()` which walks all scrollable ancestors and risks page jumps).
+
+  CSS uses the prefix-class-on-outer-wrapper pattern that descendant selectors handle naturally — no v1.3.4-style mirror-class workaround needed since these are descendant rules, not compound selectors. JS handler in `swatches.js` (`_maybeScrollActiveIntoView`) reads the per-breakpoint classes off the Elementor outer wrapper at click time.
+
+* **F2 — Quantity stepper full-width per-device switchers.** New 3 switchers in Widget 2 → Style → Quantity Stepper Buttons → top of the Sizing subsection: "Full Width Stepper — Desktop / Tablet / Mobile" (defaults all OFF). Independent of the existing `qty_stepper_width_mode` SELECT (which keeps its `auto / custom / full` options for backwards compat). When ON for a breakpoint, CSS applies `width: 100%` on `.wse-qty-stepper` plus `flex: 1 1 auto` on the qty input inside the matching `@media` query. Quick discoverable shortcut matching the existing "Add to Cart Full Width" pattern.
+
+* **F3 — "Hidden" added as third Label Position option.** The general `label_position` dropdown (Widget 1 → Content → Label) gains a third option `Hidden` alongside the existing `Above swatches` / `Beside swatches`. New CSS rule `body.wse-stylesheet-enabled .wse-label-hidden .wse-attr-label-row { display: none !important }`. Complements the existing `show_label` Yes/No toggle by giving users a third position option that's natural inside the dropdown.
+
+* **F4 — Admin width controls accept multiple units.** All 12 fields under WC → Settings → WooSwatches → Display → Swatch Sizes (color / image / label / button × desktop / tablet / mobile) changed from `type: 'number'` to `type: 'text'`. Each accepts any CSS length: `32px`, `10%`, `2em`, `1.5rem`. Defaults to `px` if no unit is given. Legacy stored integer values (pre-1.3.5) get treated as `px` automatically via the new `wse_sanitize_css_length()` helper that:
+  - Validates input against `^(\d+(?:\.\d+)?)(px|%|em|rem)$`
+  - Falls back to the field's default if invalid
+  - Normalizes `32.0px` → `32px`
+  - Treats plain integers as px (back-compat)
+
+  The CSS-generation code in `class-assets.php` no longer hard-codes `'px'` suffixes — values now carry their own unit. Per the senior dev's recommendation, `vw` / `vh` are deliberately not accepted (no clear use case for swatch widths).
+
+**Files changed**
+
+* `widgets/class-widget-swatches.php` — B1 filter wiring, B2 always-emit class, F1 9 hscroll switchers, F3 hidden option
+* `widgets/class-widget-add-to-cart.php` — F2 3 fullw switchers
+* `templates/swatches/wrapper.php` — B1 honor wse_show_clear_button filter
+* `assets/css/swatches.css` — B2 !important on 3 position rules, F1 9 @media rules + scrollbar hiding, F3 wse-label-hidden rule
+* `assets/css/add-to-cart.css` — F2 3 @media rules for full-width
+* `assets/js/swatches.js` — F1 _maybeScrollActiveIntoView helper + call from _selectSwatch
+* `includes/class-settings.php` — F4 12 fields converted to text type with multi-unit description
+* `includes/class-assets.php` — F4 wse_sanitize_css_length helper + drop hardcoded 'px' suffixes from CSS templates
+* `woo-swatches-elementor.php` — Version 1.3.5
+* `readme.txt` — Stable tag, Changelog, Upgrade Notice
+
+**Migration**
+
+Drop-in replacement for v1.3.4. No DB schema changes. After install: hard-refresh (Ctrl+F5) + Elementor → Tools → Regenerate CSS + Hostinger Cache Manager → Purge All. Existing widget settings keep working unchanged. Existing admin width values (stored as integers) automatically get `px` appended at runtime — no manual re-entry needed.
 
 = 1.3.4 =
 **Critical patch: prefix_class controls now actually work.**
@@ -801,6 +855,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.3.5 =
+Patch + features. 2 critical bug fixes: (B1) "Show Clear Button" toggle now actually hides the Clear link when off (was hardcoded-rendered in wrapper.php), (B2) image swatch label position dropdown options Above/Hover/Hidden now work (CSS specificity battle + class always-emit fix). 4 features: (F1) per-device responsive horizontal-scroll mode for image swatches with separate scrollbar visibility + auto-scroll-into-view toggles per breakpoint (9 switchers total), (F2) 3 per-device quantity-stepper full-width switchers (matching the existing Add-to-Cart full-width pattern), (F3) "Hidden" added to Label Position dropdown as third option, (F4) the 12 admin Swatch-Sizes fields under WC → Settings → WooSwatches now accept px / % / em / rem (legacy integer values still work — treated as px). Drop-in replacement for v1.3.4, no DB migration. Hard-refresh + Regenerate CSS after install.
 
 = 1.3.4 =
 Critical patch. Fixes 7 prefix_class-driven controls that were silently broken or actively misbehaving: aspect_ratio dropdown (only 1:1 worked), show_thumbs_desktop/tablet/mobile toggles (made worse by v1.3.3 — hid thumbs on every widget), sticky_main_desktop, counter_position, sale_badge_position. Root cause was Elementor's prefix_class lands on the outer widget wrapper while the CSS targeted compound selectors on the inner div. v1.3.4 mirrors the prefix-class classes onto the inner div from PHP render() so the existing CSS rules now work as intended. Drop-in replacement for v1.3.3, no DB migration. Hard-refresh + Regenerate CSS after install IS MANDATORY.
