@@ -227,97 +227,129 @@ class WSE_Settings extends WC_Settings_Page {
 			// Color swatches (square — width = height)
 			array(
 				'title'             => esc_html__( 'Color Swatch — Desktop', 'woo-swatches-elementor' ),
-				'id'                => 'wse_color_w_d',
-				'type'              => 'number',
-				'default'           => 32,
-				'desc_tip'          => esc_html__( 'Width AND height of color swatches on screens > 1024 px (px).', 'woo-swatches-elementor' ),
-				'custom_attributes' => array( 'min' => 16, 'max' => 96, 'step' => 1 ),
+
+				'id'         => 'wse_color_w_d',
+				'type'       => 'text',
+				'default'    => '32px',
+				'desc_tip'   => esc_html__( 'Accepts any CSS length: 32px, 10%, 2em, 1.5rem. Defaults to px when no unit is given. Legacy stored values (plain integers) are treated as px automatically.', 'woo-swatches-elementor' ),
+				'css'        => 'max-width:120px;',
+
 			),
 			array(
 				'title'             => esc_html__( 'Color Swatch — Tablet', 'woo-swatches-elementor' ),
-				'id'                => 'wse_color_w_t',
-				'type'              => 'number',
-				'default'           => 32,
-				'custom_attributes' => array( 'min' => 16, 'max' => 96, 'step' => 1 ),
+
+				'id'         => 'wse_color_w_t',
+				'type'       => 'text',
+				'default'    => '32px',
+				'desc_tip'   => esc_html__( 'Accepts any CSS length: 32px, 10%, 2em, 1.5rem. Defaults to px when no unit is given. Legacy stored values (plain integers) are treated as px automatically.', 'woo-swatches-elementor' ),
+				'css'        => 'max-width:120px;',
+
 			),
 			array(
 				'title'             => esc_html__( 'Color Swatch — Mobile', 'woo-swatches-elementor' ),
-				'id'                => 'wse_color_w_m',
-				'type'              => 'number',
-				'default'           => 28,
-				'custom_attributes' => array( 'min' => 16, 'max' => 96, 'step' => 1 ),
+
+				'id'         => 'wse_color_w_m',
+				'type'       => 'text',
+				'default'    => '28px',
+				'desc_tip'   => esc_html__( 'Accepts any CSS length: 32px, 10%, 2em, 1.5rem. Defaults to px when no unit is given. Legacy stored values (plain integers) are treated as px automatically.', 'woo-swatches-elementor' ),
+				'css'        => 'max-width:120px;',
+
 			),
 
 			// Image swatches
 			array(
 				'title'             => esc_html__( 'Image Swatch — Desktop', 'woo-swatches-elementor' ),
-				'id'                => 'wse_image_w_d',
-				'type'              => 'number',
-				'default'           => 56,
-				'desc_tip'          => esc_html__( 'Width AND height of image swatches on screens > 1024 px (px).', 'woo-swatches-elementor' ),
-				'custom_attributes' => array( 'min' => 24, 'max' => 160, 'step' => 1 ),
+
+				'id'         => 'wse_image_w_d',
+				'type'       => 'text',
+				'default'    => '56px',
+				'desc_tip'   => esc_html__( 'Accepts any CSS length: 32px, 10%, 2em, 1.5rem. Defaults to px when no unit is given. Legacy stored values (plain integers) are treated as px automatically.', 'woo-swatches-elementor' ),
+				'css'        => 'max-width:120px;',
+
 			),
 			array(
 				'title'             => esc_html__( 'Image Swatch — Tablet', 'woo-swatches-elementor' ),
-				'id'                => 'wse_image_w_t',
-				'type'              => 'number',
-				'default'           => 48,
-				'custom_attributes' => array( 'min' => 24, 'max' => 160, 'step' => 1 ),
+
+				'id'         => 'wse_image_w_t',
+				'type'       => 'text',
+				'default'    => '48px',
+				'desc_tip'   => esc_html__( 'Accepts any CSS length: 32px, 10%, 2em, 1.5rem. Defaults to px when no unit is given. Legacy stored values (plain integers) are treated as px automatically.', 'woo-swatches-elementor' ),
+				'css'        => 'max-width:120px;',
+
 			),
 			array(
 				'title'             => esc_html__( 'Image Swatch — Mobile', 'woo-swatches-elementor' ),
-				'id'                => 'wse_image_w_m',
-				'type'              => 'number',
-				'default'           => 44,
-				'custom_attributes' => array( 'min' => 24, 'max' => 160, 'step' => 1 ),
+
+				'id'         => 'wse_image_w_m',
+				'type'       => 'text',
+				'default'    => '44px',
+				'desc_tip'   => esc_html__( 'Accepts any CSS length: 32px, 10%, 2em, 1.5rem. Defaults to px when no unit is given. Legacy stored values (plain integers) are treated as px automatically.', 'woo-swatches-elementor' ),
+				'css'        => 'max-width:120px;',
+
 			),
 
 			// Label swatches (auto-width text — control min-width)
 			array(
 				'title'             => esc_html__( 'Label Swatch — Desktop (min-width)', 'woo-swatches-elementor' ),
-				'id'                => 'wse_label_w_d',
-				'type'              => 'number',
-				'default'           => 32,
-				'desc_tip'          => esc_html__( 'Minimum width of label swatches on screens > 1024 px (px). Text content can grow beyond this.', 'woo-swatches-elementor' ),
-				'custom_attributes' => array( 'min' => 16, 'max' => 200, 'step' => 1 ),
+
+				'id'         => 'wse_label_w_d',
+				'type'       => 'text',
+				'default'    => '32px',
+				'desc_tip'   => esc_html__( 'Accepts any CSS length: 32px, 10%, 2em, 1.5rem. Defaults to px when no unit is given. Legacy stored values (plain integers) are treated as px automatically.', 'woo-swatches-elementor' ),
+				'css'        => 'max-width:120px;',
+
 			),
 			array(
 				'title'             => esc_html__( 'Label Swatch — Tablet (min-width)', 'woo-swatches-elementor' ),
-				'id'                => 'wse_label_w_t',
-				'type'              => 'number',
-				'default'           => 32,
-				'custom_attributes' => array( 'min' => 16, 'max' => 200, 'step' => 1 ),
+
+				'id'         => 'wse_label_w_t',
+				'type'       => 'text',
+				'default'    => '32px',
+				'desc_tip'   => esc_html__( 'Accepts any CSS length: 32px, 10%, 2em, 1.5rem. Defaults to px when no unit is given. Legacy stored values (plain integers) are treated as px automatically.', 'woo-swatches-elementor' ),
+				'css'        => 'max-width:120px;',
+
 			),
 			array(
 				'title'             => esc_html__( 'Label Swatch — Mobile (min-width)', 'woo-swatches-elementor' ),
-				'id'                => 'wse_label_w_m',
-				'type'              => 'number',
-				'default'           => 28,
-				'custom_attributes' => array( 'min' => 16, 'max' => 200, 'step' => 1 ),
+
+				'id'         => 'wse_label_w_m',
+				'type'       => 'text',
+				'default'    => '28px',
+				'desc_tip'   => esc_html__( 'Accepts any CSS length: 32px, 10%, 2em, 1.5rem. Defaults to px when no unit is given. Legacy stored values (plain integers) are treated as px automatically.', 'woo-swatches-elementor' ),
+				'css'        => 'max-width:120px;',
+
 			),
 
 			// Button swatches (similar — control min-width)
 			array(
 				'title'             => esc_html__( 'Button Swatch — Desktop (min-width)', 'woo-swatches-elementor' ),
-				'id'                => 'wse_button_w_d',
-				'type'              => 'number',
-				'default'           => 48,
-				'desc_tip'          => esc_html__( 'Minimum width of button swatches on screens > 1024 px (px). Text content can grow beyond this.', 'woo-swatches-elementor' ),
-				'custom_attributes' => array( 'min' => 24, 'max' => 240, 'step' => 1 ),
+
+				'id'         => 'wse_button_w_d',
+				'type'       => 'text',
+				'default'    => '48px',
+				'desc_tip'   => esc_html__( 'Accepts any CSS length: 32px, 10%, 2em, 1.5rem. Defaults to px when no unit is given. Legacy stored values (plain integers) are treated as px automatically.', 'woo-swatches-elementor' ),
+				'css'        => 'max-width:120px;',
+
 			),
 			array(
 				'title'             => esc_html__( 'Button Swatch — Tablet (min-width)', 'woo-swatches-elementor' ),
-				'id'                => 'wse_button_w_t',
-				'type'              => 'number',
-				'default'           => 44,
-				'custom_attributes' => array( 'min' => 24, 'max' => 240, 'step' => 1 ),
+
+				'id'         => 'wse_button_w_t',
+				'type'       => 'text',
+				'default'    => '44px',
+				'desc_tip'   => esc_html__( 'Accepts any CSS length: 32px, 10%, 2em, 1.5rem. Defaults to px when no unit is given. Legacy stored values (plain integers) are treated as px automatically.', 'woo-swatches-elementor' ),
+				'css'        => 'max-width:120px;',
+
 			),
 			array(
 				'title'             => esc_html__( 'Button Swatch — Mobile (min-width)', 'woo-swatches-elementor' ),
-				'id'                => 'wse_button_w_m',
-				'type'              => 'number',
-				'default'           => 40,
-				'custom_attributes' => array( 'min' => 24, 'max' => 240, 'step' => 1 ),
+
+				'id'         => 'wse_button_w_m',
+				'type'       => 'text',
+				'default'    => '40px',
+				'desc_tip'   => esc_html__( 'Accepts any CSS length: 32px, 10%, 2em, 1.5rem. Defaults to px when no unit is given. Legacy stored values (plain integers) are treated as px automatically.', 'woo-swatches-elementor' ),
+				'css'        => 'max-width:120px;',
+
 			),
 
 			array(

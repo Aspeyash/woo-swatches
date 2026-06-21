@@ -476,27 +476,30 @@ class WSE_Assets {
 			return;
 		}
 
-		// Read all 12 sizes with safe defaults matching the settings page.
+		// v1.3.5 (F4) — Read all 12 widths as CSS-length strings supporting
+		// px / % / em / rem. Legacy integer values (pre-1.3.5) get treated
+		// as px via wse_sanitize_css_length(). Invalid values fall back to
+		// the default for that field.
 		$sizes = array(
 			'color'  => array(
-				'd' => max( 1, (int) get_option( 'wse_color_w_d', 32 ) ),
-				't' => max( 1, (int) get_option( 'wse_color_w_t', 32 ) ),
-				'm' => max( 1, (int) get_option( 'wse_color_w_m', 28 ) ),
+				'd' => self::wse_sanitize_css_length( get_option( 'wse_color_w_d',  32 ), '32px' ),
+				't' => self::wse_sanitize_css_length( get_option( 'wse_color_w_t',  32 ), '32px' ),
+				'm' => self::wse_sanitize_css_length( get_option( 'wse_color_w_m',  28 ), '28px' ),
 			),
 			'image'  => array(
-				'd' => max( 1, (int) get_option( 'wse_image_w_d', 56 ) ),
-				't' => max( 1, (int) get_option( 'wse_image_w_t', 48 ) ),
-				'm' => max( 1, (int) get_option( 'wse_image_w_m', 44 ) ),
+				'd' => self::wse_sanitize_css_length( get_option( 'wse_image_w_d',  56 ), '56px' ),
+				't' => self::wse_sanitize_css_length( get_option( 'wse_image_w_t',  48 ), '48px' ),
+				'm' => self::wse_sanitize_css_length( get_option( 'wse_image_w_m',  44 ), '44px' ),
 			),
 			'label'  => array(
-				'd' => max( 1, (int) get_option( 'wse_label_w_d', 32 ) ),
-				't' => max( 1, (int) get_option( 'wse_label_w_t', 32 ) ),
-				'm' => max( 1, (int) get_option( 'wse_label_w_m', 28 ) ),
+				'd' => self::wse_sanitize_css_length( get_option( 'wse_label_w_d',  32 ), '32px' ),
+				't' => self::wse_sanitize_css_length( get_option( 'wse_label_w_t',  32 ), '32px' ),
+				'm' => self::wse_sanitize_css_length( get_option( 'wse_label_w_m',  28 ), '28px' ),
 			),
 			'button' => array(
-				'd' => max( 1, (int) get_option( 'wse_button_w_d', 48 ) ),
-				't' => max( 1, (int) get_option( 'wse_button_w_t', 44 ) ),
-				'm' => max( 1, (int) get_option( 'wse_button_w_m', 40 ) ),
+				'd' => self::wse_sanitize_css_length( get_option( 'wse_button_w_d', 48 ), '48px' ),
+				't' => self::wse_sanitize_css_length( get_option( 'wse_button_w_t', 44 ), '44px' ),
+				'm' => self::wse_sanitize_css_length( get_option( 'wse_button_w_m', 40 ), '40px' ),
 			),
 		);
 
@@ -515,30 +518,77 @@ class WSE_Assets {
 		$css = '';
 
 		// Desktop (always applies as base; media queries below override).
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-color{--wse-swatch-size:' . $sizes['color']['d'] . 'px;width:' . $sizes['color']['d'] . 'px!important;height:' . $sizes['color']['d'] . 'px!important;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image{--wse-swatch-size:' . $sizes['image']['d'] . 'px;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image .wse-swatch-img{width:' . $sizes['image']['d'] . 'px!important;height:' . $sizes['image']['d'] . 'px!important;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-label{min-width:' . $sizes['label']['d'] . 'px!important;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-button{min-width:' . $sizes['button']['d'] . 'px!important;}';
+		// v1.3.5 (F4) — values now carry their own CSS unit (px / % / em /
+		// rem) so the literal 'px' suffix is dropped from the templates.
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-color{--wse-swatch-size:' . $sizes['color']['d'] . ';width:' . $sizes['color']['d'] . '!important;height:' . $sizes['color']['d'] . '!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image{--wse-swatch-size:' . $sizes['image']['d'] . ';}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image .wse-swatch-img{width:' . $sizes['image']['d'] . '!important;height:' . $sizes['image']['d'] . '!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-label{min-width:' . $sizes['label']['d'] . '!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-button{min-width:' . $sizes['button']['d'] . '!important;}';
 
 		// Tablet
 		$css .= '@media (max-width:1024px){';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-color{--wse-swatch-size:' . $sizes['color']['t'] . 'px;width:' . $sizes['color']['t'] . 'px!important;height:' . $sizes['color']['t'] . 'px!important;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image{--wse-swatch-size:' . $sizes['image']['t'] . 'px;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image .wse-swatch-img{width:' . $sizes['image']['t'] . 'px!important;height:' . $sizes['image']['t'] . 'px!important;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-label{min-width:' . $sizes['label']['t'] . 'px!important;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-button{min-width:' . $sizes['button']['t'] . 'px!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-color{--wse-swatch-size:' . $sizes['color']['t'] . ';width:' . $sizes['color']['t'] . '!important;height:' . $sizes['color']['t'] . '!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image{--wse-swatch-size:' . $sizes['image']['t'] . ';}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image .wse-swatch-img{width:' . $sizes['image']['t'] . '!important;height:' . $sizes['image']['t'] . '!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-label{min-width:' . $sizes['label']['t'] . '!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-button{min-width:' . $sizes['button']['t'] . '!important;}';
 		$css .= '}';
 
 		// Mobile
 		$css .= '@media (max-width:768px){';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-color{--wse-swatch-size:' . $sizes['color']['m'] . 'px;width:' . $sizes['color']['m'] . 'px!important;height:' . $sizes['color']['m'] . 'px!important;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image{--wse-swatch-size:' . $sizes['image']['m'] . 'px;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image .wse-swatch-img{width:' . $sizes['image']['m'] . 'px!important;height:' . $sizes['image']['m'] . 'px!important;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-label{min-width:' . $sizes['label']['m'] . 'px!important;}';
-		$css .= 'body.wse-stylesheet-enabled .wse-swatch-button{min-width:' . $sizes['button']['m'] . 'px!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-color{--wse-swatch-size:' . $sizes['color']['m'] . ';width:' . $sizes['color']['m'] . '!important;height:' . $sizes['color']['m'] . '!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image{--wse-swatch-size:' . $sizes['image']['m'] . ';}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-image .wse-swatch-img{width:' . $sizes['image']['m'] . '!important;height:' . $sizes['image']['m'] . '!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-label{min-width:' . $sizes['label']['m'] . '!important;}';
+		$css .= 'body.wse-stylesheet-enabled .wse-swatch-button{min-width:' . $sizes['button']['m'] . '!important;}';
 		$css .= '}';
 
 		echo "\n<style id=\"wse-swatch-sizes-inline\">" . $css . "</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+
+	/**
+	 * v1.3.5 (F4) — Sanitize a CSS length string from a WC settings value.
+	 *
+	 * Accepts:
+	 *   - Plain integers (legacy pre-1.3.5 values) → treated as px
+	 *   - "32px", "10%", "2em", "1.5rem" — passed through if valid
+	 *   - Anything else → fall back to $default
+	 *
+	 * @param mixed  $raw     Stored option value.
+	 * @param string $default CSS length to use on invalid input (e.g. "32px").
+	 * @return string A safe CSS length suitable for direct inclusion in a CSS rule.
+	 */
+	public static function wse_sanitize_css_length( $raw, string $default ): string {
+		$raw = is_string( $raw ) ? trim( $raw ) : (string) $raw;
+		if ( '' === $raw ) {
+			return $default;
+		}
+
+		// Legacy integer (no unit) — treat as px.
+		if ( ctype_digit( $raw ) ) {
+			$n = (int) $raw;
+			return ( $n > 0 ? $n : 1 ) . 'px';
+		}
+
+		// Float without unit (uncommon but defensive) — treat as px.
+		if ( is_numeric( $raw ) ) {
+			$f = (float) $raw;
+			return ( $f > 0 ? $f : 1 ) . 'px';
+		}
+
+		// Validated: number (int or float) followed by px / % / em / rem.
+		if ( preg_match( '/^(\d+(?:\.\d+)?)(px|%|em|rem)$/i', $raw, $m ) ) {
+			$num  = (float) $m[1];
+			$unit = strtolower( $m[2] );
+			if ( $num <= 0 ) {
+				return $default;
+			}
+			// Normalise: drop trailing zero from float (32.0px → 32px).
+			$num_str = ( floor( $num ) === $num ) ? (string) (int) $num : (string) $num;
+			return $num_str . $unit;
+		}
+
+		return $default;
 	}
 }
