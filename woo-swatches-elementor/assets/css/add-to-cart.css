@@ -716,3 +716,45 @@ body.wse-stylesheet-enabled .wse-atc-full-width .wse-qty-atc-row {
 		gap:            8px;
 	}
 }
+
+
+
+/* ─── v1.3.5 (F2) — Quantity stepper full-width per-device toggles ──────── */
+/* Three independent SWITCHER controls (desktop / tablet / mobile) each
+   apply the wse-qty-fullw-{d,t,m}-yes prefix-class to the OUTER widget
+   wrapper. CSS uses descendant selectors inside @media queries so each
+   breakpoint applies the full-width treatment independently. The qty
+   input grows via flex:1 to fill the space between the [-] and [+]
+   buttons (which keep their fixed size).
+
+   !important is needed to defeat the per-instance qty_stepper_total_width
+   slider which writes inline `width: …` via Elementor's selectors API
+   when the user has the SELECT mode set to 'custom'. */
+
+@media ( min-width: 1025px ) {
+	body.wse-stylesheet-enabled .wse-qty-fullw-d-yes .wse-qty-stepper {
+		width: 100% !important;
+	}
+	body.wse-stylesheet-enabled .wse-qty-fullw-d-yes .wse-qty-stepper .qty {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+}
+@media ( min-width: 769px ) and ( max-width: 1024px ) {
+	body.wse-stylesheet-enabled .wse-qty-fullw-t-yes .wse-qty-stepper {
+		width: 100% !important;
+	}
+	body.wse-stylesheet-enabled .wse-qty-fullw-t-yes .wse-qty-stepper .qty {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+}
+@media ( max-width: 768px ) {
+	body.wse-stylesheet-enabled .wse-qty-fullw-m-yes .wse-qty-stepper {
+		width: 100% !important;
+	}
+	body.wse-stylesheet-enabled .wse-qty-fullw-m-yes .wse-qty-stepper .qty {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+}

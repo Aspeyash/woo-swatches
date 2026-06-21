@@ -669,6 +669,49 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 		// "Full" makes the stepper fill its parent (qty input grows via
 		// flex:1, buttons keep their fixed size). "Custom" exposes the
 		// total-width slider below. "Auto" lets contents drive the size.
+
+		// v1.3.5 (F2) — Per-device "Full Width Stepper" convenience
+		// switchers. The qty_stepper_width_mode SELECT below already has
+		// a 'full' option, but it's not per-device and is buried in the
+		// Sizing subsection. These three switchers give a one-click
+		// shortcut per breakpoint, matching the existing "Add to Cart
+		// Full Width" pattern. When ON for a breakpoint, CSS forces
+		// .wse-qty-stepper to width: 100% inside the matching @media
+		// query. Independent of the SELECT mode below for backwards
+		// compat — when both are set, the switcher wins via CSS source
+		// order + !important.
+		$this->add_control(
+			'qty_stepper_full_width_desktop',
+			array(
+				'label'        => esc_html__( 'Full Width Stepper — Desktop', 'woo-swatches-elementor' ),
+				'description'  => esc_html__( 'Quick toggle to make the stepper fill its parent column at desktop bp.', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'return_value' => 'yes',
+				'default'      => 'no',
+				'prefix_class' => 'wse-qty-fullw-d-',
+			)
+		);
+		$this->add_control(
+			'qty_stepper_full_width_tablet',
+			array(
+				'label'        => esc_html__( 'Full Width Stepper — Tablet (≤1024px)', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'return_value' => 'yes',
+				'default'      => 'no',
+				'prefix_class' => 'wse-qty-fullw-t-',
+			)
+		);
+		$this->add_control(
+			'qty_stepper_full_width_mobile',
+			array(
+				'label'        => esc_html__( 'Full Width Stepper — Mobile (≤768px)', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'return_value' => 'yes',
+				'default'      => 'no',
+				'prefix_class' => 'wse-qty-fullw-m-',
+			)
+		);
+
 		$this->add_control(
 			'qty_stepper_width_mode',
 			array(
