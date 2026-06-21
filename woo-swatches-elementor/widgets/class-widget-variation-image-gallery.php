@@ -425,6 +425,102 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 			'condition'    => array( 'sync_with_widget_1' => 'yes' ),
 		) );
 
+		// ── v1.4.0 — Variation images IN the gallery + reverse sync ───────
+		// Pre-1.4.0 the gallery showed only the parent product gallery,
+		// and any variation featured images were hidden until the
+		// customer clicked a swatch (one-way sync via found_variation).
+		// v1.4.0 lets the gallery INCLUDE variation featured images
+		// directly as thumbnails AND reverse-sync them to the swatches:
+		// clicking / swiping to a variation's image automatically picks
+		// the matching variation in Widget 1, and the whole plugin
+		// (price, add-to-cart, smart heading) updates as if the customer
+		// had clicked the swatch directly.
+		$this->add_control( 'v140_heading', array(
+			'label'     => esc_html__( 'Variation Images in Gallery (v1.4.0)', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::HEADING,
+			'separator' => 'before',
+		) );
+
+		$this->add_control( 'gallery_image_source', array(
+			'label'       => esc_html__( 'Gallery image source', 'woo-swatches-elementor' ),
+			'description' => esc_html__( 'Choose what shows up as thumbnails. "Both" puts variation featured images alongside the parent gallery — most common merchant choice. "Variation Only" hides the parent gallery entirely (clean fashion-forward UX). Default is "Product Gallery Only" for back-compat with v1.3.x widgets.', 'woo-swatches-elementor' ),
+			'type'        => \Elementor\Controls_Manager::SELECT,
+			'default'     => 'parent_only',
+			'options'     => array(
+				'parent_only'    => esc_html__( 'Product Gallery Only (default — v1.3.x behavior)', 'woo-swatches-elementor' ),
+				'variation_only' => esc_html__( 'Variation Images Only (clean fashion UX)',          'woo-swatches-elementor' ),
+				'both'           => esc_html__( 'Product Gallery + Variation Images',                'woo-swatches-elementor' ),
+			),
+		) );
+
+		$this->add_control( 'variation_image_order', array(
+			'label'   => esc_html__( 'Image order', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::SELECT,
+			'default' => 'variation_first',
+			'options' => array(
+				'variation_first' => esc_html__( 'Variations first, then parent gallery', 'woo-swatches-elementor' ),
+				'gallery_first'   => esc_html__( 'Parent gallery first, then variations', 'woo-swatches-elementor' ),
+			),
+			'condition' => array( 'gallery_image_source' => 'both' ),
+		) );
+
+		$this->add_control( 'gallery_dedupe', array(
+			'label'        => esc_html__( 'Deduplicate images by attachment ID', 'woo-swatches-elementor' ),
+			'description'  => esc_html__( 'When a vendor uses the same image for both the parent gallery AND a variation featured image, this prevents the same thumbnail from appearing twice. The variation association is preserved (clicking the deduped image still triggers the variation).', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'return_value' => 'yes',
+			'default'      => 'yes',
+			'condition'    => array( 'gallery_image_source!' => 'parent_only' ),
+		) );
+
+		$this->add_control( 'variation_triggers_selection', array(
+			'label'        => esc_html__( 'Variation thumbnail clicks select the variation', 'woo-swatches-elementor' ),
+			'description'  => esc_html__( 'When ON: clicking / swiping to a variation\'s image automatically selects that variation in the swatches widget — price, add-to-cart, and smart heading update simultaneously. When OFF: variation thumbnails are decorative only; the customer still needs to click the matching swatch to commit the selection.', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'return_value' => 'yes',
+			'default'      => 'yes',
+			'condition'    => array( 'gallery_image_source!' => 'parent_only' ),
+		) );
+
+		// S4 — Multi-attribute behavior on reverse-sync.
+		// Default "auto" detects which attribute is image-bearing (the
+		// one whose values produce distinct featured-image sets across
+		// variations — typically Color or Pattern). Reverse-sync only
+		// sets the image-bearing attribute, leaving Size/Material/etc.
+		// preserving the customer's existing choices (Amazon/Nike/ASOS
+		// pattern). Power users can manually pin the bearing attribute
+		// to a specific slug if auto-detection misfires.
+		$this->add_control( 'image_bearing_attribute', array(
+			'label'       => esc_html__( 'Image-bearing attribute (S4)', 'woo-swatches-elementor' ),
+			'description' => esc_html__( 'Auto = plugin detects which attribute (color/pattern/etc.) carries unique images and only sets that attribute on reverse-sync, preserving the customer\'s Size or other non-image attribute picks. "All" matches the older behavior of setting every attribute from the variation. For single-attribute products, the two behaviors are identical.', 'woo-swatches-elementor' ),
+			'type'        => \Elementor\Controls_Manager::SELECT,
+			'default'     => 'auto',
+			'options'     => array(
+				'auto' => esc_html__( 'Auto-detect (recommended — Amazon/Nike/ASOS pattern)', 'woo-swatches-elementor' ),
+				'all'  => esc_html__( 'Set ALL variation attributes on every reverse-sync click', 'woo-swatches-elementor' ),
+			),
+			'condition'   => array(
+				'gallery_image_source!'           => 'parent_only',
+				'variation_triggers_selection'    => 'yes',
+			),
+		) );
+
+		// S6 — Desktop hover-to-preview (Zara/Nike pattern).
+		// Hover a variation thumb → main image temporarily previews that
+		// variation (without committing). Click commits via normal flow.
+		// Mouse leave reverts to the previously-active image. Touch
+		// devices ignore this and fall back to click-to-commit.
+		$this->add_control( 'hover_preview_desktop', array(
+			'label'        => esc_html__( 'Hover-to-preview variation (desktop only)', 'woo-swatches-elementor' ),
+			'description'  => esc_html__( 'Hovering a variation thumbnail temporarily shows that variation\'s image in the main area without committing the selection. Clicking commits as normal. Premium UX (Zara / Nike pattern). Touch devices ignore this — they use click-to-commit only.', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'return_value' => 'yes',
+			'default'      => 'no',
+			'condition'    => array(
+				'gallery_image_source!' => 'parent_only',
+			),
+		) );
+
 		$this->end_controls_section();
 	}
 
@@ -1102,8 +1198,43 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 		$image_size = sanitize_key( $settings['image_size'] ?? 'woocommerce_single' );
 		$thumb_size = sanitize_key( $settings['thumb_size'] ?? 'woocommerce_gallery_thumbnail' );
 
+		// v1.4.0 — Resolve the gallery image-source mode + reverse-sync flags.
+		$gallery_source = sanitize_key( $settings['gallery_image_source']         ?? 'parent_only' );
+		$image_order    = sanitize_key( $settings['variation_image_order']        ?? 'variation_first' );
+		$dedupe         = ( $settings['gallery_dedupe']                ?? 'yes' ) === 'yes';
+		$trigger_sel    = ( $settings['variation_triggers_selection']  ?? 'yes' ) === 'yes';
+		$bearing_mode   = sanitize_key( $settings['image_bearing_attribute']      ?? 'auto' );
+		$hover_preview  = ( $settings['hover_preview_desktop']         ?? 'no'  ) === 'yes';
+
+		// Always build the variation→images map — Widget 1 swatch clicks
+		// (forward sync via found_variation event) still need this to swap
+		// the gallery to a variation's full image set.
 		$images_map = $this->build_variation_images_map( $product, $image_size, $thumb_size );
-		$current    = $images_map['0'] ?? array();
+
+		// Choose the INITIAL image list shown to the customer based on
+		// gallery_image_source. Pre-1.4.0 always used parent gallery (key
+		// '0' of the map). v1.4.0 lets the merchant include variation
+		// featured images alongside / instead of the parent.
+		if ( 'parent_only' === $gallery_source ) {
+			$current = $images_map['0'] ?? array();
+		} else {
+			$current = $this->build_extended_image_list(
+				$product,
+				$image_size,
+				$thumb_size,
+				$gallery_source,
+				$image_order,
+				$dedupe
+			);
+		}
+
+		// v1.4.0 (S4) — Image-bearing attributes for the JS reverse-sync.
+		// 'auto' runs auto-detection (returns the attributes whose values
+		// produce distinct image sets — typically just Color); 'all' returns
+		// empty array which the JS treats as "no filter, set every attribute".
+		$image_bearing_attrs = ( 'auto' === $bearing_mode && 'parent_only' !== $gallery_source && $trigger_sel )
+			? $this->detect_image_bearing_attributes( $product )
+			: array();
 
 		if ( empty( $current ) ) {
 			$this->render_no_product_placeholder();
@@ -1158,7 +1289,17 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 			data-product-type="<?php echo esc_attr( $product->get_type() ); ?>"
 			data-sync-enabled="<?php echo ( ( $settings['sync_with_widget_1'] ?? 'yes' ) === 'yes' ) ? '1' : '0'; ?>"
 			data-fallback-parent="<?php echo ( ( $settings['fallback_to_parent_gallery'] ?? 'yes' ) === 'yes' ) ? '1' : '0'; ?>"
-			data-variation-images="<?php echo $variations_attr; // phpcs:ignore ?>">
+			data-variation-images="<?php echo $variations_attr; // phpcs:ignore ?>"
+			<?php /* v1.4.0 — Reverse-sync data attrs read by gallery.js. */ ?>
+			data-gallery-source="<?php echo esc_attr( $gallery_source ); ?>"
+			data-trigger-selection="<?php echo $trigger_sel ? '1' : '0'; ?>"
+			data-image-bearing-attrs="<?php
+				$bearing_json = wp_json_encode( $image_bearing_attrs );
+				echo function_exists( 'wc_esc_json' )
+					? wc_esc_json( $bearing_json )
+					: htmlspecialchars( (string) $bearing_json, ENT_QUOTES, 'UTF-8' );
+			?>"
+			data-hover-preview="<?php echo $hover_preview ? '1' : '0'; ?>">
 
 			<?php
 			// Choose layout template based on desktop_layout (Phase 2 ships
@@ -1356,28 +1497,39 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 	 * Formats a single attachment ID into the image data structure consumed
 	 * by main-image.php / thumbnail.php / gallery.js.
 	 *
-	 * @param  int    $attachment_id  0 means "use WC placeholder".
-	 * @param  string $main_size
-	 * @param  string $thumb_size
+	 * v1.4.0 — Added optional $variation_id and $variation_attrs args. When
+	 * non-zero variation_id is passed, the returned record carries variation
+	 * association for the JS reverse-sync flow (clicking the image triggers
+	 * the corresponding swatch selection).
+	 *
+	 * @param  int                  $attachment_id   0 means "use WC placeholder".
+	 * @param  string               $main_size
+	 * @param  string               $thumb_size
+	 * @param  int                  $variation_id    0 = parent-only image, N = associated with variation N.
+	 * @param  array<string,string> $variation_attrs Associative array of attribute_X => value (empty for parent-only).
 	 * @return array<string, mixed>
 	 */
 	private function format_image_data(
 		int $attachment_id,
 		string $main_size,
-		string $thumb_size
+		string $thumb_size,
+		int $variation_id = 0,
+		array $variation_attrs = array()
 	): array {
 
 		if ( $attachment_id <= 0 ) {
 			$placeholder = wc_placeholder_img_src();
 			return array(
-				'id'     => 0,
-				'src'    => (string) $placeholder,
-				'srcset' => '',
-				'sizes'  => '',
-				'alt'    => '',
-				'width'  => 0,
-				'height' => 0,
-				'thumb'  => (string) $placeholder,
+				'id'           => 0,
+				'src'          => (string) $placeholder,
+				'srcset'       => '',
+				'sizes'        => '',
+				'alt'          => '',
+				'width'        => 0,
+				'height'       => 0,
+				'thumb'        => (string) $placeholder,
+				'variation_id' => $variation_id,
+				'attributes'   => $variation_attrs,
 			);
 		}
 
@@ -1388,15 +1540,236 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 		$alt        = (string) get_post_meta( $attachment_id, '_wp_attachment_image_alt', true );
 
 		return array(
-			'id'     => $attachment_id,
-			'src'    => $main_data ? (string) $main_data[0] : '',
-			'srcset' => $srcset,
-			'sizes'  => $sizes,
-			'alt'    => $alt,
-			'width'  => $main_data ? (int) $main_data[1] : 0,
-			'height' => $main_data ? (int) $main_data[2] : 0,
-			'thumb'  => $thumb_data ? (string) $thumb_data[0] : ( $main_data ? (string) $main_data[0] : '' ),
+			'id'           => $attachment_id,
+			'src'          => $main_data ? (string) $main_data[0] : '',
+			'srcset'       => $srcset,
+			'sizes'        => $sizes,
+			'alt'          => $alt,
+			'width'        => $main_data ? (int) $main_data[1] : 0,
+			'height'       => $main_data ? (int) $main_data[2] : 0,
+			'thumb'        => $thumb_data ? (string) $thumb_data[0] : ( $main_data ? (string) $main_data[0] : '' ),
+			'variation_id' => $variation_id,
+			'attributes'   => $variation_attrs,
 		);
+	}
+
+	/**
+	 * v1.4.0 — Build the extended gallery image list per the source mode.
+	 *
+	 * Returns a flat array of image records, each carrying its variation
+	 * association (variation_id + attributes) where applicable. Used by
+	 * the templates as the gallery's "current" image list when the user
+	 * has set gallery_image_source to 'variation_only' or 'both'.
+	 *
+	 * Modes:
+	 *   - 'parent_only'    — Caller should not call this helper; use the
+	 *                        existing build_variation_images_map() path.
+	 *   - 'variation_only' — Returns just variation featured images.
+	 *                        Variations without an override are skipped
+	 *                        (they'd just duplicate the parent).
+	 *   - 'both'           — Returns both, ordered per $order. Dedupe is
+	 *                        applied if $dedupe is true (variations win
+	 *                        the dedupe conflict so reverse-sync stays
+	 *                        functional on shared images).
+	 *
+	 * @param  \WC_Product $product
+	 * @param  string      $image_size
+	 * @param  string      $thumb_size
+	 * @param  string      $source       'variation_only' | 'both'
+	 * @param  string      $order        'variation_first' | 'gallery_first'
+	 * @param  bool        $dedupe       Drop duplicate attachment IDs?
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function build_extended_image_list(
+		\WC_Product $product,
+		string $image_size,
+		string $thumb_size,
+		string $source,
+		string $order,
+		bool $dedupe
+	): array {
+
+		// Parent gallery list — featured + gallery image IDs.
+		$parent_list = array();
+		$featured = (int) $product->get_image_id();
+		if ( $featured > 0 ) {
+			$parent_list[] = $this->format_image_data( $featured, $image_size, $thumb_size, 0, array() );
+		}
+		foreach ( $product->get_gallery_image_ids() as $gid ) {
+			$gid = (int) $gid;
+			if ( $gid > 0 ) {
+				$parent_list[] = $this->format_image_data( $gid, $image_size, $thumb_size, 0, array() );
+			}
+		}
+
+		// Variation list — one entry per variation with a featured image override.
+		$variation_list = array();
+		if ( $product instanceof \WC_Product_Variable ) {
+			foreach ( $product->get_children() as $variation_id ) {
+				$variation = wc_get_product( $variation_id );
+				if ( ! $variation instanceof \WC_Product_Variation ) {
+					continue;
+				}
+				$image_id = (int) $variation->get_image_id();
+				if ( $image_id <= 0 ) {
+					continue; // no override — would just duplicate parent gallery
+				}
+				$variation_list[] = $this->format_image_data(
+					$image_id,
+					$image_size,
+					$thumb_size,
+					(int) $variation_id,
+					(array) $variation->get_variation_attributes()
+				);
+			}
+		}
+
+		// Compose per source mode.
+		if ( 'variation_only' === $source ) {
+			$list = $variation_list;
+		} else {
+			// 'both' — concatenate per order setting.
+			$list = ( 'gallery_first' === $order )
+				? array_merge( $parent_list, $variation_list )
+				: array_merge( $variation_list, $parent_list );
+		}
+
+		// Dedupe by attachment ID, preferring the variation-bearing record so
+		// reverse-sync remains functional when an image is used by both the
+		// parent gallery and a variation.
+		if ( $dedupe ) {
+			$list = $this->dedupe_image_list_prefer_variation( $list );
+		}
+
+		return $list;
+	}
+
+	/**
+	 * v1.4.0 — Deduplicate an image list by attachment ID, preferring the
+	 * record that has a variation association (variation_id > 0). Keeps
+	 * the FIRST occurrence's position in the list but upgrades it with
+	 * the variation metadata if a later record carries it.
+	 *
+	 * @param  array<int, array<string, mixed>> $list
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function dedupe_image_list_prefer_variation( array $list ): array {
+		$seen   = array(); // attachment_id => index in $out
+		$out    = array();
+		foreach ( $list as $rec ) {
+			$id = (int) ( $rec['id'] ?? 0 );
+			if ( $id <= 0 ) {
+				$out[] = $rec; // placeholders / 0-id pass through
+				continue;
+			}
+			if ( ! isset( $seen[ $id ] ) ) {
+				$seen[ $id ] = count( $out );
+				$out[]       = $rec;
+				continue;
+			}
+			// Already seen — upgrade existing record's variation association
+			// if THIS record has one and the existing doesn't.
+			$existing_idx = $seen[ $id ];
+			$existing_var = (int) ( $out[ $existing_idx ]['variation_id'] ?? 0 );
+			$new_var      = (int) ( $rec['variation_id'] ?? 0 );
+			if ( $existing_var <= 0 && $new_var > 0 ) {
+				$out[ $existing_idx ]['variation_id'] = $new_var;
+				$out[ $existing_idx ]['attributes']   = (array) ( $rec['attributes'] ?? array() );
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * v1.4.0 (S4) — Detect which attributes are "image-bearing" — i.e.,
+	 * which attributes' values map to distinct featured-image sets.
+	 *
+	 * Used by the JS reverse-sync to decide which swatches to set on a
+	 * variation-image click. For multi-attribute products (color + size),
+	 * only image-bearing attributes (typically color) get set, leaving
+	 * size to whatever the customer previously picked. Matches the
+	 * Amazon / Nike / ASOS pattern.
+	 *
+	 * Algorithm:
+	 *   1. Collect (attribute_key, value, image_id) tuples from every
+	 *      variation that has a featured-image override.
+	 *   2. For each attribute, group by value → set of image IDs.
+	 *   3. An attribute is image-bearing when:
+	 *      a. There are ≥ 2 distinct values, AND
+	 *      b. Each value's image set differs from the others (no two
+	 *         values share the same image set).
+	 *
+	 * @param  \WC_Product $product
+	 * @return string[]    Attribute keys (e.g., ['attribute_color']) that
+	 *                     are image-bearing. Empty array means none — the
+	 *                     reverse-sync should set ALL attributes.
+	 */
+	private function detect_image_bearing_attributes( \WC_Product $product ): array {
+		if ( ! $product instanceof \WC_Product_Variable ) {
+			return array();
+		}
+
+		// Collect variation data: only those with a featured-image override.
+		$variations_data = array();
+		foreach ( $product->get_children() as $variation_id ) {
+			$variation = wc_get_product( $variation_id );
+			if ( ! $variation instanceof \WC_Product_Variation ) {
+				continue;
+			}
+			$image_id = (int) $variation->get_image_id();
+			if ( $image_id <= 0 ) {
+				continue; // can't tell image-bearing from variations without overrides
+			}
+			$variations_data[] = array(
+				'image_id'   => $image_id,
+				'attributes' => (array) $variation->get_variation_attributes(),
+			);
+		}
+		if ( count( $variations_data ) < 2 ) {
+			return array(); // not enough signal
+		}
+
+		// Discover all attribute keys across the variation set.
+		$all_keys = array();
+		foreach ( $variations_data as $vd ) {
+			foreach ( array_keys( $vd['attributes'] ) as $k ) {
+				$all_keys[ $k ] = true;
+			}
+		}
+
+		$bearing = array();
+		foreach ( array_keys( $all_keys ) as $attr_key ) {
+			$value_to_imgs = array(); // value => set (assoc) of image_ids
+			foreach ( $variations_data as $vd ) {
+				$value = (string) ( $vd['attributes'][ $attr_key ] ?? '' );
+				if ( '' === $value ) {
+					continue;
+				}
+				if ( ! isset( $value_to_imgs[ $value ] ) ) {
+					$value_to_imgs[ $value ] = array();
+				}
+				$value_to_imgs[ $value ][ (int) $vd['image_id'] ] = true;
+			}
+
+			if ( count( $value_to_imgs ) < 2 ) {
+				continue; // need ≥ 2 distinct values to compare
+			}
+
+			// Compute a signature per value (sorted image-id list as string)
+			// and check that all signatures are distinct.
+			$sigs = array();
+			foreach ( $value_to_imgs as $imgs ) {
+				$ids = array_keys( $imgs );
+				sort( $ids );
+				$sigs[] = implode( ',', $ids );
+			}
+
+			if ( count( array_unique( $sigs ) ) === count( $sigs ) ) {
+				$bearing[] = $attr_key;
+			}
+		}
+
+		return $bearing;
 	}
 
 	/**
