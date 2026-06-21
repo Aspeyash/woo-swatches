@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.3.7
+Stable tag: 1.3.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,31 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.3.8 =
+**Patch + behaviour change: keyboard nav auto-selects + mobile scroll-to-form removed.**
+
+Drop-in replacement for v1.3.7. No DB schema changes. JS-only changes in `assets/js/swatches.js`.
+
+**Bug fixes**
+
+* **B1 — Arrow-key navigation moved focus but didn't actually select the variation.** Pre-1.3.8 when a customer clicked the first swatch (which selected correctly: gallery + price + add-to-cart all updated) and then pressed Arrow keys to navigate to other swatches, only the visual focus moved — the variation never actually changed. The customer had to press Enter / Space (or click again) to commit the selection, which felt broken. This violated the [WAI-ARIA radiogroup automatic-activation pattern](https://www.w3.org/WAI/ARIA/apg/patterns/radio/) which mandates "Pressing the right arrow or down arrow moves focus to the next radio button **and selects it**".
+
+  **Fix:** Added a call to `_selectSwatch()` after the focus change in both arrow-key branches (`ArrowRight`/`ArrowDown` and `ArrowLeft`/`ArrowUp`). This triggers the same chain as a click — variation form `change` event, gallery main-image swap, price update, add-to-cart enable/disable, smart heading recompute, etc. The desktop user can now click the first swatch then arrow-navigate through the rest with each press updating everything in real time.
+
+* **B2 — Mobile auto-scroll-to-Add-to-Cart removed.** Pre-1.3.8 the `bindMobileScrollToForm()` function (added in v1.2.1 S3) ran a hardcoded `window.scrollTo()` on every swatch click on mobile, jumping the page down to the canonical form. Customers reported this as disorienting — the page felt like it "broke" after every variation tap. Per ZYMARG product-owner decision, the function and its call site are both removed. The customer now stays exactly where they are after picking a swatch on mobile. No scroll, no focus change, no anchor change.
+
+  Stores that liked the v1.2.1 behaviour can re-introduce it via a small custom JS snippet — happy to add a per-widget opt-in toggle in a future release if requested.
+
+**Files changed**
+
+* `assets/js/swatches.js` (+ .min) — B1 add `_selectSwatch` after arrow-key focus change; B2 delete `bindMobileScrollToForm` function + its call site (732 LOC, down from 769)
+* `woo-swatches-elementor.php` — Version 1.3.8
+* `readme.txt` — Stable tag, Changelog, Upgrade Notice
+
+**Migration**
+
+Drop-in replacement for v1.3.7. After install: hard-refresh (Ctrl+F5) + Hostinger Cache Manager → Purge All. Browser JS cache is the most likely reason the changes appear not to take effect after upgrade.
 
 = 1.3.7 =
 **Critical follow-up to v1.3.6: fieldset width constraint completes the layout chain.**
@@ -915,6 +940,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.3.8 =
+Patch + behaviour change. (B1) Arrow-key navigation in the swatches widget now auto-selects the focused variation per the WAI-ARIA radiogroup automatic-activation pattern — pre-1.3.8 the arrow keys only moved visual focus and the customer had to press Enter or click again to actually select. (B2) The mobile auto-scroll-to-Add-to-Cart behaviour (added in v1.2.1) is REMOVED — the customer now stays where they are after picking a swatch on mobile. Drop-in replacement for v1.3.7, no DB migration. Hard-refresh + Regenerate CSS after install. Note for stores that liked the v1.2.1 mobile auto-scroll: it's no longer available; happy to add a per-widget opt-in toggle in v1.3.9 if needed.
 
 = 1.3.7 =
 Critical follow-up to v1.3.6. v1.3.6 constrained the .wse-attr-block and .wse-swatches layers but left the intermediate `<fieldset class="wse-fieldset">` unconstrained. HTML5 fieldsets default to min-inline-size: min-content which made the fieldset shrink-to-fit its content (so it grew to fit all swatches in hscroll mode), and the inner ul's width:100% then resolved against that overflowing fieldset. v1.3.7 adds width:100%; max-width:100%; min-width:0; min-inline-size:0; box-sizing:border-box plus margin:0 and border:0 to normalise the fieldset. Drop-in replacement for v1.3.6, no DB migration. Hard-refresh + Regenerate CSS after install.

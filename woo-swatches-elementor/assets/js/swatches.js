@@ -494,18 +494,26 @@
 					case 'ArrowRight':
 					case 'ArrowDown':
 						e.preventDefault();
+						var $nextDown = $available.eq( idx < last ? idx + 1 : 0 );
 						$available.attr( 'tabindex', '-1' );
-						$available.eq( idx < last ? idx + 1 : 0 )
-						         .attr( 'tabindex', '0' )
-						         .focus();
+						$nextDown.attr( 'tabindex', '0' ).focus();
+						// v1.3.8 (B1) — Auto-select on arrow nav per WAI-ARIA
+						// radiogroup automatic-activation pattern. Triggers
+						// the same chain as a click: variation form change,
+						// gallery main-image swap, price update, add-to-cart
+						// enable, etc. Pre-1.3.8 the arrow keys only moved
+						// visual focus; the user had to press Enter/Space (or
+						// click) to actually select, which felt broken.
+						self._selectSwatch( $nextDown, attribute, $nextDown.attr( 'data-value' ) );
 						break;
 					case 'ArrowLeft':
 					case 'ArrowUp':
 						e.preventDefault();
+						var $nextUp = $available.eq( idx > 0 ? idx - 1 : last );
 						$available.attr( 'tabindex', '-1' );
-						$available.eq( idx > 0 ? idx - 1 : last )
-						         .attr( 'tabindex', '0' )
-						         .focus();
+						$nextUp.attr( 'tabindex', '0' ).focus();
+						// v1.3.8 (B1) — see ArrowRight comment.
+						self._selectSwatch( $nextUp, attribute, $nextUp.attr( 'data-value' ) );
 						break;
 				}
 			} );
@@ -700,58 +708,13 @@
 		//    are wired against different scopes)
 		bindCrossWidgetSync();
 
-		// 5. v1.2.1 (S3) — Scroll to canonical form on mobile after swatch click.
-		bindMobileScrollToForm();
-	}
-
-	// ─────────────────────────────────────────────────────────────────────
-	// v1.2.1 (S3) — Smooth scroll-to-form on mobile after swatch click
-	//
-	// On mobile (≤768 px viewport), when a swatch is clicked anywhere on
-	// the page, gently scroll the canonical form into view so the user
-	// sees the price update / variation match / Add to Cart button without
-	// losing context. Desktop and tablet are unaffected — they have
-	// enough screen real estate to see both Widget 1 and Widget 2 already.
-	//
-	// Uses requestAnimationFrame to wait one paint frame before scrolling
-	// so the price/variation update has rendered visibly first.
-	// ─────────────────────────────────────────────────────────────────────
-
-	function bindMobileScrollToForm() {
-		var MOBILE_MAX = 768;
-
-		$( document )
-			.off( 'click.wseScrollToForm' )
-			.on( 'click.wseScrollToForm', '.wse-swatch:not(.disabled)', function () {
-
-				if ( window.innerWidth > MOBILE_MAX ) {
-					return; // desktop / tablet — skip
-				}
-
-				var $swatch     = $( this );
-				var $widgetWrap = $swatch.closest( '[data-form-id]' );
-				var formId      = $widgetWrap.data( 'form-id' )
-					|| $swatch.closest( '.wse-swatch-wrap' ).data( 'form-id' );
-
-				if ( ! formId ) { return; }
-
-				var $form = $( '#' + formId );
-				if ( ! $form.length ) { return; }
-
-				// Wait one frame so the variation match/price update has
-				// rendered first, then scroll smoothly with a small offset
-				// for the WP admin bar / sticky headers.
-				requestAnimationFrame( function () {
-					setTimeout( function () {
-						var top    = $form.offset().top;
-						var offset = ( $( '#wpadminbar' ).outerHeight() || 0 ) + 16;
-						window.scrollTo( {
-							top:      Math.max( 0, top - offset ),
-							behavior: 'smooth',
-						} );
-					}, 80 ); // small delay lets WC's variation engine paint price/availability
-				} );
-			} );
+		// 5. v1.3.8 (B2) — Mobile scroll-to-form REMOVED.
+		// Pre-1.3.8 a hardcoded handler (bindMobileScrollToForm) ran on
+		// every swatch click on mobile and window.scrollTo'd the page to
+		// the canonical form. Per ZYMARG product-owner decision in v1.3.8,
+		// the customer should stay where they are after picking a swatch
+		// — no implicit scroll, no focus-jump, no anchor change. The
+		// function and its call site were both removed.
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
