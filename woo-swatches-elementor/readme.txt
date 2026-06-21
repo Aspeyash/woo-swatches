@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.3.5
+Stable tag: 1.3.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,33 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.3.6 =
+**Critical CSS fix: image swatches container now respects parent column width.**
+
+Drop-in replacement for v1.3.5. No DB schema changes, no settings reset. Single-file CSS change.
+
+**Bug fixes**
+
+* **B1 — Image swatches overflowed the column on desktop/tablet AND overflowed the screen on mobile hscroll mode.** Pre-1.3.6 the base `.wse-attr-block` and `.wse-swatches` rules had no explicit width — both were `width: auto` (default for block elements), so the flex container expanded to fit its content rather than respecting the parent column's width. Net effect:
+  - **Desktop / tablet (default wrap mode):** With ~10+ swatches the flex container grew wider than the column, pushing past the right edge of the visible viewport. `flex-wrap: wrap` was a no-op because the container had infinite room.
+  - **Mobile (hscroll mode from v1.3.5 F1):** `flex-wrap: nowrap` + `overflow-x: auto` should have clipped the strip and provided internal swipe scrolling, but `overflow-x` only fires when content is wider than the container — and since the container had no width, it expanded to fit too. Result: the strip overflowed the screen instead of becoming an internal scrolling area.
+
+  **Fix:** Add `width: 100%; max-width: 100%; box-sizing: border-box; min-width: 0` to both base rules. The `min-width: 0` is the subtle-but-critical part — flex items default to `min-width: auto` which prevents shrinking below content size and would have defeated the constraint by itself. With these in place:
+  - Default wrap mode now actually wraps to multiple rows when content exceeds column width
+  - Hscroll mode now clips the strip and produces proper internal swipe scrolling
+
+  Both v1.3.5 hscroll behaviors (Show Scrollbar, Auto-scroll Active Into View) are unchanged in their JS / CSS logic — they were correct, the underlying container just wasn't constraining the layout properly.
+
+**Files changed**
+
+* `assets/css/swatches.css` (+ .min) — `.wse-attr-block` and `.wse-swatches` get explicit width / max-width / box-sizing / min-width
+* `woo-swatches-elementor.php` — Version 1.3.6
+* `readme.txt` — Stable tag, Changelog, Upgrade Notice
+
+**Migration**
+
+Drop-in replacement for v1.3.5. After install: hard-refresh (Ctrl+F5) + Elementor → Tools → Regenerate CSS + Hostinger Cache Manager → Purge All. Browser cache may serve pre-1.3.6 `swatches.css` otherwise.
 
 = 1.3.5 =
 **Patch + features: 2 critical bug fixes + 4 features.**
@@ -855,6 +882,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.3.6 =
+Critical CSS fix for v1.3.5's image swatches horizontal scroll feature. Pre-1.3.6 the .wse-attr-block and .wse-swatches flex container had no explicit width constraint, so on desktop/tablet the swatches row didn't wrap (overflowed the column) and on mobile the hscroll strip overflowed the screen instead of clipping internally. Added width:100%; max-width:100%; box-sizing:border-box; min-width:0 to both base rules. Single-file CSS change. Drop-in replacement for v1.3.5, no DB migration. Hard-refresh + Regenerate CSS after install.
 
 = 1.3.5 =
 Patch + features. 2 critical bug fixes: (B1) "Show Clear Button" toggle now actually hides the Clear link when off (was hardcoded-rendered in wrapper.php), (B2) image swatch label position dropdown options Above/Hover/Hidden now work (CSS specificity battle + class always-emit fix). 4 features: (F1) per-device responsive horizontal-scroll mode for image swatches with separate scrollbar visibility + auto-scroll-into-view toggles per breakpoint (9 switchers total), (F2) 3 per-device quantity-stepper full-width switchers (matching the existing Add-to-Cart full-width pattern), (F3) "Hidden" added to Label Position dropdown as third option, (F4) the 12 admin Swatch-Sizes fields under WC → Settings → WooSwatches now accept px / % / em / rem (legacy integer values still work — treated as px). Drop-in replacement for v1.3.4, no DB migration. Hard-refresh + Regenerate CSS after install.
