@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,59 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.4.1 =
+**Critical fix for v1.4.0 — variation thumbnails disappeared moments after page load.**
+
+Drop-in replacement for v1.4.0. Single-line substantive PHP change in `widgets/class-widget-variation-image-gallery.php` `render()`. No JS / template / DB / settings changes.
+
+**The bug**
+
+After upgrading to v1.4.0 and switching a Variation Image Gallery widget to "Product Gallery + Variation Images", customers saw the gallery counter briefly show "1 / 15" (full extended list with variation thumbs) during page load, then **drop to "1 / 7"** (parent-only list) the moment the page finished loading. The variation thumbnails disappeared without any user interaction.
+
+**Root cause** (the smoking gun was the 15 → 7 transition with no user input)
+
+The v1.4.0 architecture was:
+1. **PHP** — `render()` builds the extended list ($current) for the INITIAL DOM render — 15 images. ✅
+2. **PHP** — JSON-encodes `$images_map` into `data-variation-images` for the JS to use on variation swaps. The map's `'0'` key (the "no variation matched" fallback) held only the parent-only list — 7 images. ❌
+3. **JS** — `state.images = JSON.parse(data-variation-images)` → `state.images['0']` = 7 images.
+4. **WC's variation form** — fires `reset_data` during its own init, BEFORE any user interaction.
+5. **JS** — `bindVariationSync()` listens for `reset_data` → calls `switchToVariation(state, '0')` → reads `state.images['0']` = 7 images → `renderImageList()` rebuilds the strip from those 7 images, **wiping the server-rendered 15-image strip**.
+
+**Fix** (1 line of code + 16 lines of explanatory comment)
+
+After `$current` is built, when `gallery_image_source != 'parent_only'`, override `$images_map['0']` with the same `$current` extended list:
+
+```php
+} else {
+    $current = $this->build_extended_image_list( ... );
+
+    // v1.4.1 (B1) — Make the variation map's "no variation matched"
+    // key ('0') carry the SAME extended list that's about to be
+    // server-rendered, so the JS reset path doesn't wipe it.
+    $images_map['0'] = $current;
+}
+```
+
+Per-variation keys (the variation IDs as strings) stay unchanged so swatch-driven variation swap still loads each variation's specific image set as designed.
+
+**Verification chain end-to-end after fix**
+
+- Initial page load — server renders extended 15-image strip ✅
+- WC `reset_data` during form init — JS reads `state.images['0']` which is now ALSO the 15-image extended list, re-renders identical content. Counter stays at 15. ✅
+- Customer picks "Blue" swatch — `found_variation` event → `switchToVariation('123')` → reads variation 123's specific image set (unchanged by this fix). Gallery swaps to Blue's images. ✅
+- Customer clicks "Clear" — `reset_data` → returns to extended 15-image view. ✅
+- Reverse-sync (v1.4.0 killer feature) — JS rebuilds via `renderImageList()`; `buildThumbHtml`/`buildCarouselSlideHtml` correctly emit `data-variation-id` + `data-variation-attrs` from the extended list records. Click-to-select-variation still works. ✅
+
+**Files changed**
+
+* `widgets/class-widget-variation-image-gallery.php` — 1 substantive line in `render()`
+* `woo-swatches-elementor.php` — Version 1.4.1
+* `readme.txt` — Stable tag, Changelog, Upgrade Notice
+
+**Migration**
+
+Drop-in replacement for v1.4.0. After install: hard-refresh (Ctrl+F5) + Hostinger Cache Manager → Purge All. The browser-cached pre-1.4.1 PHP-rendered HTML doesn't matter (this is a PHP-side fix), but JS-cached old gallery.js could mask the verification.
 
 = 1.4.0 =
 **Minor: variation featured images in the gallery + bidirectional sync.**
@@ -1007,6 +1060,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.4.1 =
+Critical fix for v1.4.0 — variation thumbnails were briefly visible during page load then disappeared when load finished. Root cause: data-variation-images JSON's '0' (no-variation-matched) key held the parent-only list, so when WC's variation form fired `reset_data` during init, the gallery's reset handler replaced the server-rendered extended list with the 7-image parent gallery. Fix: PHP render() now writes the extended list to images_map['0'] when source mode != parent_only, so the JS reset path returns to the same 15-image view. Single-line PHP edit, no JS / template / DB changes. Drop-in replacement for v1.4.0. Hard-refresh + Regenerate CSS after install.
 
 = 1.4.0 =
 Minor: variation featured images integrate into the gallery + bidirectional sync. New "Variation Sync" controls in Widget 4 (Variation Image Gallery): Gallery Image Source dropdown (Product Gallery Only / Variation Only / Both) — default "Product Gallery Only" preserves v1.3.x behavior, no visual change for existing widgets unless opted in. When set to Variation Only or Both: variation featured images appear as gallery thumbnails; clicking/swiping/keyboard-navigating to a variation's image automatically selects the matching swatch in Widget 1 — price, add-to-cart, smart heading all update in real time. Plus auto-detection of "image-bearing" attributes (S4) so multi-attribute products (color + size) only flip color on reverse-sync (Amazon/Nike pattern), preserving the customer's existing size pick. Plus desktop hover-to-preview (S6) — premium opt-in UX. Plus S5 lazy-load all variation thumbs after index 5 for mobile data efficiency. Drop-in replacement for v1.3.8, no DB migration. Hard-refresh + Regenerate CSS after install.

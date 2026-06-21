@@ -1226,6 +1226,26 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 				$image_order,
 				$dedupe
 			);
+
+			// v1.4.1 (B1) — Critical: make the variation map's "no variation
+			// matched" key ('0') carry the SAME extended list that's about
+			// to be server-rendered.
+			//
+			// Why: WooCommerce's variation form (wc_variation_form / wc-add-
+			// to-cart-variation.js) fires a `reset_data` event during its
+			// initialization — BEFORE any user interaction. The gallery's
+			// bindVariationSync() handler responds by calling
+			// switchToVariation(state, '0'), which calls renderImageList()
+			// from state.images['0']. Pre-1.4.1 that key held only the
+			// parent-only list (7 images), so the server-rendered 15-image
+			// extended strip was wiped out moments after page load — net
+			// effect customers reported as "thumbnails briefly show variation
+			// images, then disappear when load finishes".
+			//
+			// Per-variation keys (string variation IDs in $images_map) stay
+			// untouched so swatch-driven variation swap still loads each
+			// variation's specific image set as designed.
+			$images_map['0'] = $current;
 		}
 
 		// v1.4.0 (S4) — Image-bearing attributes for the JS reverse-sync.
