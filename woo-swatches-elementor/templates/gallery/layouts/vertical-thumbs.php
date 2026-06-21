@@ -91,10 +91,25 @@ $_active = absint( $active_index ?? 0 );
 					$_cid  = (int)    ( $img['id']     ?? 0 );
 					$_cw   = (int)    ( $img['width']  ?? 0 );
 					$_ch   = (int)    ( $img['height'] ?? 0 );
+					// v1.4.0 — Carousel slide carries variation association
+					// for reverse-sync. JS reads data-variation-id +
+					// data-variation-attrs the same way it reads them off
+					// .zymarg-vig-thumb / .zymarg-vig-main.
+					$_cvid    = (int)   ( $img['variation_id'] ?? 0 );
+					$_cvattrs = (array) ( $img['attributes']   ?? array() );
+					$_cvjson  = ! empty( $_cvattrs ) ? wp_json_encode( $_cvattrs ) : '';
+					$_cclass  = 'zymarg-vig-carousel-slide' . ( $i === $_active ? ' is-active' : '' );
+					if ( $_cvid > 0 ) {
+						$_cclass .= ' zymarg-vig-carousel-slide--variation';
+					}
 					?>
-					<figure class="zymarg-vig-carousel-slide<?php echo $i === $_active ? ' is-active' : ''; ?>"
+					<figure class="<?php echo esc_attr( $_cclass ); ?>"
 						data-image-id="<?php echo esc_attr( (string) $_cid ); ?>"
 						data-image-index="<?php echo absint( $i ); ?>"
+						<?php if ( $_cvid > 0 ) : ?>
+							data-variation-id="<?php echo absint( $_cvid ); ?>"
+							data-variation-attrs="<?php echo esc_attr( (string) $_cvjson ); ?>"
+						<?php endif; ?>
 						aria-roledescription="slide"
 						aria-label="<?php
 							echo esc_attr( sprintf(

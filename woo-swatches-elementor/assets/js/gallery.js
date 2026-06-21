@@ -101,6 +101,17 @@
 			// loops (carousel scroll updates thumb, thumb click scrolls
 			// carousel — without this, both sides keep firing each other).
 			suppressScrollSync: false,
+			// v1.4.0 — Variation-images-in-gallery + reverse-sync state.
+			gallerySource:       String( $widget.attr( 'data-gallery-source' )    || 'parent_only' ),
+			triggerSelection:    '1' === String( $widget.attr( 'data-trigger-selection' ) || '0' ),
+			hoverPreviewEnabled: '1' === String( $widget.attr( 'data-hover-preview' )     || '0' ),
+			imageBearingAttrs:   safeParseJSON( $widget.attr( 'data-image-bearing-attrs' ) || '[]' ) || [],
+			// Loop prevention for reverse-sync. When the gallery responds
+			// to a swatch-driven found_variation event, we must not turn
+			// around and re-trigger swatch selection from that update.
+			suppressSwatchSync:  false,
+			// Hover-preview save/restore state (S6 — desktop only).
+			hoverPreviewBackup:  null,
 		};
 
 		galleries.push( state );
@@ -112,6 +123,7 @@
 		bindCarouselScroll( state );      // v1.3.2 (F4)
 		bindThumbDragScroll( state );     // v1.3.2 (S3)
 		bindMainSwipe( state );           // v1.3.3 (F3) — touch swipe on main image
+		bindHoverPreview( state );        // v1.4.0 (S6) — desktop hover-to-preview
 		bindZoomLens( state );
 		bindLightboxOpener( state );
 
@@ -132,11 +144,20 @@
 			if ( ! variation || ! variation.variation_id ) {
 				return;
 			}
+			// v1.4.0 — Loop prevention: this handler responds to a
+			// swatch-driven event, so we must NOT trigger reverse-sync
+			// (back into swatches) when the resulting switchToIndex
+			// fires. Suppress for this synchronous call chain; release
+			// on next tick once WC's chain has finished.
+			state.suppressSwatchSync = true;
 			switchToVariation( state, String( variation.variation_id ) );
+			setTimeout( function () { state.suppressSwatchSync = false; }, 50 );
 		} );
 
 		state.$form.on( 'reset_data.wseGallery', function () {
+			state.suppressSwatchSync = true;
 			switchToVariation( state, '0' );
+			setTimeout( function () { state.suppressSwatchSync = false; }, 50 );
 		} );
 	}
 
@@ -287,6 +308,15 @@
 		// (arrow key, swipe, dot click, programmatic). Centers the thumb
 		// in the strip without jumping the page.
 		scrollThumbsToActive( state );
+
+		// v1.4.0 — Reverse-sync: if this image is associated with a
+		// variation, programmatically select the matching swatch(es) in
+		// Widget 1. Suppressed when the navigation came FROM a swatch-
+		// driven found_variation event (loop prevention via the flag set
+		// by bindVariationSync).
+		if ( state.triggerSelection && ! state.suppressSwatchSync ) {
+			syncSwatchesFromGalleryImage( state, img );
+		}
 
 		// v1.3.2 (F5) — Focus the new active thumb so arrow keys keep
 		// firing without the user needing to re-tab. Only when explicitly
@@ -915,29 +945,218 @@
 	// Helpers
 	// ─────────────────────────────────────────────────────────────────────
 
+	/**
+	 * v1.4.0 — Reverse-sync from gallery image to swatches.
+	 *
+	 * When the customer navigates the gallery to an image that's
+	 * associated with a variation (clicked thumb, swiped carousel,
+	 * arrow-key, dot click, lightbox prev/next — all routed through
+	 * switchToIndex), this helper programmatically selects the matching
+	 * swatch(es) in Widget 1. The swatch click cascades through the
+	 * existing v1.3.x chain (selectSwatch → form change → WC's
+	 * found_variation → price update → add-to-cart enable → smart
+	 * heading recompute), so the entire plugin updates as if the
+	 * customer clicked the swatch directly.
+	 *
+	 * S4 multi-attribute behavior:
+	 *   - state.imageBearingAttrs is the array of attribute keys
+	 *     auto-detected as image-bearing (e.g., ['attribute_color']).
+	 *     When non-empty, only those attributes get set — preserving
+	 *     the customer's existing Size or other non-image picks.
+	 *   - When the array is empty (settings: 'all' mode, or single-
+	 *     attribute product, or auto-detect found nothing), every
+	 *     attribute on the variation gets set. Also handles the case
+	 *     where the image is associated with a variation but has no
+	 *     attributes (defensive — no-op).
+	 *
+	 * @param {Object} state Gallery state.
+	 * @param {Object} img   Image record from the gallery list. Carries
+	 *                       variation_id (number) and attributes (assoc).
+	 */
+	function syncSwatchesFromGalleryImage( state, img ) {
+		if ( ! img ) { return; }
+		var variationId = parseInt( img.variation_id, 10 );
+		if ( isNaN( variationId ) || variationId <= 0 ) {
+			return;   // parent-only image — no reverse-sync
+		}
+		var attrs = img.attributes || {};
+		var attrKeys = Object.keys( attrs );
+		if ( ! attrKeys.length ) {
+			return;   // variation associated but no attributes — defensive
+		}
+
+		// Find Widget 1 on the same page. Look for the matching attr-block
+		// inside the canonical form's surrounding swatches widget. If
+		// Widget 1 isn't on the page, skip silently.
+		var $widgetSwatches = $( '.wse-widget-swatches' );
+		if ( ! $widgetSwatches.length ) { return; }
+
+		// Apply S4 image-bearing filter. When state.imageBearingAttrs has
+		// entries, restrict to those. When empty, apply all.
+		var keysToSet = attrKeys;
+		if ( state.imageBearingAttrs && state.imageBearingAttrs.length ) {
+			keysToSet = attrKeys.filter( function ( k ) {
+				return state.imageBearingAttrs.indexOf( k ) !== -1;
+			} );
+			if ( ! keysToSet.length ) {
+				// Image-bearing list provided but none of the variation's
+				// attribute keys match it — fall back to setting all to
+				// avoid a silent no-op.
+				keysToSet = attrKeys;
+			}
+		}
+
+		keysToSet.forEach( function ( attrKey ) {
+			// attrKey is in the form 'attribute_color' or 'attribute_pa_color'
+			// (with pa_ prefix for taxonomy attributes). Strip 'attribute_'
+			// to get the slug used in .wse-swatch-wrap[data-attribute].
+			var slug = String( attrKey ).replace( /^attribute_/, '' );
+			var value = String( attrs[ attrKey ] || '' );
+			if ( ! slug || ! value ) { return; }
+
+			// Find every Widget 1 instance and the matching swatch.
+			$widgetSwatches.each( function () {
+				var $wrap = $( this ).find(
+					'.wse-swatch-wrap[data-attribute="' + slug + '"]'
+				);
+				if ( ! $wrap.length ) { return; }
+				var $swatch = $wrap.find(
+					'.wse-swatch[data-value="' + value + '"]'
+				);
+				if ( ! $swatch.length ) { return; }
+				if ( $swatch.hasClass( 'selected' ) ) { return; }
+				if ( $swatch.hasClass( 'disabled' ) ) { return; }
+
+				// Trigger the click — same chain as a real swatch click.
+				$swatch.trigger( 'click.wse' );
+			} );
+		} );
+	}
+
+	/**
+	 * v1.4.0 (S6) — Desktop hover-to-preview for variation thumbnails.
+	 *
+	 * Hovering a variation thumb temporarily swaps the main image to
+	 * that variation's image (without committing the selection).
+	 * Mouse-leave reverts to whatever was active before the hover.
+	 * Click commits via the normal switchToIndex flow.
+	 *
+	 * Touch devices ignore hover events (no mouseenter on tap), so this
+	 * is naturally desktop-only without needing an explicit gate.
+	 */
+	function bindHoverPreview( state ) {
+		if ( ! state.hoverPreviewEnabled ) { return; }
+
+		state.$widget.on( 'mouseenter.wseHoverPreview',
+			'.zymarg-vig-thumb--variation', function () {
+				var $main = state.$widget.find( '.zymarg-vig-main-img' ).first();
+				if ( ! $main.length ) { return; }
+
+				// Save the current main src/srcset/sizes/alt for restoration
+				// on mouseleave. Don't double-save if a hover is already in
+				// progress (rapid-fire mouseenter from sibling thumbs).
+				if ( ! state.hoverPreviewBackup ) {
+					state.hoverPreviewBackup = {
+						src:    $main.attr( 'src'    ) || '',
+						srcset: $main.attr( 'srcset' ) || '',
+						sizes:  $main.attr( 'sizes'  ) || '',
+						alt:    $main.attr( 'alt'    ) || '',
+					};
+				}
+
+				// Find the image record for this thumb and preview it.
+				var idx = parseInt( $( this ).attr( 'data-image-index' ), 10 );
+				if ( isNaN( idx ) ) { return; }
+				var imageList = state.images[ state.currentKey ];
+				if ( ! imageList || ! imageList[ idx ] ) { return; }
+				var img = imageList[ idx ];
+
+				$main.attr( 'src', img.src );
+				if ( img.srcset ) { $main.attr( 'srcset', img.srcset ); }
+				if ( img.sizes  ) { $main.attr( 'sizes',  img.sizes  ); }
+				if ( img.alt    ) { $main.attr( 'alt',    img.alt    ); }
+			}
+		);
+
+		state.$widget.on( 'mouseleave.wseHoverPreview',
+			'.zymarg-vig-thumb--variation', function () {
+				if ( ! state.hoverPreviewBackup ) { return; }
+				var $main = state.$widget.find( '.zymarg-vig-main-img' ).first();
+				if ( ! $main.length ) { return; }
+
+				// Defer restore one tick so a click on the same thumb
+				// (which fires mouseleave just before click) doesn't
+				// race the click's switchToIndex.
+				setTimeout( function () {
+					if ( ! state.hoverPreviewBackup ) { return; }
+					$main.attr( 'src', state.hoverPreviewBackup.src );
+					if ( state.hoverPreviewBackup.srcset ) {
+						$main.attr( 'srcset', state.hoverPreviewBackup.srcset );
+					} else { $main.removeAttr( 'srcset' ); }
+					if ( state.hoverPreviewBackup.sizes ) {
+						$main.attr( 'sizes', state.hoverPreviewBackup.sizes );
+					} else { $main.removeAttr( 'sizes' ); }
+					$main.attr( 'alt', state.hoverPreviewBackup.alt );
+					state.hoverPreviewBackup = null;
+				}, 30 );
+			}
+		);
+
+		// On click, the thumb's switchToIndex will run and update the
+		// main image. Clear the backup so mouseleave doesn't revert
+		// after the commit.
+		state.$widget.on( 'click.wseHoverPreview',
+			'.zymarg-vig-thumb--variation', function () {
+				state.hoverPreviewBackup = null;
+			}
+		);
+	}
+
 	function buildThumbHtml( img, index, isActive ) {
 		var classes = 'zymarg-vig-thumb' + ( isActive ? ' is-active' : '' );
+		// v1.4.0 — variation association for reverse-sync + S5 lazy-load.
+		var variationId = parseInt( img.variation_id, 10 );
+		var hasVar      = ! isNaN( variationId ) && variationId > 0;
+		if ( hasVar ) { classes += ' zymarg-vig-thumb--variation'; }
+		var attrsJson   = ( img.attributes && Object.keys( img.attributes ).length )
+			? JSON.stringify( img.attributes )
+			: '';
+
 		return '<button type="button" class="' + classes + '"'
 			+ ' data-image-id="'    + ( img.id || '' ) + '"'
 			+ ' data-image-index="' + index + '"'
+			+ ( hasVar ? ' data-variation-id="' + variationId + '"' : '' )
+			+ ( hasVar && attrsJson ? ' data-variation-attrs="' + escapeAttr( attrsJson ) + '"' : '' )
 			+ ' aria-label="View image ' + ( index + 1 ) + '"'
 			+ ( isActive ? ' aria-current="true"' : '' )
 			+ ' tabindex="' + ( isActive ? '0' : '-1' ) + '">'
 			+   '<img class="zymarg-vig-thumb-img" src="' + escapeAttr( img.thumb || img.src || '' )
-			+     '" alt="' + escapeAttr( img.alt || '' ) + '" loading="lazy" decoding="async"/>'
+			+     '" alt="' + escapeAttr( img.alt || '' ) + '"'
+			+     ' loading="lazy" decoding="async"/>'
 			+ '</button>';
 	}
 
 	/**
 	 * v1.3.2 (F4) — Build a single mobile-carousel slide HTML string.
 	 * Mirrors the server-side template in vertical-thumbs.php.
+	 * v1.4.0 — Carries variation_id + attrs for reverse-sync.
 	 */
 	function buildCarouselSlideHtml( img, index, isActive, total ) {
 		var classes = 'zymarg-vig-carousel-slide' + ( isActive ? ' is-active' : '' );
 		var aria    = ( index + 1 ) + ' of ' + total;
+		// v1.4.0 — variation association.
+		var variationId = parseInt( img.variation_id, 10 );
+		var hasVar      = ! isNaN( variationId ) && variationId > 0;
+		if ( hasVar ) { classes += ' zymarg-vig-carousel-slide--variation'; }
+		var attrsJson   = ( img.attributes && Object.keys( img.attributes ).length )
+			? JSON.stringify( img.attributes )
+			: '';
+
 		return '<figure class="' + classes + '"'
 			+ ' data-image-id="' + ( img.id || '' ) + '"'
 			+ ' data-image-index="' + index + '"'
+			+ ( hasVar ? ' data-variation-id="' + variationId + '"' : '' )
+			+ ( hasVar && attrsJson ? ' data-variation-attrs="' + escapeAttr( attrsJson ) + '"' : '' )
 			+ ' aria-roledescription="slide"'
 			+ ' aria-label="' + escapeAttr( aria ) + '">'
 			+   '<img class="zymarg-vig-carousel-img"'

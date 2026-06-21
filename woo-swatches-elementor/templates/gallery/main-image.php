@@ -48,6 +48,11 @@ $_alt    = (string) ( $image['alt']    ?? '' );
 $_w      = (int)    ( $image['width']  ?? 0 );
 $_h      = (int)    ( $image['height'] ?? 0 );
 
+// v1.4.0 — variation association (for reverse-sync via gallery.js).
+$_variation_id    = (int)   ( $image['variation_id'] ?? 0 );
+$_variation_attrs = (array) ( $image['attributes']   ?? array() );
+$_variation_json  = ! empty( $_variation_attrs ) ? wp_json_encode( $_variation_attrs ) : '';
+
 $_classes = array( 'zymarg-vig-main' );
 if ( $show_zoom ) {
 	$_classes[] = 'zymarg-vig-main--zoomable';
@@ -55,9 +60,16 @@ if ( $show_zoom ) {
 if ( $show_lightbox ) {
 	$_classes[] = 'zymarg-vig-main--lightbox';
 }
+if ( $_variation_id > 0 ) {
+	$_classes[] = 'zymarg-vig-main--variation';
+}
 ?>
 <figure class="<?php echo esc_attr( implode( ' ', $_classes ) ); ?>"
-	data-image-id="<?php echo esc_attr( (string) $_id ); ?>">
+	data-image-id="<?php echo esc_attr( (string) $_id ); ?>"
+	<?php if ( $_variation_id > 0 ) : ?>
+		data-variation-id="<?php echo absint( $_variation_id ); ?>"
+		data-variation-attrs="<?php echo esc_attr( (string) $_variation_json ); ?>"
+	<?php endif; ?>>
 
 	<?php if ( $is_on_sale && $show_sale_badge && '' !== trim( (string) $sale_badge_text ) ) : ?>
 		<span class="zymarg-vig-sale-badge"><?php echo esc_html( $sale_badge_text ); ?></span>
