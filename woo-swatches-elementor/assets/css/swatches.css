@@ -235,7 +235,31 @@ body.wse-stylesheet-enabled .wse-swatch-wrap:last-child {
    page (e.g. user-account or checkout forms). */
 
 body.wse-stylesheet-enabled fieldset.wse-fieldset {
-	padding: 10px;
+	padding:          10px;
+	/* v1.3.7 — Constrain the fieldset to its parent's width so the
+	   inner .wse-swatches ul has a real width to wrap / scroll against.
+	   HTML5 fieldsets default to min-inline-size: min-content (a per-spec
+	   quirk) which lets them grow to fit their content regardless of
+	   parent width — defeating v1.3.6's chain of width:100% on
+	   .wse-attr-block and .wse-swatches. Without this, in hscroll mode
+	   the fieldset expanded to fit all swatches in one row, the inner
+	   ul's width:100% became 100% of that overflowed fieldset, and the
+	   whole thing overflowed the parent column.
+	   - min-width: 0          — defeats flex-item min-width:auto default
+	   - min-inline-size: 0    — explicit override of the fieldset
+	                              min-content quirk (CSS Level 3 logical
+	                              property; takes precedence over
+	                              min-width on most browsers)
+	   - margin: 0; border: 0  — normalise so theme-injected fieldset
+	                              styles (Astra adds a default border)
+	                              don't push content past the column. */
+	width:            100%;
+	max-width:        100%;
+	box-sizing:       border-box;
+	min-width:        0;
+	min-inline-size:  0;
+	margin:           0;
+	border:           0;
 }
 
 /* ─── Native passthrough attribute wrapper (non-swatch types) ────────────── */

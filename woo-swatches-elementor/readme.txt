@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.3.6
+Stable tag: 1.3.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,39 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.3.7 =
+**Critical follow-up to v1.3.6: fieldset width constraint completes the layout chain.**
+
+Drop-in replacement for v1.3.6. No DB schema changes. Single-file CSS edit (~10 added properties on one rule).
+
+**Bug fixes**
+
+* **B1 — Image swatches container still overflowed in hscroll mode despite v1.3.6.** v1.3.6 added `width: 100%; max-width: 100%; min-width: 0` to `.wse-attr-block` and `.wse-swatches` — but the rendered DOM has a `<fieldset class="wse-fieldset">` element BETWEEN those two layers (`.wse-attr-block` → `<fieldset>` → `<ul.wse-swatches>`). The fieldset only had `padding: 10px` from v1.3.2 — no width constraint.
+
+  HTML5 fieldsets default to `min-inline-size: min-content` (a per-spec quirk) which lets them grow to fit their content regardless of parent width. So in hscroll mode (`flex-wrap: nowrap` on `.wse-swatches`):
+  1. `.wse-attr-block` is constrained to parent column width ✅
+  2. `<fieldset>` has no width → grows to fit its content (the ul) which itself wants 100% of fieldset → recursive expansion to fit all swatches in one row
+  3. `.wse-swatches { width: 100% }` resolves to 100% of the overflowed fieldset
+  4. Net result: the entire chain overflows the column
+
+  **Fix:** Extend the existing `fieldset.wse-fieldset` rule with:
+  - `width: 100%; max-width: 100%; box-sizing: border-box` — match parent
+  - `min-width: 0` — defeat flex-item min-width:auto default
+  - `min-inline-size: 0` — explicit override of the HTML5 fieldset min-content quirk (this is the key piece — `min-width: 0` alone doesn't fully address the fieldset-specific behavior in some browsers)
+  - `margin: 0; border: 0` — normalise so theme-injected fieldset styles (Astra adds a default border) don't push content past the column
+
+  After this, the chain is complete: Elementor widget container → `.wse-widget-swatches` (width:100%) → `.wse-attr-block` (width:100%; min-width:0) → `<fieldset>` (width:100%; min-inline-size:0) → `<ul.wse-swatches>` (width:100%; min-width:0). All hscroll behaviors (clip + swipe + auto-scroll-into-view) now work as intended on every breakpoint.
+
+**Files changed**
+
+* `assets/css/swatches.css` (+ .min) — fieldset rule extended with 7 new properties
+* `woo-swatches-elementor.php` — Version 1.3.7
+* `readme.txt` — Stable tag, Changelog, Upgrade Notice
+
+**Migration**
+
+Drop-in replacement for v1.3.6. After install: hard-refresh (Ctrl+F5) + Elementor → Tools → Regenerate CSS + Hostinger Cache Manager → Purge All. Browser CSS cache is the most likely reason the fix appears not to work after upgrade — the cached `swatches.css` keeps serving the v1.3.5 / v1.3.6 version.
 
 = 1.3.6 =
 **Critical CSS fix: image swatches container now respects parent column width.**
@@ -882,6 +915,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.3.7 =
+Critical follow-up to v1.3.6. v1.3.6 constrained the .wse-attr-block and .wse-swatches layers but left the intermediate `<fieldset class="wse-fieldset">` unconstrained. HTML5 fieldsets default to min-inline-size: min-content which made the fieldset shrink-to-fit its content (so it grew to fit all swatches in hscroll mode), and the inner ul's width:100% then resolved against that overflowing fieldset. v1.3.7 adds width:100%; max-width:100%; min-width:0; min-inline-size:0; box-sizing:border-box plus margin:0 and border:0 to normalise the fieldset. Drop-in replacement for v1.3.6, no DB migration. Hard-refresh + Regenerate CSS after install.
 
 = 1.3.6 =
 Critical CSS fix for v1.3.5's image swatches horizontal scroll feature. Pre-1.3.6 the .wse-attr-block and .wse-swatches flex container had no explicit width constraint, so on desktop/tablet the swatches row didn't wrap (overflowed the column) and on mobile the hscroll strip overflowed the screen instead of clipping internally. Added width:100%; max-width:100%; box-sizing:border-box; min-width:0 to both base rules. Single-file CSS change. Drop-in replacement for v1.3.5, no DB migration. Hard-refresh + Regenerate CSS after install.
