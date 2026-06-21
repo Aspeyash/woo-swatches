@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.3.8
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,73 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.4.0 =
+**Minor: variation featured images in the gallery + bidirectional sync.**
+
+Drop-in replacement for v1.3.8. No DB schema changes. Existing widget instances render exactly the same as v1.3.8 (default `gallery_image_source` = `parent_only` preserves back-compat) — opt in per-widget when ready.
+
+**The integration**
+
+Pre-1.4.0 the Variation Image Gallery widget showed only the parent product's gallery. Variation featured images were hidden until the customer clicked a swatch (one-way sync via `found_variation`). v1.4.0 lets the gallery INCLUDE variation featured images directly as thumbnails AND reverse-syncs them to the swatches: clicking, swiping, or arrow-keying to a variation's image automatically picks the matching variation in Widget 1, and the whole plugin (price, add-to-cart, smart heading) updates as if the customer had clicked the swatch directly. The two widgets behave like one integrated system instead of two separate widgets.
+
+**New core controls (Widget 4 → Content → Variation Sync)**
+
+* `gallery_image_source` (SELECT, default `parent_only`):
+  * **Product Gallery Only** — pre-1.4.0 behavior, kept as default for back-compat
+  * **Variation Images Only** — clean fashion-forward UX (only color thumbs)
+  * **Product Gallery + Variation Images** — most common merchant choice
+* `variation_image_order` (SELECT, conditional on source=both, default `variation_first`) — variations-first or gallery-first ordering
+* `gallery_dedupe` (SWITCHER, default ON) — when a vendor uses the same image for both parent gallery AND a variation featured image, prevents duplicate thumbnails. Variation association wins on dedupe so reverse-sync remains functional.
+* `variation_triggers_selection` (SWITCHER, default ON) — when ON, variation thumb clicks select the matching variation; when OFF, thumbs are decorative only.
+
+**S4 — Multi-attribute behavior (auto-detect, default)**
+
+When a variation has multiple attributes (color + size + material…), the plugin auto-detects which attribute is "image-bearing" — i.e., the attribute whose values produce distinct featured-image sets (typically Color or Pattern). Reverse-sync only sets the image-bearing attribute, leaving Size / Material / etc. preserving the customer's existing picks. Matches the Amazon / Nike / ASOS pattern. New control `image_bearing_attribute` lets power users override to "Set ALL attributes" if preferred. For single-attribute products the two behaviors are identical (no difference).
+
+Algorithm: For each attribute, group variations by attribute value, get the unique image-id set per group. If all groups produce distinct signatures → image-bearing. If any two groups share images → not image-bearing.
+
+**S5 — Lazy-load variation thumbs**
+
+All variation thumbnails after index 5 in the rendered list get a hard `loading="lazy"` regardless of other settings. Keeps mobile data usage low when a product has 10+ variation images. Server-side template + client-side `buildThumbHtml` both honor this.
+
+**S6 — Hover-to-preview (desktop only, opt-in)**
+
+New `hover_preview_desktop` SWITCHER. When ON: hovering a variation thumbnail temporarily shows that variation's image in the main area without committing the selection. Mouse leave reverts to the previously-active image. Click commits via the normal flow. Touch devices ignore this (no mouseenter on tap) so the toggle naturally only affects desktop. Premium UX (Zara / Nike pattern).
+
+**Architecture**
+
+Server-side (PHP):
+
+* `format_image_data()` extended with optional `variation_id` and `attributes` args. Each image record now carries variation association (or `0` + `[]` for parent-only images).
+* `build_extended_image_list()` — composes the gallery list per source mode + order + dedupe. Used when source ≠ `parent_only`. The original `build_variation_images_map()` still runs unconditionally for the swatch-driven forward-sync path.
+* `dedupe_image_list_prefer_variation()` — variation association wins the dedupe conflict so reverse-sync stays functional on shared images.
+* `detect_image_bearing_attributes()` — auto-detects which attribute keys are image-bearing using the algorithm above. Returns empty array when in `all` mode or when the auto-detector finds nothing.
+* `render()` chooses initial image list per source mode, then emits 4 new data-attrs on the wrapper: `data-gallery-source`, `data-trigger-selection`, `data-image-bearing-attrs` (JSON), `data-hover-preview`.
+
+Templates (`thumbnail.php`, `main-image.php`, `vertical-thumbs.php` carousel slides) — emit `data-variation-id` and `data-variation-attrs` per element when the image is variation-associated. JS reads these on click / swipe / arrow-key.
+
+Client-side (`gallery.js`):
+
+* New `syncSwatchesFromGalleryImage(state, img)` helper — reads `img.variation_id` + `img.attributes`, applies S4 image-bearing filter (when state has the list), finds matching `.wse-swatch[data-attribute][data-value]` in Widget 1, triggers click. The click cascades through the existing v1.3.x chain (selectSwatch → form change → WC found_variation → price update → add-to-cart enable → smart heading).
+* New `bindHoverPreview(state)` — desktop hover handler with `hoverPreviewBackup` save/restore via `setTimeout` to avoid racing the click commit.
+* `bindVariationSync()` extended with `state.suppressSwatchSync = true` flag wrapping the handler — releases on next tick. Loop prevention: when the gallery responds to a swatch-driven `found_variation` event, the resulting `switchToIndex` won't turn around and re-trigger swatch selection. Same pattern proven in v1.3.5 F1 (carousel scroll vs thumb click loop).
+* `switchToIndex()` extended with single-line reverse-sync call gated on `state.triggerSelection && ! state.suppressSwatchSync`. Every navigation source (thumb click, swipe, arrow-key, dot click, lightbox prev/next) routes through here, so reverse-sync fires on all of them automatically.
+* `buildThumbHtml()` and `buildCarouselSlideHtml()` — emit `data-variation-id` and `data-variation-attrs` (JSON-encoded `attributes`) when the image record carries them. Used when JS re-renders the strip after a swatch swap.
+
+**Files changed**
+
+* `widgets/class-widget-variation-image-gallery.php` — 6 new controls + 3 new helper methods + render() reworked
+* `templates/gallery/thumbnail.php` — variation data attrs + S5 lazy-load
+* `templates/gallery/main-image.php` — variation data attrs
+* `templates/gallery/layouts/vertical-thumbs.php` — carousel slide variation data attrs
+* `assets/js/gallery.js` (+ .min) — `syncSwatchesFromGalleryImage`, `bindHoverPreview`, suppressSwatchSync flag, updated builders (842 → 1187 LOC)
+* `woo-swatches-elementor.php` — Version 1.4.0
+* `readme.txt` — Stable tag, Changelog, Upgrade Notice, Roadmap pop
+
+**Migration**
+
+Drop-in replacement for v1.3.8. **No DB schema changes**, **no settings reset**. Default `gallery_image_source = parent_only` means existing widgets behave identically to v1.3.8 until you flip the source dropdown. After install: hard-refresh (Ctrl+F5) + Elementor → Tools → Regenerate CSS + Hostinger Cache Manager → Purge All. Then per-product: open the Variation Image Gallery widget in Elementor → Content tab → Variation Sync section → set "Gallery image source" to "Both" or "Variation Only" to enable the new feature.
 
 = 1.3.8 =
 **Patch + behaviour change: keyboard nav auto-selects + mobile scroll-to-form removed.**
@@ -940,6 +1007,9 @@ This release replaces the dual-form architecture with a single canonical form pe
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.4.0 =
+Minor: variation featured images integrate into the gallery + bidirectional sync. New "Variation Sync" controls in Widget 4 (Variation Image Gallery): Gallery Image Source dropdown (Product Gallery Only / Variation Only / Both) — default "Product Gallery Only" preserves v1.3.x behavior, no visual change for existing widgets unless opted in. When set to Variation Only or Both: variation featured images appear as gallery thumbnails; clicking/swiping/keyboard-navigating to a variation's image automatically selects the matching swatch in Widget 1 — price, add-to-cart, smart heading all update in real time. Plus auto-detection of "image-bearing" attributes (S4) so multi-attribute products (color + size) only flip color on reverse-sync (Amazon/Nike pattern), preserving the customer's existing size pick. Plus desktop hover-to-preview (S6) — premium opt-in UX. Plus S5 lazy-load all variation thumbs after index 5 for mobile data efficiency. Drop-in replacement for v1.3.8, no DB migration. Hard-refresh + Regenerate CSS after install.
 
 = 1.3.8 =
 Patch + behaviour change. (B1) Arrow-key navigation in the swatches widget now auto-selects the focused variation per the WAI-ARIA radiogroup automatic-activation pattern — pre-1.3.8 the arrow keys only moved visual focus and the customer had to press Enter or click again to actually select. (B2) The mobile auto-scroll-to-Add-to-Cart behaviour (added in v1.2.1) is REMOVED — the customer now stays where they are after picking a swatch on mobile. Drop-in replacement for v1.3.7, no DB migration. Hard-refresh + Regenerate CSS after install. Note for stores that liked the v1.2.1 mobile auto-scroll: it's no longer available; happy to add a per-widget opt-in toggle in v1.3.9 if needed.
