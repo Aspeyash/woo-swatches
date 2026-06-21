@@ -446,12 +446,12 @@ body.wse-stylesheet-enabled .wse-swatch-image-label {
 
 /* Position: above */
 body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-above .wse-swatch-image {
-	flex-direction: column-reverse;
+	flex-direction: column-reverse !important;       /* v1.3.5 (B2) — defeat theme overrides */
 }
 
 /* Position: on hover only */
 body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hover .wse-swatch-image-label {
-	position:        absolute;
+	position:        absolute !important;
 	bottom:          calc( 100% + 6px );
 	left:            50%;
 	transform:       translateX( -50% );
@@ -468,12 +468,12 @@ body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hover .wse-swatc
 }
 body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hover .wse-swatch-image:hover .wse-swatch-image-label,
 body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hover .wse-swatch-image:focus-within .wse-swatch-image-label {
-	opacity: 1;
+	opacity: 1 !important;
 }
 
 /* Position: hidden — completely suppressed */
 body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hidden .wse-swatch-image-label {
-	display: none;
+	display: none !important;       /* v1.3.5 (B2) — defeat theme overrides */
 }
 
 /* ─── v1.2.1 (S1) — Selected-state image-label boldness ─────────────────── */
@@ -549,5 +549,114 @@ body.wse-stylesheet-enabled .wse-swatch-image-price .woocommerce-Price-amount {
    look misplaced floating without an anchor. Hide it in those modes too. */
 body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hover  .wse-swatch-image-price,
 body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hidden .wse-swatch-image-price {
+	display: none !important;
+}
+
+
+
+/* ─── v1.3.5 (F1) — Image swatches horizontal scroll ─────────────────────── */
+/* When the per-device toggle wse-img-hscroll-{d,t,m}-yes is active at
+   the matching breakpoint, the image-type swatches container changes
+   from `flex-wrap: wrap` (multi-row) to a single-row horizontal scroll
+   strip with `scroll-snap-type: x proximity` so swipes settle on swatch
+   boundaries.
+
+   Driven via prefix_class on the OUTER widget wrapper (added by
+   Elementor) — descendant selectors match through to the inner swatch
+   list, so we don't need the v1.3.4 mirror-class workaround that was
+   only needed for compound selectors.
+
+   Scrollbar visibility is gated separately via wse-img-hscroll-bar-{d,t,m}
+   classes (default: hidden on all devices for a cleaner Amazon/Nike feel).
+*/
+
+/* Desktop (≥1025px) — Enable hscroll when class -d-yes present */
+@media ( min-width: 1025px ) {
+	body.wse-stylesheet-enabled .wse-img-hscroll-d-yes .wse-attr-block[data-type="image"] .wse-swatches {
+		display:                   flex;
+		flex-wrap:                 nowrap;
+		overflow-x:                auto;
+		overflow-y:                hidden;
+		scroll-snap-type:          x proximity;
+		-webkit-overflow-scrolling: touch;
+		scroll-behavior:           smooth;
+	}
+	body.wse-stylesheet-enabled .wse-img-hscroll-d-yes .wse-attr-block[data-type="image"] .wse-swatches > .wse-swatch {
+		flex:               0 0 auto;
+		scroll-snap-align:  start;
+	}
+	/* Hide scrollbar by default on this breakpoint; -bar-d-yes class
+	   un-hides it. */
+	body.wse-stylesheet-enabled .wse-img-hscroll-d-yes:not(.wse-img-hscroll-bar-d-yes) .wse-attr-block[data-type="image"] .wse-swatches {
+		scrollbar-width:        none;
+		-ms-overflow-style:     none;
+	}
+	body.wse-stylesheet-enabled .wse-img-hscroll-d-yes:not(.wse-img-hscroll-bar-d-yes) .wse-attr-block[data-type="image"] .wse-swatches::-webkit-scrollbar {
+		width:   0;
+		height:  0;
+		display: none;
+	}
+}
+
+/* Tablet (769–1024px) */
+@media ( min-width: 769px ) and ( max-width: 1024px ) {
+	body.wse-stylesheet-enabled .wse-img-hscroll-t-yes .wse-attr-block[data-type="image"] .wse-swatches {
+		display:                   flex;
+		flex-wrap:                 nowrap;
+		overflow-x:                auto;
+		overflow-y:                hidden;
+		scroll-snap-type:          x proximity;
+		-webkit-overflow-scrolling: touch;
+		scroll-behavior:           smooth;
+	}
+	body.wse-stylesheet-enabled .wse-img-hscroll-t-yes .wse-attr-block[data-type="image"] .wse-swatches > .wse-swatch {
+		flex:               0 0 auto;
+		scroll-snap-align:  start;
+	}
+	body.wse-stylesheet-enabled .wse-img-hscroll-t-yes:not(.wse-img-hscroll-bar-t-yes) .wse-attr-block[data-type="image"] .wse-swatches {
+		scrollbar-width:        none;
+		-ms-overflow-style:     none;
+	}
+	body.wse-stylesheet-enabled .wse-img-hscroll-t-yes:not(.wse-img-hscroll-bar-t-yes) .wse-attr-block[data-type="image"] .wse-swatches::-webkit-scrollbar {
+		width:   0;
+		height:  0;
+		display: none;
+	}
+}
+
+/* Mobile (≤768px) */
+@media ( max-width: 768px ) {
+	body.wse-stylesheet-enabled .wse-img-hscroll-m-yes .wse-attr-block[data-type="image"] .wse-swatches {
+		display:                   flex;
+		flex-wrap:                 nowrap;
+		overflow-x:                auto;
+		overflow-y:                hidden;
+		scroll-snap-type:          x proximity;
+		-webkit-overflow-scrolling: touch;
+		scroll-behavior:           smooth;
+	}
+	body.wse-stylesheet-enabled .wse-img-hscroll-m-yes .wse-attr-block[data-type="image"] .wse-swatches > .wse-swatch {
+		flex:               0 0 auto;
+		scroll-snap-align:  start;
+	}
+	body.wse-stylesheet-enabled .wse-img-hscroll-m-yes:not(.wse-img-hscroll-bar-m-yes) .wse-attr-block[data-type="image"] .wse-swatches {
+		scrollbar-width:        none;
+		-ms-overflow-style:     none;
+	}
+	body.wse-stylesheet-enabled .wse-img-hscroll-m-yes:not(.wse-img-hscroll-bar-m-yes) .wse-attr-block[data-type="image"] .wse-swatches::-webkit-scrollbar {
+		width:   0;
+		height:  0;
+		display: none;
+	}
+}
+
+/* ─── v1.3.5 (F3) — "Hidden" label position ─────────────────────────────── */
+/* New third option in the label_position dropdown. Hides the entire
+   .wse-attr-label-row (attribute name + selected value). The existing
+   show_label toggle (Yes/No) still works independently as a global
+   show/hide; "hidden" position is just a more discoverable third option
+   in the dropdown context. */
+
+body.wse-stylesheet-enabled .wse-label-hidden .wse-attr-label-row {
 	display: none !important;
 }

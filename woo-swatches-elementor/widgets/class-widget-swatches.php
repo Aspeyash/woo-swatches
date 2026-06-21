@@ -149,6 +149,10 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 			'options'   => array(
 				'above'  => esc_html__( 'Above swatches',  'woo-swatches-elementor' ),
 				'beside' => esc_html__( 'Beside swatches', 'woo-swatches-elementor' ),
+				// v1.3.5 (F3) — Third option to hide the entire label row
+				// (attribute name + selected value) without toggling the
+				// global show_label switcher.
+				'hidden' => esc_html__( 'Hidden',          'woo-swatches-elementor' ),
 			),
 			'default'   => 'above',
 			'condition' => array( 'show_label' => 'yes' ),
@@ -197,6 +201,105 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 				'hidden' => esc_html__( 'Hidden',                        'woo-swatches-elementor' ),
 			),
 			'default' => 'below',
+		) );
+
+		// v1.3.5 (F1) — Image swatch horizontal scroll feature.
+		// 9 per-device toggles in 3 groups (Enable / Show Scrollbar /
+		// Auto-scroll Active Into View), each with desktop / tablet /
+		// mobile variants. Defaults match the senior-dev-recommended
+		// Amazon/Nike-style behaviour:
+		//   Enable Hscroll:        D=OFF  T=ON   M=ON
+		//   Show Scrollbar:        D=OFF  T=OFF  M=OFF
+		//   Auto-scroll into view: D=OFF  T=OFF  M=OFF
+		// Driven by prefix_class on the widget wrapper; descendant CSS
+		// selectors apply the scroll layout at the matching breakpoint.
+		$this->add_control( 'hscroll_heading', array(
+			'label'     => esc_html__( 'Image Swatches — Horizontal Scroll', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::HEADING,
+			'separator' => 'before',
+		) );
+
+		// ── Group A: Enable Horizontal Scroll ─────────────────────────────
+		$this->add_control( 'image_hscroll_desktop', array(
+			'label'        => esc_html__( 'Enable horizontal scroll — Desktop', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'label_on'     => esc_html__( 'On',  'woo-swatches-elementor' ),
+			'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
+			'return_value' => 'yes',
+			'default'      => 'no',
+			'prefix_class' => 'wse-img-hscroll-d-',
+		) );
+		$this->add_control( 'image_hscroll_tablet', array(
+			'label'        => esc_html__( 'Enable horizontal scroll — Tablet (≤1024px)', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'return_value' => 'yes',
+			'default'      => 'yes',
+			'prefix_class' => 'wse-img-hscroll-t-',
+		) );
+		$this->add_control( 'image_hscroll_mobile', array(
+			'label'        => esc_html__( 'Enable horizontal scroll — Mobile (≤768px)', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'return_value' => 'yes',
+			'default'      => 'yes',
+			'prefix_class' => 'wse-img-hscroll-m-',
+		) );
+
+		// ── Group B: Show Scrollbar ───────────────────────────────────────
+		$this->add_control( 'image_hscroll_show_bar_desktop', array(
+			'label'        => esc_html__( 'Show scrollbar — Desktop', 'woo-swatches-elementor' ),
+			'description'  => esc_html__( 'Hide for a cleaner Amazon/Nike-style swipe; swipe still works either way.', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'return_value' => 'yes',
+			'default'      => 'no',
+			'prefix_class' => 'wse-img-hscroll-bar-d-',
+			'condition'    => array( 'image_hscroll_desktop' => 'yes' ),
+		) );
+		$this->add_control( 'image_hscroll_show_bar_tablet', array(
+			'label'        => esc_html__( 'Show scrollbar — Tablet', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'return_value' => 'yes',
+			'default'      => 'no',
+			'prefix_class' => 'wse-img-hscroll-bar-t-',
+			'condition'    => array( 'image_hscroll_tablet' => 'yes' ),
+		) );
+		$this->add_control( 'image_hscroll_show_bar_mobile', array(
+			'label'        => esc_html__( 'Show scrollbar — Mobile', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'return_value' => 'yes',
+			'default'      => 'no',
+			'prefix_class' => 'wse-img-hscroll-bar-m-',
+			'condition'    => array( 'image_hscroll_mobile' => 'yes' ),
+		) );
+
+		// ── Group C: Auto-scroll Active Swatch Into View ──────────────────
+		// Per ZYMARG product owner spec — defaults OFF on all devices so
+		// the user has to opt-in. JS handler lives in swatches.js and
+		// reads the per-breakpoint class to decide whether to scroll the
+		// active swatch into view on selection.
+		$this->add_control( 'image_hscroll_auto_desktop', array(
+			'label'        => esc_html__( 'Auto-scroll active swatch into view — Desktop', 'woo-swatches-elementor' ),
+			'description'  => esc_html__( 'When customer picks a swatch off-screen, smooth-scroll the swatch into the visible area.', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'return_value' => 'yes',
+			'default'      => 'no',
+			'prefix_class' => 'wse-img-hscroll-auto-d-',
+			'condition'    => array( 'image_hscroll_desktop' => 'yes' ),
+		) );
+		$this->add_control( 'image_hscroll_auto_tablet', array(
+			'label'        => esc_html__( 'Auto-scroll active swatch into view — Tablet', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'return_value' => 'yes',
+			'default'      => 'no',
+			'prefix_class' => 'wse-img-hscroll-auto-t-',
+			'condition'    => array( 'image_hscroll_tablet' => 'yes' ),
+		) );
+		$this->add_control( 'image_hscroll_auto_mobile', array(
+			'label'        => esc_html__( 'Auto-scroll active swatch into view — Mobile', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'return_value' => 'yes',
+			'default'      => 'no',
+			'prefix_class' => 'wse-img-hscroll-auto-m-',
+			'condition'    => array( 'image_hscroll_mobile' => 'yes' ),
 		) );
 
 		$this->add_control( 'show_price', array(
@@ -784,13 +887,23 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 		$tier0_choose_text = (string) ( $settings['choose_option_placeholder'] ?? __( 'Choose an option',  'woo-swatches-elementor' ) );
 		$tier0_oos_suffix  = (string) ( $settings['oos_label_suffix']          ?? __( '(unavailable)',     'woo-swatches-elementor' ) );
 
-		$tier0_clear_filter  = static function () use ( $tier0_clear_text )  { return $tier0_clear_text; };
-		$tier0_choose_filter = static function () use ( $tier0_choose_text ) { return $tier0_choose_text; };
-		$tier0_oos_filter    = static function () use ( $tier0_oos_suffix )  { return $tier0_oos_suffix; };
+		// v1.3.5 (B1) — show_clear toggle wired through to wrapper.php via
+		// a new filter `wse_show_clear_button` (matching the tier-0 pattern).
+		// Pre-1.3.5 the toggle in the widget UI was being read but never
+		// applied — wrapper.php unconditionally rendered the <a class="wse-
+		// reset-link"> element. Now wrapper.php checks this filter and
+		// skips emitting the element when 'no'.
+		$tier0_show_clear  = ( ( $settings['show_clear'] ?? 'yes' ) === 'yes' ) ? 'yes' : 'no';
+
+		$tier0_clear_filter      = static function () use ( $tier0_clear_text )  { return $tier0_clear_text; };
+		$tier0_choose_filter     = static function () use ( $tier0_choose_text ) { return $tier0_choose_text; };
+		$tier0_oos_filter        = static function () use ( $tier0_oos_suffix )  { return $tier0_oos_suffix; };
+		$tier0_show_clear_filter = static function () use ( $tier0_show_clear ) { return $tier0_show_clear; };
 
 		add_filter( 'wse_clear_button_text',          $tier0_clear_filter );
 		add_filter( 'wse_choose_option_placeholder',  $tier0_choose_filter );
 		add_filter( 'wse_oos_label_suffix',           $tier0_oos_filter );
+		add_filter( 'wse_show_clear_button',          $tier0_show_clear_filter );
 		?>
 		<div <?php echo $this->get_render_attribute_string( 'widget_wrap' ); // phpcs:ignore WordPress.Security.EscapeOutput ?>>
 
@@ -825,9 +938,19 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 					'wse-attr-block',
 					'wse-label-' . sanitize_html_class( $settings['label_position'] ),
 				);
-				// v1.2.1 (F4) — image-label position class (only meaningful for image type).
+				// v1.3.5 (B2) — Always add the image-label-pos class to
+				// .wse-attr-block regardless of swatch_type detection. The
+				// CSS rules only do anything for elements that contain
+				// .wse-swatch-image-label (which only image-type swatches
+				// have), so it's harmless on non-image attributes. This
+				// makes the position dropdown work even when local
+				// attribute type detection misfires.
+				$attr_block_classes[] = 'wse-image-label-pos-' . $image_label_pos;
+				// Pre-1.3.5 path kept for the data-type guard but no longer
+				// needed for class application:
 				if ( 'image' === $swatch_type ) {
-					$attr_block_classes[] = 'wse-image-label-pos-' . $image_label_pos;
+					// (intentionally empty — class already added above)
+					$attr_block_classes[] = 'wse-image-attr';
 				}
 				// v1.2.1 (F3) — opt-in override to keep label row visible for non-color types.
 				if ( $show_label_non_color ) {
@@ -922,6 +1045,7 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 		remove_filter( 'wse_clear_button_text',         $tier0_clear_filter );
 		remove_filter( 'wse_choose_option_placeholder', $tier0_choose_filter );
 		remove_filter( 'wse_oos_label_suffix',          $tier0_oos_filter );
+		remove_filter( 'wse_show_clear_button',         $tier0_show_clear_filter );
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

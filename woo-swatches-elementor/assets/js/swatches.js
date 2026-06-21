@@ -340,6 +340,72 @@
 				$swatch   : $swatch,
 				$form     : self.$form,
 			} ] );
+
+			// v1.3.5 (F1) — Auto-scroll active swatch into view when the
+			// per-device toggle is on (image swatches in horizontal-scroll
+			// mode only).
+			self._maybeScrollActiveIntoView( $swatch );
+		},
+
+		/**
+		 * v1.3.5 (F1) — When the image-swatches strip is in horizontal-
+		 * scroll mode AND the auto-scroll toggle is on for the current
+		 * breakpoint, smooth-scroll the just-clicked swatch into the
+		 * visible area of its scrollable parent. Uses direct scrollLeft
+		 * math (NOT scrollIntoView) so the page never jumps when the
+		 * widget is partially in viewport.
+		 *
+		 * Reads the per-device classes from the Elementor outer wrapper
+		 * (where prefix_class lands):
+		 *   wse-img-hscroll-{d|t|m}-yes       — horizontal scroll enabled
+		 *   wse-img-hscroll-auto-{d|t|m}-yes  — auto-scroll into view enabled
+		 *
+		 * No-op for non-image swatches or when either toggle is off.
+		 */
+		_maybeScrollActiveIntoView: function ( $swatch ) {
+			if ( ! $swatch.hasClass( 'wse-swatch-image' ) ) {
+				return;
+			}
+
+			var w  = window.innerWidth;
+			var bp = w >= 1025 ? 'd' : ( w >= 769 ? 't' : 'm' );
+
+			// Find the outer Elementor widget wrapper that carries the
+			// prefix_class-driven horizontal-scroll classes.
+			var $widget = $swatch.closest( '.elementor-widget' );
+			if ( ! $widget.length ) {
+				return;
+			}
+			if ( ! $widget.hasClass( 'wse-img-hscroll-' + bp + '-yes' ) ) {
+				return;   // hscroll itself not enabled at this bp
+			}
+			if ( ! $widget.hasClass( 'wse-img-hscroll-auto-' + bp + '-yes' ) ) {
+				return;   // auto-scroll-into-view toggle off at this bp
+			}
+
+			var swatchEl = $swatch[0];
+			var $strip   = $swatch.parent( '.wse-swatches' );
+			if ( ! $strip.length ) {
+				return;
+			}
+			var stripEl = $strip[0];
+			if ( stripEl.scrollWidth <= stripEl.clientWidth ) {
+				return;   // no overflow → nothing to scroll
+			}
+
+			// Center the swatch in its strip.
+			var targetX = swatchEl.offsetLeft
+				- ( stripEl.clientWidth - swatchEl.clientWidth ) / 2;
+			targetX = Math.max( 0, Math.min(
+				stripEl.scrollWidth - stripEl.clientWidth,
+				targetX
+			) );
+
+			try {
+				stripEl.scrollTo( { left: targetX, behavior: 'smooth' } );
+			} catch ( e ) {
+				stripEl.scrollLeft = targetX;
+			}
 		},
 
 		_syncInitialSelections: function () {

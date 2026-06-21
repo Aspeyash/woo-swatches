@@ -89,6 +89,21 @@ $form_id    = WSE_Form_Registry::instance()->get_form_id( $product->get_id() );
 		 * to the WC reset_data event flow.
 		 */
 		?>
+	<?php
+	/**
+	 * "Clear selection" link — visible only when a swatch is currently
+	 * selected. wc-add-to-cart-variation.js re-shows the link via inline
+	 * style when a variation is found, and our swatches.js mirrors the
+	 * same trigger when the customer clicks a swatch.
+	 *
+	 * v1.3.5 (B1) — Honor the per-Widget-1-instance show_clear toggle
+	 * via the wse_show_clear_button filter. When the filter returns
+	 * 'no', skip emitting the element entirely. Pre-1.3.5 the element
+	 * was always rendered regardless of the toggle.
+	 */
+	$_show_clear_button = (string) apply_filters( 'wse_show_clear_button', 'yes' );
+	if ( 'no' !== $_show_clear_button ) :
+	?>
 		<a href="#"
 		   class="wse-reset-link"
 		   style="display:none"
@@ -105,6 +120,7 @@ $form_id    = WSE_Form_Registry::instance()->get_form_id( $product->get_id() );
 			) );
 			?>
 		</a>
+	<?php endif; ?>
 
 	</fieldset>
 	<?php endif; ?>
