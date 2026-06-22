@@ -1,5 +1,5 @@
 /**
- * WooSwatches for Elementor — ZYMARG Variation Image Gallery JS (v1.3.2)
+ * WooSwatches for Elementor — ZYMARG Variation Image Gallery JS (v1.4.2)
  *
  * Subscribes each .zymarg-vig[data-form-id] widget on the page to the
  * canonical form's `found_variation` and `reset_data` events fired by
@@ -150,12 +150,52 @@
 			// fires. Suppress for this synchronous call chain; release
 			// on next tick once WC's chain has finished.
 			state.suppressSwatchSync = true;
+
+			// v1.4.2 (B2) — When gallery_source is 'both' or 'variation_only',
+			// the initial extended image list contains ALL variation featured
+			// images alongside parent gallery images. We must NOT rebuild the
+			// thumbnail strip from the per-variation key (which only holds
+			// that one variation's image + parent gallery = reduced set).
+			// Instead, find the selected variation's image within the CURRENT
+			// extended list and navigate to its index — keeping all thumbnails
+			// visible. Only fall through to switchToVariation() for
+			// 'parent_only' mode (v1.3.x behavior) or if the variation image
+			// can't be found in the current list (defensive fallback).
+			if ( state.gallerySource !== 'parent_only' ) {
+				var currentList = state.images[ state.currentKey ];
+				if ( currentList && currentList.length ) {
+					var varId = String( variation.variation_id );
+					for ( var i = 0; i < currentList.length; i++ ) {
+						if ( String( currentList[ i ].variation_id || 0 ) === varId ) {
+							switchToIndex( state, i );
+							setTimeout( function () { state.suppressSwatchSync = false; }, 50 );
+							return;
+						}
+					}
+				}
+			}
+
+			// Fallback: parent_only mode OR variation not found in the
+			// current extended list — use the legacy per-variation rebuild.
 			switchToVariation( state, String( variation.variation_id ) );
 			setTimeout( function () { state.suppressSwatchSync = false; }, 50 );
 		} );
 
 		state.$form.on( 'reset_data.wseGallery', function () {
 			state.suppressSwatchSync = true;
+
+			// v1.4.2 (B2) — When gallery_source != 'parent_only', reset
+			// should return to the first image in the current extended list
+			// (index 0) rather than rebuilding from images['0']. The v1.4.1
+			// fix ensured images['0'] = extended list, so a rebuild would
+			// produce the same result — but navigating by index is cheaper
+			// and avoids a full DOM rebuild (no flash/flicker on reset).
+			if ( state.gallerySource !== 'parent_only' ) {
+				switchToIndex( state, 0 );
+				setTimeout( function () { state.suppressSwatchSync = false; }, 50 );
+				return;
+			}
+
 			switchToVariation( state, '0' );
 			setTimeout( function () { state.suppressSwatchSync = false; }, 50 );
 		} );
