@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.4.1
+Stable tag: 1.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,46 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.4.2 =
+**Fix: variation thumbnails no longer disappear when a variation is selected (gallery_source = both/variation_only).**
+
+Drop-in replacement for v1.4.1. JS-only fix in `assets/js/gallery.js`. No PHP / template / DB changes.
+
+**The bug**
+
+After v1.4.1, the initial page load correctly displayed all 15 thumbnails (variation featured images + parent gallery). However, the moment a user clicked a variation thumbnail (triggering reverse-sync → swatch selection → `found_variation` event), all OTHER variation thumbnails disappeared — leaving only the selected variation's image + parent gallery images (8 thumbnails instead of 15).
+
+**Root cause**
+
+The `bindVariationSync()` handler in `gallery.js` responded to `found_variation` by calling `switchToVariation(state, '123')`, which read `state.images['123']` — the per-variation key containing only that variation's featured image + parent gallery (8 images). It then called `renderImageList()` which **rebuilt the entire thumbnail strip** from that reduced 8-image set, wiping out all other variation featured images.
+
+This is the "Mode A vs Mode B" conflict: initial render used the extended list (all variations + gallery), but the variation-selection handler rebuilt from the per-variation key (single variation + gallery).
+
+**Fix**
+
+When `gallery_source` is `'both'` or `'variation_only'` (i.e., the extended list is active), the `found_variation` handler now **navigates to the matching variation's image within the current extended list** using `switchToIndex()` instead of rebuilding. The `reset_data` handler similarly navigates to index 0 instead of triggering a full rebuild.
+
+The gallery dataset stays intact — all 15 thumbnails remain visible at all times. Only the active/highlighted image changes.
+
+**Verification chain**
+
+- Page load — 15 thumbnails visible ✅
+- User clicks variation thumbnail → reverse-sync → swatch selected → `found_variation` fires → gallery navigates to that image's index. All 15 thumbnails remain. ✅
+- User clicks a different swatch directly → `found_variation` fires → gallery navigates to matching image index. All 15 thumbnails remain. ✅
+- User clicks "Clear" → `reset_data` → gallery resets to index 0. All 15 thumbnails remain. ✅
+- `parent_only` mode (v1.3.x behavior) → unchanged, still uses per-variation rebuild as before. ✅
+
+**Files changed**
+
+* `assets/js/gallery.js` — `bindVariationSync()` rewritten for extended mode
+* `assets/js/gallery.min.js` — minified sync
+* `woo-swatches-elementor.php` — Version 1.4.2
+* `readme.txt` — Stable tag, Changelog
+
+**Migration**
+
+Drop-in replacement for v1.4.1. After install: hard-refresh (Ctrl+F5) + Hostinger Cache Manager → Purge All to ensure the new gallery.js is loaded.
 
 = 1.4.1 =
 **Critical fix for v1.4.0 — variation thumbnails disappeared moments after page load.**
