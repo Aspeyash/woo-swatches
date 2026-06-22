@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.4.2
+Stable tag: 1.4.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,35 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.4.3 =
+**Enhancement: swatches auto-scroll when horizontal scroll is enabled.**
+
+Drop-in replacement for v1.4.2. JS-only change in `assets/js/swatches.js`. No PHP / template / DB changes.
+
+**The change**
+
+Previously, the swatch strip auto-scroll feature required TWO separate toggles to be enabled:
+1. "Enable horizontal scroll" = Yes
+2. "Auto-scroll into view" = Yes (a separate, hidden toggle that defaulted to OFF)
+
+This meant that when the gallery's reverse-sync selected a swatch (via thumbnail click, keyboard navigation, or mobile swipe), the swatch strip would NOT scroll to show the newly active swatch — even though horizontal scroll was enabled. Users had to discover and enable the second toggle manually.
+
+**v1.4.3 removes the second toggle requirement entirely.** Now, whenever horizontal scroll is enabled for image swatches at any breakpoint, auto-scroll into view works automatically. The swatch strip smoothly scrolls to center the active swatch whenever:
+- Gallery reverse-sync selects a swatch (thumbnail click / keyboard nav / swipe)
+- User clicks a swatch directly
+- Keyboard arrow navigation within swatches
+
+**Files changed**
+
+* `assets/js/swatches.js` — `_maybeScrollActiveIntoView()` simplified
+* `assets/js/swatches.min.js` — minified sync
+* `woo-swatches-elementor.php` — Version 1.4.3
+* `readme.txt` — Stable tag, Changelog
+
+**Migration**
+
+Drop-in replacement for v1.4.2. After install: hard-refresh (Ctrl+F5) + Hostinger Cache Manager → Purge All to ensure the new swatches.js is loaded.
 
 = 1.4.2 =
 **Fix: variation thumbnails no longer disappear when a variation is selected (gallery_source = both/variation_only).**

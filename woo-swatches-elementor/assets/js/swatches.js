@@ -348,19 +348,24 @@
 		},
 
 		/**
-		 * v1.3.5 (F1) — When the image-swatches strip is in horizontal-
-		 * scroll mode AND the auto-scroll toggle is on for the current
-		 * breakpoint, smooth-scroll the just-clicked swatch into the
-		 * visible area of its scrollable parent. Uses direct scrollLeft
-		 * math (NOT scrollIntoView) so the page never jumps when the
-		 * widget is partially in viewport.
+		 * v1.3.5 (F1) / v1.4.3 — When the image-swatches strip is in
+		 * horizontal-scroll mode, smooth-scroll the just-selected swatch
+		 * into the visible area of its scrollable parent. Uses direct
+		 * scrollLeft math (NOT scrollIntoView) so the page never jumps
+		 * when the widget is partially in viewport.
 		 *
-		 * Reads the per-device classes from the Elementor outer wrapper
-		 * (where prefix_class lands):
-		 *   wse-img-hscroll-{d|t|m}-yes       — horizontal scroll enabled
-		 *   wse-img-hscroll-auto-{d|t|m}-yes  — auto-scroll into view enabled
+		 * v1.4.3 — Removed the separate "auto-scroll into view" toggle
+		 * requirement. Auto-scroll now fires automatically whenever
+		 * horizontal scroll is enabled at the current breakpoint. This
+		 * means gallery reverse-sync (thumbnail click / keyboard nav /
+		 * swipe → swatch selection) always scrolls the swatch strip to
+		 * keep the active swatch visible without requiring a second
+		 * hidden toggle.
 		 *
-		 * No-op for non-image swatches or when either toggle is off.
+		 * Reads the per-device class from the Elementor outer wrapper:
+		 *   wse-img-hscroll-{d|t|m}-yes — horizontal scroll enabled
+		 *
+		 * No-op for non-image swatches or when hscroll is off.
 		 */
 		_maybeScrollActiveIntoView: function ( $swatch ) {
 			if ( ! $swatch.hasClass( 'wse-swatch-image' ) ) {
@@ -377,10 +382,7 @@
 				return;
 			}
 			if ( ! $widget.hasClass( 'wse-img-hscroll-' + bp + '-yes' ) ) {
-				return;   // hscroll itself not enabled at this bp
-			}
-			if ( ! $widget.hasClass( 'wse-img-hscroll-auto-' + bp + '-yes' ) ) {
-				return;   // auto-scroll-into-view toggle off at this bp
+				return;   // hscroll not enabled at this bp
 			}
 
 			var swatchEl = $swatch[0];
