@@ -511,14 +511,11 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 		// Mouse leave reverts to the previously-active image. Touch
 		// devices ignore this and fall back to click-to-commit.
 		$this->add_control( 'hover_preview_desktop', array(
-			'label'        => esc_html__( 'Hover-to-preview variation (desktop only)', 'woo-swatches-elementor' ),
-			'description'  => esc_html__( 'Hovering a variation thumbnail temporarily shows that variation\'s image in the main area without committing the selection. Clicking commits as normal. Premium UX (Zara / Nike pattern). Touch devices ignore this — they use click-to-commit only.', 'woo-swatches-elementor' ),
+			'label'        => esc_html__( 'Hover-to-preview (desktop only)', 'woo-swatches-elementor' ),
+			'description'  => esc_html__( 'Hovering any thumbnail temporarily shows that image in the main area without committing the selection. Clicking commits as normal. Premium UX (Zara / Nike pattern). Touch devices ignore this — they use click-to-commit only.', 'woo-swatches-elementor' ),
 			'type'         => \Elementor\Controls_Manager::SWITCHER,
 			'return_value' => 'yes',
 			'default'      => 'no',
-			'condition'    => array(
-				'gallery_image_source!' => 'parent_only',
-			),
 		) );
 
 		$this->end_controls_section();

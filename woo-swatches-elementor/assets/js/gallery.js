@@ -1074,12 +1074,17 @@
 	}
 
 	/**
-	 * v1.4.0 (S6) — Desktop hover-to-preview for variation thumbnails.
+	 * v1.4.0 (S6) / v1.4.3 — Desktop hover-to-preview for ALL thumbnails.
 	 *
-	 * Hovering a variation thumb temporarily swaps the main image to
-	 * that variation's image (without committing the selection).
+	 * Hovering ANY thumbnail temporarily swaps the main image to that
+	 * thumbnail's image (without committing the selection).
 	 * Mouse-leave reverts to whatever was active before the hover.
 	 * Click commits via the normal switchToIndex flow.
+	 *
+	 * v1.4.3 — Expanded from variation-only thumbnails to ALL thumbnails.
+	 * Previously only fired on .zymarg-vig-thumb--variation; now fires on
+	 * any .zymarg-vig-thumb so parent gallery images also get the hover
+	 * preview behavior.
 	 *
 	 * Touch devices ignore hover events (no mouseenter on tap), so this
 	 * is naturally desktop-only without needing an explicit gate.
@@ -1088,7 +1093,11 @@
 		if ( ! state.hoverPreviewEnabled ) { return; }
 
 		state.$widget.on( 'mouseenter.wseHoverPreview',
-			'.zymarg-vig-thumb--variation', function () {
+			'.zymarg-vig-thumb', function () {
+				var $thumb = $( this );
+				// Don't preview the already-active thumb — no visual change.
+				if ( $thumb.hasClass( 'is-active' ) ) { return; }
+
 				var $main = state.$widget.find( '.zymarg-vig-main-img' ).first();
 				if ( ! $main.length ) { return; }
 
@@ -1105,21 +1114,21 @@
 				}
 
 				// Find the image record for this thumb and preview it.
-				var idx = parseInt( $( this ).attr( 'data-image-index' ), 10 );
+				var idx = parseInt( $thumb.attr( 'data-image-index' ), 10 );
 				if ( isNaN( idx ) ) { return; }
 				var imageList = state.images[ state.currentKey ];
 				if ( ! imageList || ! imageList[ idx ] ) { return; }
 				var img = imageList[ idx ];
 
 				$main.attr( 'src', img.src );
-				if ( img.srcset ) { $main.attr( 'srcset', img.srcset ); }
-				if ( img.sizes  ) { $main.attr( 'sizes',  img.sizes  ); }
-				if ( img.alt    ) { $main.attr( 'alt',    img.alt    ); }
+				if ( img.srcset ) { $main.attr( 'srcset', img.srcset ); } else { $main.removeAttr( 'srcset' ); }
+				if ( img.sizes  ) { $main.attr( 'sizes',  img.sizes  ); } else { $main.removeAttr( 'sizes'  ); }
+				if ( img.alt    ) { $main.attr( 'alt',    img.alt    ); } else { $main.attr( 'alt', '' ); }
 			}
 		);
 
 		state.$widget.on( 'mouseleave.wseHoverPreview',
-			'.zymarg-vig-thumb--variation', function () {
+			'.zymarg-vig-thumb', function () {
 				if ( ! state.hoverPreviewBackup ) { return; }
 				var $main = state.$widget.find( '.zymarg-vig-main-img' ).first();
 				if ( ! $main.length ) { return; }
@@ -1146,7 +1155,7 @@
 		// main image. Clear the backup so mouseleave doesn't revert
 		// after the commit.
 		state.$widget.on( 'click.wseHoverPreview',
-			'.zymarg-vig-thumb--variation', function () {
+			'.zymarg-vig-thumb', function () {
 				state.hoverPreviewBackup = null;
 			}
 		);

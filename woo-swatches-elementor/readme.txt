@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.4.3
+Stable tag: 1.4.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,34 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.4.4 =
+**Enhancement: hover-to-preview now works on ALL thumbnails (not just variation thumbnails).**
+
+Drop-in replacement for v1.4.3. JS + minor PHP control change. No DB / template changes.
+
+**The change**
+
+Previously, the "Hover-to-preview" feature only fired on thumbnails carrying the `.zymarg-vig-thumb--variation` class (variation featured images). Parent gallery thumbnails were excluded — hovering them did nothing.
+
+v1.4.4 expands the hover preview to fire on **any** `.zymarg-vig-thumb` element. Now hovering ANY thumbnail — whether it's a parent gallery image, a variation featured image, or anything else in the strip — temporarily shows that image in the main area. Mouse-leave reverts to the previously active image. Click commits.
+
+Also:
+- The Elementor control no longer requires `gallery_image_source != parent_only` — hover preview is available in all gallery source modes.
+- Added a skip for the currently-active thumbnail (hovering the already-active image is a no-op to avoid unnecessary work).
+- Properly clears srcset/sizes on mouseenter when the hovered image doesn't have them (prevents stale attributes from a previous image).
+
+**Files changed**
+
+* `assets/js/gallery.js` — `bindHoverPreview()` expanded to `.zymarg-vig-thumb`
+* `assets/js/gallery.min.js` — minified sync
+* `widgets/class-widget-variation-image-gallery.php` — removed condition on control
+* `woo-swatches-elementor.php` — Version 1.4.4
+* `readme.txt` — Stable tag, Changelog
+
+**Migration**
+
+Drop-in replacement for v1.4.3. After install: hard-refresh (Ctrl+F5) + Hostinger Cache Manager → Purge All. If you had previously set the toggle to Yes but it wasn't working, it will now work immediately after cache clear.
 
 = 1.4.3 =
 **Enhancement: swatches auto-scroll when horizontal scroll is enabled.**
