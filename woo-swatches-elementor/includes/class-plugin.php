@@ -122,6 +122,10 @@ class WSE_Plugin {
 		new WSE_Blocks_Compat();
 		require_once WSE_PATH . 'includes/class-thumbnail-generator.php';
 		new WSE_Thumbnail_Generator();
+
+		// v1.4.5 — Buy Now (AJAX handler + isolated checkout session)
+		require_once WSE_PATH . 'includes/class-buy-now.php';
+		WSE_Buy_Now::instance();
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

@@ -1,1 +1,853 @@
-.wse-widget-add-to-cart{display:block;width:100%}.wse-widget-add-to-cart form{margin:0}.wse-hidden-selects{display:none !important}.wse-qty-atc-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.wse-qty-wrap{display:flex;align-items:stretch;gap:0}.wse-qty-wrap .qty{width:64px;min-width:48px;text-align:center;padding:8px 6px;border:1px solid #d0d0d8;border-radius:4px;font-size:1rem;line-height:1.4;background:#fff;color:#1a1a2e;-moz-appearance:textfield}.wse-qty-wrap .qty::-webkit-inner-spin-button,.wse-qty-wrap .qty::-webkit-outer-spin-button{-webkit-appearance:none}.wse-qty-wrap .qty:focus{outline:none;border-color:#0066cc;box-shadow:0 0 0 2px rgba(0,102,204,.2)}.wse-qty-minus,.wse-qty-plus{display:inline-flex;align-items:center;justify-content:center;width:36px;background:#f0f0f5;border:1px solid #d0d0d8;cursor:pointer;font-size:1.125rem;line-height:1;transition:background .1s;user-select:none}.wse-qty-minus{border-radius:4px 0 0 4px;border-right:none}.wse-qty-plus{border-radius:0 4px 4px 0;border-left:none}.wse-qty-wrap:has(.wse-qty-minus) .qty,.wse-qty-wrap:has(.wse-qty-plus) .qty{border-radius:0}.wse-qty-minus:hover,.wse-qty-plus:hover{background:#e0e0ea}.wse-atc-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 22px;font-size:.9375rem;font-weight:600;line-height:1.4;border:none;border-radius:4px;cursor:pointer;transition:background .2s ease,opacity .2s ease,transform .1s ease;white-space:nowrap;text-decoration:none}.wse-atc-button:hover:not(:disabled){transform:translateY(-1px)}.wse-atc-button:active:not(:disabled){transform:translateY(0)}.wse-atc-button:disabled,.wse-atc-button.disabled{cursor:not-allowed;opacity:.55}.wse-atc-button.wse-atc-loading{cursor:wait;opacity:.75}.wse-atc-button.wse-atc-loading::before{content:'';display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:wse-spin .6s linear infinite;flex-shrink:0}@keyframes wse-spin{to{transform:rotate(360deg)}}.wse-atc-button.wse-atc-added{background-color:#46b450 !important;color:#fff !important}.wse-atc-button.wse-atc-error{background-color:#dc3232 !important;color:#fff !important}.wse-atc-full-width .wse-qty-atc-row{flex-wrap:nowrap}.wse-atc-full-width .wse-atc-button{flex:1;width:100%}.wse-editor-placeholder{padding:20px;border:2px dashed #c0c0cc;border-radius:4px;text-align:center;color:#767676;font-size:.875rem}.wse-widget-add-to-cart.wse-sticky-desktop,.wse-widget-add-to-cart.wse-sticky-tablet,.wse-widget-add-to-cart.wse-sticky-mobile,.wse-presenter{background-color:#ffffff}@media (min-width:1025px){.wse-widget-add-to-cart.wse-sticky-desktop,.wse-presenter.wse-sticky-desktop{position:fixed;bottom:0;left:0;right:0;z-index:999;padding:12px 20px;box-shadow:0 -4px 12px rgba(19,27,46,0.08)}}@media (min-width:768px) and (max-width:1024px){.wse-widget-add-to-cart.wse-sticky-tablet,.wse-presenter.wse-sticky-tablet{position:fixed;bottom:0;left:0;right:0;z-index:999;padding:12px 20px;box-shadow:0 -4px 12px rgba(19,27,46,0.08)}}@media (max-width:767px){.wse-widget-add-to-cart.wse-sticky-mobile,.wse-presenter.wse-sticky-mobile{position:fixed;bottom:0;left:0;right:0;z-index:999;padding:12px 16px;box-shadow:0 -4px 12px rgba(19,27,46,0.08)}}.wse-presenter-row{display:flex;align-items:center;gap:12px}.wse-presenter-qty{width:64px;padding:8px;border:1px solid #d0d0d8;border-radius:4px;text-align:center}.wse-presenter-btn{flex:1}body.wse-has-sticky-presenter{scroll-padding-bottom:100px}.wse-editor-presenter-note{font-size:11px;color:#534152;background:#eaedff;padding:6px 10px;border-radius:4px;margin-bottom:8px}.wse-canonical-form .wse-swatch-wrap>fieldset.wse-fieldset{display:none}.wse-canonical-form.wse-show-canonical-swatches .wse-swatch-wrap>fieldset.wse-fieldset{display:block}.wse-canonical-form .single_add_to_cart_button.disabled,.wse-canonical-form .single_add_to_cart_button.wc-variation-selection-needed,.wse-canonical-form .single_add_to_cart_button[disabled],.wse-presenter-btn.disabled,.wse-presenter-btn[disabled]{opacity:0.55;cursor:not-allowed;pointer-events:none}.wse-toast{position:fixed;bottom:24px;right:24px;left:auto;background:#1d2433;color:#ffffff;padding:14px 20px;border-radius:8px;box-shadow:0 8px 24px rgba(19,27,46,0.18);display:flex;align-items:center;gap:10px;z-index:99999;transform:translateY(20px);opacity:0;transition:opacity 250ms ease,transform 250ms ease;max-width:360px;font-size:14px;line-height:1.4}.wse-toast--visible{transform:translateY(0);opacity:1}.wse-toast-icon{background:#16a34a;color:#ffffff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0}.wse-toast-message{flex:1}.wse-toast-link{color:#93c5fd;text-decoration:underline;margin-left:8px}.wse-toast-link:hover,.wse-toast-link:focus{color:#ffffff}@media (max-width:767px){.wse-toast{left:16px;right:16px;bottom:16px;max-width:none}}body.wse-has-sticky-presenter .wse-toast{bottom:calc(24px+80px)}@media (max-width:767px){body.wse-has-sticky-presenter .wse-toast{bottom:calc(16px+80px)}}.wse-atc-button::before,.wse-atc-button::after,.wse-atc-button.wse-atc-loading::before,.wse-atc-button.wse-atc-loading::after,.wse-atc-button.wse-atc-added::before,.wse-atc-button.wse-atc-added::after,.wse-atc-button.wse-atc-error::before,.wse-atc-button.wse-atc-error::after{content:none !important;display:none !important}body.wse-hide-view-cart a.added_to_cart.wc-forward,body.wse-hide-view-cart .added_to_cart.wc-forward,body.wse-hide-view-cart a.wc-forward.added_to_cart,body.wse-hide-view-cart .woocommerce-message a.wc-forward,body.wse-hide-view-cart .woocommerce-info a.wc-forward,body.wse-hide-view-cart .woocommerce-error a.wc-forward,body.wse-hide-view-cart .wc-block-components-notice-banner a.wc-forward,body.wse-hide-view-cart .wse-widget-add-to-cart a.wc-forward,body.wse-hide-view-cart .wse-toast-link{display:none !important;visibility:hidden !important;pointer-events:none !important}body.wse-stylesheet-enabled .wse-qty-stepper{--wse-qty-btn-size:36px;--wse-qty-icon-size:14px;--wse-qty-gap:0px;display:inline-flex;align-items:stretch;gap:var(--wse-qty-gap);vertical-align:middle;box-sizing:border-box}body.wse-stylesheet-enabled .wse-qty-stepper .qty{-moz-appearance:textfield;text-align:center;min-width:0;box-sizing:border-box}body.wse-stylesheet-enabled .wse-qty-stepper .qty::-webkit-inner-spin-button,body.wse-stylesheet-enabled .wse-qty-stepper .qty::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}body.wse-stylesheet-enabled .wse-qty-btn{display:inline-flex;align-items:center;justify-content:center;width:var(--wse-qty-btn-size);height:var(--wse-qty-btn-size);padding:0;border:1px solid rgba(0,0,0,.15);background:#fafafa;color:#131b2e;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:background .15s ease,border-color .15s ease,color .15s ease,opacity .15s ease;flex-shrink:0;line-height:1}body.wse-stylesheet-enabled .wse-qty-btn:hover:not(:disabled){background:#f0f0f0;border-color:rgba(0,0,0,.25)}body.wse-stylesheet-enabled .wse-qty-btn:focus-visible{outline:2px solid #9500a5;outline-offset:1px;z-index:2}body.wse-stylesheet-enabled .wse-qty-btn:disabled{opacity:.4;cursor:not-allowed}body.wse-stylesheet-enabled .wse-qty-btn svg,body.wse-stylesheet-enabled .wse-qty-btn i{display:block;width:var(--wse-qty-icon-size);height:var(--wse-qty-icon-size);font-size:var(--wse-qty-icon-size);line-height:1}body.wse-stylesheet-enabled .wse-qty-stepper .wse-qty-btn--minus{border-right-width:0}body.wse-stylesheet-enabled .wse-qty-stepper .wse-qty-btn--plus{border-left-width:0}body.wse-stylesheet-enabled .wse-qty-stepper--no-buttons{display:inline-block}body.wse-stylesheet-enabled .wse-no-inline-price .woocommerce-variation-price{display:none}body.wse-stylesheet-enabled .wse-qty-btn>*{pointer-events:none}body.wse-stylesheet-enabled .wse-qty-btn svg,body.wse-stylesheet-enabled .wse-qty-btn i,body.wse-stylesheet-enabled .wse-qty-btn .wse-qty-icon{display:block;width:var( --wse-qty-icon-size,14px );height:var( --wse-qty-icon-size,14px );font-size:var( --wse-qty-icon-size,14px );line-height:1;fill:currentColor;color:currentColor}body.wse-stylesheet-enabled .wse-qty-mode-full .wse-qty-stepper{width:100%}body.wse-stylesheet-enabled .wse-qty-mode-full .wse-qty-stepper .qty{flex:1 1 auto;min-width:0}body.wse-stylesheet-enabled .wse-qty-btn:hover:not(:disabled){background:#ffd6fb;border-color:#9500a5;color:#36003d}body.wse-stylesheet-enabled .wse-qty-btn:active:not(:disabled){background:#fea9ff}body.wse-stylesheet-enabled .wse-swatch.wse-on-sale{position:relative}body.wse-stylesheet-enabled .wse-swatch.wse-on-sale::after,body.wse-stylesheet-enabled .wse-swatch-image.wse-on-sale::after,body.wse-stylesheet-enabled .wse-swatch-color.wse-on-sale::after,body.wse-stylesheet-enabled .wse-swatch-label.wse-on-sale::after,body.wse-stylesheet-enabled .wse-swatch-button.wse-on-sale::after{content:none !important;display:none !important;background:transparent !important;box-shadow:none !important;width:0 !important;height:0 !important}body.wse-stylesheet-enabled .wse-atc-full-width .wse-atc-button{width:100%}body.wse-stylesheet-enabled .wse-atc-full-width .wse-qty-atc-row{flex-direction:column;align-items:stretch;gap:8px}@media ( max-width:1024px ){body.wse-stylesheet-enabled .wse-atc-fw-tablet-yes .wse-atc-button{width:100%}body.wse-stylesheet-enabled .wse-atc-fw-tablet-yes .wse-qty-atc-row{flex-direction:column;align-items:stretch;gap:8px}}@media ( max-width:768px ){body.wse-stylesheet-enabled .wse-atc-fw-mobile-yes .wse-atc-button{width:100%}body.wse-stylesheet-enabled .wse-atc-fw-mobile-yes .wse-qty-atc-row{flex-direction:column;align-items:stretch;gap:8px}}@media ( min-width:1025px ){body.wse-stylesheet-enabled .wse-qty-fullw-d-yes .wse-qty-stepper{width:100% !important}body.wse-stylesheet-enabled .wse-qty-fullw-d-yes .wse-qty-stepper .qty{flex:1 1 auto;min-width:0}}@media ( min-width:769px ) and ( max-width:1024px ){body.wse-stylesheet-enabled .wse-qty-fullw-t-yes .wse-qty-stepper{width:100% !important}body.wse-stylesheet-enabled .wse-qty-fullw-t-yes .wse-qty-stepper .qty{flex:1 1 auto;min-width:0}}@media ( max-width:768px ){body.wse-stylesheet-enabled .wse-qty-fullw-m-yes .wse-qty-stepper{width:100% !important}body.wse-stylesheet-enabled .wse-qty-fullw-m-yes .wse-qty-stepper .qty{flex:1 1 auto;min-width:0}}
+/**
+ * WooSwatches for Elementor — Add to Cart Widget Stylesheet
+ *
+ * Styles for Elementor Widget 2 (WSE_Widget_Add_To_Cart).
+ * Covers the quantity + button row, button state machine, and full-width
+ * modifier. Colour overrides come from Elementor controls as inline CSS.
+ *
+ * @package WooSwatchesElementor
+ * @version 1.0.0
+ */
+
+/* ─── Widget wrapper ─────────────────────────────────────────────────────── */
+
+.wse-widget-add-to-cart {
+	display: block;
+	width:   100%;
+}
+
+.wse-widget-add-to-cart form {
+	margin: 0;
+}
+
+/* ─── Hidden WC selects (Variable product sync) ──────────────────────────── */
+
+.wse-hidden-selects {
+	display: none !important;
+}
+
+/* ─── Quantity + button row ──────────────────────────────────────────────── */
+
+.wse-qty-atc-row {
+	display:     flex;
+	flex-wrap:   wrap;
+	align-items: center;
+	gap:         10px;
+}
+
+/* ─── Quantity input wrap ────────────────────────────────────────────────── */
+
+.wse-qty-wrap {
+	display:     flex;
+	align-items: stretch;
+	gap:         0;
+}
+
+.wse-qty-wrap .qty {
+	width:       64px;
+	min-width:   48px;
+	text-align:  center;
+	padding:     8px 6px;
+	border:      1px solid #d0d0d8;
+	border-radius: 4px;
+	font-size:   1rem;
+	line-height: 1.4;
+	background:  #fff;
+	color:       #1a1a2e;
+	-moz-appearance: textfield;
+}
+
+.wse-qty-wrap .qty::-webkit-inner-spin-button,
+.wse-qty-wrap .qty::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+}
+
+.wse-qty-wrap .qty:focus {
+	outline:      none;
+	border-color: #0066cc;
+	box-shadow:   0 0 0 2px rgba(0, 102, 204, .2);
+}
+
+/* Optional custom stepper buttons (theme/template can add these) */
+.wse-qty-minus,
+.wse-qty-plus {
+	display:         inline-flex;
+	align-items:     center;
+	justify-content: center;
+	width:           36px;
+	background:      #f0f0f5;
+	border:          1px solid #d0d0d8;
+	cursor:          pointer;
+	font-size:       1.125rem;
+	line-height:     1;
+	transition:      background .1s;
+	user-select:     none;
+}
+
+.wse-qty-minus {
+	border-radius: 4px 0 0 4px;
+	border-right:  none;
+}
+
+.wse-qty-plus {
+	border-radius: 0 4px 4px 0;
+	border-left:   none;
+}
+
+.wse-qty-wrap:has(.wse-qty-minus) .qty,
+.wse-qty-wrap:has(.wse-qty-plus) .qty {
+	border-radius: 0;
+}
+
+.wse-qty-minus:hover,
+.wse-qty-plus:hover {
+	background: #e0e0ea;
+}
+
+/* ─── Add to cart button ─────────────────────────────────────────────────── */
+
+.wse-atc-button {
+	display:       inline-flex;
+	align-items:   center;
+	justify-content: center;
+	gap:           6px;
+	padding:       10px 22px;
+	font-size:     .9375rem;
+	font-weight:   600;
+	line-height:   1.4;
+	border:        none;
+	border-radius: 4px;
+	cursor:        pointer;
+	transition:    background .2s ease, opacity .2s ease, transform .1s ease;
+	white-space:   nowrap;
+	text-decoration: none;
+}
+
+.wse-atc-button:hover:not(:disabled) {
+	transform: translateY(-1px);
+}
+
+.wse-atc-button:active:not(:disabled) {
+	transform: translateY(0);
+}
+
+.wse-atc-button:disabled,
+.wse-atc-button.disabled {
+	cursor:  not-allowed;
+	opacity: .55;
+}
+
+/* ─── Button state: loading ──────────────────────────────────────────────── */
+
+.wse-atc-button.wse-atc-loading {
+	cursor:  wait;
+	opacity: .75;
+}
+
+/* Spinner via CSS animation */
+.wse-atc-button.wse-atc-loading::before {
+	content:      '';
+	display:      inline-block;
+	width:        14px;
+	height:       14px;
+	border:       2px solid currentColor;
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation:    wse-spin .6s linear infinite;
+	flex-shrink:  0;
+}
+
+@keyframes wse-spin {
+	to { transform: rotate(360deg); }
+}
+
+/* ─── Button state: added ────────────────────────────────────────────────── */
+
+.wse-atc-button.wse-atc-added {
+	background-color: #46b450 !important;
+	color:            #fff    !important;
+}
+
+/* ─── Button state: error ────────────────────────────────────────────────── */
+
+.wse-atc-button.wse-atc-error {
+	background-color: #dc3232 !important;
+	color:            #fff    !important;
+}
+
+/* ─── Full-width modifier ────────────────────────────────────────────────── */
+
+.wse-atc-full-width .wse-qty-atc-row {
+	flex-wrap: nowrap;
+}
+
+.wse-atc-full-width .wse-atc-button {
+	flex:  1;
+	width: 100%;
+}
+
+/* ─── Editor placeholder ─────────────────────────────────────────────────── */
+
+.wse-editor-placeholder {
+	padding:      20px;
+	border:       2px dashed #c0c0cc;
+	border-radius: 4px;
+	text-align:   center;
+	color:        #767676;
+	font-size:    .875rem;
+}
+
+
+
+/* ─── v1.1.0 (Feature B) + v1.1.1 — Sticky wrapper (per-device toggles) ─── */
+/*                                                                            */
+/* Sticky classes apply to BOTH the canonical Add-to-Cart wrapper AND the    */
+/* presenter wrapper (v1.1.1 change — previously scoped to .wse-presenter    */
+/* only, which broke single-widget sticky setups).                           */
+/*                                                                            */
+/* Body padding-bottom is managed by add-to-cart.js so content is never      */
+/* obscured by the pinned bar (handler reads outerHeight per breakpoint).    */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+.wse-widget-add-to-cart.wse-sticky-desktop,
+.wse-widget-add-to-cart.wse-sticky-tablet,
+.wse-widget-add-to-cart.wse-sticky-mobile,
+.wse-presenter {
+	background-color: #ffffff;
+}
+
+@media (min-width: 1025px) {
+	.wse-widget-add-to-cart.wse-sticky-desktop,
+	.wse-presenter.wse-sticky-desktop {
+		position:    fixed;
+		bottom:      0;
+		left:        0;
+		right:       0;
+		z-index:     999;
+		padding:     12px 20px;
+		box-shadow:  0 -4px 12px rgba(19, 27, 46, 0.08);
+	}
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+	.wse-widget-add-to-cart.wse-sticky-tablet,
+	.wse-presenter.wse-sticky-tablet {
+		position:    fixed;
+		bottom:      0;
+		left:        0;
+		right:       0;
+		z-index:     999;
+		padding:     12px 20px;
+		box-shadow:  0 -4px 12px rgba(19, 27, 46, 0.08);
+	}
+}
+
+@media (max-width: 767px) {
+	.wse-widget-add-to-cart.wse-sticky-mobile,
+	.wse-presenter.wse-sticky-mobile {
+		position:    fixed;
+		bottom:      0;
+		left:        0;
+		right:       0;
+		z-index:     999;
+		padding:     12px 16px;
+		box-shadow:  0 -4px 12px rgba(19, 27, 46, 0.08);
+	}
+}
+
+/* Presenter row layout */
+.wse-presenter-row {
+	display:     flex;
+	align-items: center;
+	gap:         12px;
+}
+
+.wse-presenter-qty {
+	width:       64px;
+	padding:     8px;
+	border:      1px solid #d0d0d8;
+	border-radius: 4px;
+	text-align:  center;
+}
+
+.wse-presenter-btn {
+	flex: 1;
+}
+
+/* Body padding helper applied dynamically by add-to-cart.js */
+body.wse-has-sticky-presenter {
+	scroll-padding-bottom: 100px;
+}
+
+/* Editor preview note */
+.wse-editor-presenter-note {
+	font-size:     11px;
+	color:         #534152;
+	background:    #eaedff;
+	padding:       6px 10px;
+	border-radius: 4px;
+	margin-bottom: 8px;
+}
+
+
+
+/* ─── v1.1.1 — FOUC fix: hide canonical-form swatch UI by default ───────── */
+/*                                                                            */
+/* When a Widget 1 (Swatches) is on the same page as a Widget 2 (canonical), */
+/* both end up emitting visible swatches. Previously we deduped via JS at    */
+/* DOMReady, which created a flash of duplicate swatches during the first    */
+/* paint. v1.1.1 hides the canonical form's swatches with CSS by default;   */
+/* swatches.js reveals them only when no Widget 1 wrapper exists for the     */
+/* product (Widget-2-alone scenario).                                        */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+.wse-canonical-form .wse-swatch-wrap > fieldset.wse-fieldset {
+	display: none;
+}
+
+.wse-canonical-form.wse-show-canonical-swatches .wse-swatch-wrap > fieldset.wse-fieldset {
+	display: block;
+}
+
+/* ─── v1.1.1 — Variation-not-selected button state ───────────────────────── */
+/*                                                                            */
+/* WooCommerce's wc-add-to-cart-variation.js adds the .disabled class to     */
+/* .single_add_to_cart_button until a valid variation is found. Some themes  */
+/* and Elementor button styles override the default greyed-out look. These  */
+/* rules enforce the disabled state visually so shoppers can't visually     */
+/* "click" a button that won't add to cart.                                  */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+.wse-canonical-form .single_add_to_cart_button.disabled,
+.wse-canonical-form .single_add_to_cart_button.wc-variation-selection-needed,
+.wse-canonical-form .single_add_to_cart_button[disabled],
+.wse-presenter-btn.disabled,
+.wse-presenter-btn[disabled] {
+	opacity:        0.55;
+	cursor:         not-allowed;
+	pointer-events: none;
+}
+
+/* ─── v1.1.1 — "Added to cart" toast notification ─────────────────────────── */
+/*                                                                            */
+/* Pinned bottom-right on desktop, full-width bottom on mobile. Auto-bumped  */
+/* up when a sticky presenter is also active so the two don't overlap.       */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+.wse-toast {
+	position:        fixed;
+	bottom:          24px;
+	right:           24px;
+	left:            auto;
+	background:      #1d2433;
+	color:           #ffffff;
+	padding:         14px 20px;
+	border-radius:   8px;
+	box-shadow:      0 8px 24px rgba(19, 27, 46, 0.18);
+	display:         flex;
+	align-items:     center;
+	gap:             10px;
+	z-index:         99999;
+	transform:       translateY(20px);
+	opacity:         0;
+	transition:      opacity 250ms ease, transform 250ms ease;
+	max-width:       360px;
+	font-size:       14px;
+	line-height:     1.4;
+}
+
+.wse-toast--visible {
+	transform: translateY(0);
+	opacity:   1;
+}
+
+.wse-toast-icon {
+	background:      #16a34a;
+	color:           #ffffff;
+	width:           22px;
+	height:          22px;
+	border-radius:   50%;
+	display:         flex;
+	align-items:     center;
+	justify-content: center;
+	font-size:       13px;
+	font-weight:     bold;
+	flex-shrink:     0;
+}
+
+.wse-toast-message {
+	flex: 1;
+}
+
+.wse-toast-link {
+	color:           #93c5fd;
+	text-decoration: underline;
+	margin-left:     8px;
+}
+
+.wse-toast-link:hover,
+.wse-toast-link:focus {
+	color: #ffffff;
+}
+
+@media (max-width: 767px) {
+	.wse-toast {
+		left:      16px;
+		right:     16px;
+		bottom:    16px;
+		max-width: none;
+	}
+}
+
+/* When a sticky presenter is active, lift the toast above it so they don't
+   overlap. The 100px offset matches the typical presenter bar height. */
+body.wse-has-sticky-presenter .wse-toast {
+	bottom: calc(24px + 80px);
+}
+
+@media (max-width: 767px) {
+	body.wse-has-sticky-presenter .wse-toast {
+		bottom: calc(16px + 80px);
+	}
+}
+
+
+
+/* ─── v1.1.3 — Suppress theme/plugin-injected ::before/::after on button ──── */
+/*                                                                            */
+/* Some themes (Astra Pro, Flatsome) and WC fragment HTML add a checkmark    */
+/* or cart icon as a pseudo-element on the Add to Cart button — visible as   */
+/* an extra ✓ or icon next to the button text. This rule prevents those     */
+/* injected pseudo-elements from rendering, keeping the button text exactly  */
+/* as the localized i18n string (e.g. "Added to cart" with no extra signs).  */
+/*                                                                            */
+/* The toast's own ✓ icon (a real <span class="wse-toast-icon">) is          */
+/* unaffected — that's an actual DOM element, not a pseudo-element.          */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+.wse-atc-button::before,
+.wse-atc-button::after,
+.wse-atc-button.wse-atc-loading::before,
+.wse-atc-button.wse-atc-loading::after,
+.wse-atc-button.wse-atc-added::before,
+.wse-atc-button.wse-atc-added::after,
+.wse-atc-button.wse-atc-error::before,
+.wse-atc-button.wse-atc-error::after {
+	content: none !important;
+	display: none !important;
+}
+
+
+
+/* ─── v1.1.5 — Hide WC's injected View Cart link via body class ─────────── */
+/*                                                                            */
+/* WooCommerce's frontend wc-add-to-cart.js binds an `added_to_cart`         */
+/* listener that injects `<a class="added_to_cart wc-forward">View cart</a>` */
+/* after the button. v1.1.4's JS strip ran reactively after the injection   */
+/* and was losing the race on some sites (cache, timing). v1.1.5 uses CSS   */
+/* with !important + a server-side body class — the rule applies before     */
+/* WC's <script> ever runs, so there's no timing window where the link is   */
+/* visible.                                                                  */
+/*                                                                            */
+/* The body class is added by:                                              */
+/*   • PHP body_class filter when wse_show_view_cart_link option is 'no'    */
+/*   • JS at DOMReady when any widget has data-show-view-cart="no"          */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+body.wse-hide-view-cart a.added_to_cart.wc-forward,
+body.wse-hide-view-cart .added_to_cart.wc-forward,
+body.wse-hide-view-cart a.wc-forward.added_to_cart,
+body.wse-hide-view-cart .woocommerce-message a.wc-forward,
+body.wse-hide-view-cart .woocommerce-info a.wc-forward,
+body.wse-hide-view-cart .woocommerce-error a.wc-forward,
+body.wse-hide-view-cart .wc-block-components-notice-banner a.wc-forward,
+body.wse-hide-view-cart .wse-widget-add-to-cart a.wc-forward,
+body.wse-hide-view-cart .wse-toast-link {
+	display:        none       !important;
+	visibility:     hidden     !important;
+	pointer-events: none       !important;
+}
+
+
+
+/* ─── v1.2.0 — Quantity stepper ─────────────────────────────────────────── */
+/* The stepper wraps the WC quantity input with optional [-] [+] buttons.
+   The middle <input> stays exactly where WC expects it (same name, same
+   .qty class), so wc-add-to-cart-variation.js continues to read and write
+   the value without modification. All sizing / colour / icon properties
+   are written via CSS custom properties from the Elementor Style tab so
+   themes can override without !important. */
+
+body.wse-stylesheet-enabled .wse-qty-stepper {
+	--wse-qty-btn-size:       36px;
+	--wse-qty-icon-size:      14px;
+	--wse-qty-gap:            0px;
+
+	display:         inline-flex;
+	align-items:     stretch;
+	gap:             var(--wse-qty-gap);
+	vertical-align:  middle;
+	box-sizing:      border-box;
+}
+
+/* Strip the native number-spin arrows so the stepper buttons are the
+   only increment/decrement UI. Manual numeric entry is unaffected. */
+body.wse-stylesheet-enabled .wse-qty-stepper .qty {
+	-moz-appearance: textfield;
+	text-align:      center;
+	min-width:       0;
+	box-sizing:      border-box;
+}
+body.wse-stylesheet-enabled .wse-qty-stepper .qty::-webkit-inner-spin-button,
+body.wse-stylesheet-enabled .wse-qty-stepper .qty::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+/* Buttons */
+body.wse-stylesheet-enabled .wse-qty-btn {
+	display:         inline-flex;
+	align-items:     center;
+	justify-content: center;
+	width:           var(--wse-qty-btn-size);
+	height:          var(--wse-qty-btn-size);
+	padding:         0;
+	border:          1px solid rgba(0, 0, 0, .15);
+	background:      #fafafa;
+	color:           #131b2e;             /* ZYMARG Text Body */
+	cursor:          pointer;
+	user-select:     none;
+	-webkit-tap-highlight-color: transparent;
+	transition:      background .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;
+	flex-shrink:     0;
+	line-height:     1;
+}
+
+body.wse-stylesheet-enabled .wse-qty-btn:hover:not(:disabled) {
+	background:    #f0f0f0;
+	border-color:  rgba(0, 0, 0, .25);
+}
+
+body.wse-stylesheet-enabled .wse-qty-btn:focus-visible {
+	outline:        2px solid #9500a5;     /* ZYMARG Primary */
+	outline-offset: 1px;
+	z-index:        2;
+}
+
+body.wse-stylesheet-enabled .wse-qty-btn:disabled {
+	opacity:        .4;
+	cursor:         not-allowed;
+}
+
+/* Icon sizing — applies whether the icon is a <svg>, <i> (Font Awesome /
+   Elementor icons), or our fallback inline SVG. */
+body.wse-stylesheet-enabled .wse-qty-btn svg,
+body.wse-stylesheet-enabled .wse-qty-btn i {
+	display:    block;
+	width:      var(--wse-qty-icon-size);
+	height:     var(--wse-qty-icon-size);
+	font-size:  var(--wse-qty-icon-size);
+	line-height: 1;
+}
+
+/* When buttons sit flush against the input (default gap = 0), tighten
+   the corners so the three elements read as a single unified stepper. */
+body.wse-stylesheet-enabled .wse-qty-stepper .wse-qty-btn--minus { border-right-width: 0; }
+body.wse-stylesheet-enabled .wse-qty-stepper .wse-qty-btn--plus  { border-left-width:  0; }
+
+/* When the user disables the buttons via the show_qty_stepper_buttons
+   toggle, only the bare input renders. Reset the container to behave
+   like a normal qty wrap. */
+body.wse-stylesheet-enabled .wse-qty-stepper--no-buttons {
+	display: inline-block;
+}
+
+
+
+/* ─── v1.2.0 — Inline price hide ────────────────────────────────────────── */
+/* When Widget 2's "Show Inline Price" toggle is off, the .wse-no-inline-price
+   class is added to the canonical form. WC's wc-add-to-cart-variation.js
+   continues to write into .woocommerce-variation-price as normal — we just
+   visually hide it so Widget 3 (ZYMARG Price) owns the price display.
+   Availability and description divs stay visible (they're useful regardless). */
+
+body.wse-stylesheet-enabled .wse-no-inline-price .woocommerce-variation-price {
+	display: none;
+}
+
+
+
+/* ─── v1.2.1 (B2) — Force quantity-button icon visibility ─────────────────── */
+/* Belt-and-braces sizing for the icon glyph regardless of whether it's an
+   <svg>, <i> (Font Awesome / Elementor icons), or our hand-drawn fallback.
+   Some icon libraries leave width/height inheriting from the parent button,
+   which collapses to 0 in certain themes. Forcing currentColor + explicit
+   sizing guarantees a visible glyph. */
+
+body.wse-stylesheet-enabled .wse-qty-btn > * {
+	pointer-events: none;        /* clicks always reach the <button> itself */
+}
+
+body.wse-stylesheet-enabled .wse-qty-btn svg,
+body.wse-stylesheet-enabled .wse-qty-btn i,
+body.wse-stylesheet-enabled .wse-qty-btn .wse-qty-icon {
+	display:     block;
+	width:       var( --wse-qty-icon-size, 14px );
+	height:      var( --wse-qty-icon-size, 14px );
+	font-size:   var( --wse-qty-icon-size, 14px );
+	line-height: 1;
+	fill:        currentColor;
+	color:       currentColor;
+}
+
+/* When the rendered output is the hand-drawn fallback (no Elementor icon
+   selected, or icon picker failed), nothing extra is needed — the SVG
+   already has `stroke="currentColor"`. */
+
+
+
+/* ─── v1.2.1 (F1) — Full-width stepper mode ─────────────────────────────── */
+/* When Widget 2's "Stepper width mode" is set to "Full Width", Elementor
+   adds the prefix class wse-qty-mode-full to the widget wrapper. The
+   stepper fills the parent column; the qty <input> grows via flex:1 so
+   the [-] and [+] buttons stay fixed-size on the edges. */
+
+body.wse-stylesheet-enabled .wse-qty-mode-full .wse-qty-stepper {
+	width: 100%;
+}
+body.wse-stylesheet-enabled .wse-qty-mode-full .wse-qty-stepper .qty {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* ─── v1.2.1 (S5) — ZYMARG brand stepper defaults ───────────────────────── */
+/* The neutral grey-on-grey defaults from v1.2.0 work but feel off-brand.
+   These rules raise the floor: hover state lifts to ZYMARG Primary Fixed
+   (#ffd6fb pale lavender) with the Primary purple as border. Selected
+   focus ring matches. Users can still override every value via the
+   Elementor Style tab — these are just better defaults. */
+
+body.wse-stylesheet-enabled .wse-qty-btn:hover:not(:disabled) {
+	background:    #ffd6fb;          /* ZYMARG Primary Fixed */
+	border-color:  #9500a5;          /* ZYMARG Primary */
+	color:         #36003d;          /* ZYMARG On Primary Fixed */
+}
+
+body.wse-stylesheet-enabled .wse-qty-btn:active:not(:disabled) {
+	background:    #fea9ff;          /* ZYMARG Inverse Primary */
+}
+
+/* ─── v1.3.3 (B2) — Sale dot RETIRED ────────────────────────────────────── */
+/* v1.2.1 introduced a small purple dot indicator on swatches whose
+   variation was on sale. v1.2.3 made it toggleable via a global setting,
+   but per ZYMARG product-owner decision the indicator is no longer wanted
+   (visually noisy on small image swatches, and the on-sale state is
+   already communicated by the price widget's smart heading + sale badge).
+   v1.3.2 disabled it at the PHP level (renderer hardcodes is_on_sale
+   => false so the wse-on-sale class is never added). v1.3.3 removes the
+   visual rules entirely AND adds an !important override that defeats any
+   stale CSS cache or 3rd-party code that adds the class.
+
+   Kept (no-op): .wse-swatch.wse-on-sale's position:relative — harmless.
+   Removed: the ::after dot rendering on both base and image swatches.
+*/
+
+body.wse-stylesheet-enabled .wse-swatch.wse-on-sale {
+	position: relative;
+}
+
+/* Defeats stale CSS caches that still serve the old dot rule. */
+body.wse-stylesheet-enabled .wse-swatch.wse-on-sale::after,
+body.wse-stylesheet-enabled .wse-swatch-image.wse-on-sale::after,
+body.wse-stylesheet-enabled .wse-swatch-color.wse-on-sale::after,
+body.wse-stylesheet-enabled .wse-swatch-label.wse-on-sale::after,
+body.wse-stylesheet-enabled .wse-swatch-button.wse-on-sale::after {
+	content:    none !important;
+	display:    none !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	width:      0 !important;
+	height:     0 !important;
+}
+
+
+
+/* ─── v1.2.3 (Issue 3+4) — Full-width Add to Cart with stacked layout ──── */
+/* When the Full Width Button toggle is on for a given device, the button
+   stretches to fill the column AND the [-] [qty] [+] / button row switches
+   to a stacked column layout (qty stepper on top, button below). Per-device
+   classes cascade through the standard Elementor breakpoint order:
+     desktop = no media query (always applies once the class is on)
+     tablet  = max-width: 1024px
+     mobile  = max-width:  768px
+   so a mobile-only setup (mobile=yes, tablet=no, desktop=no) renders inline
+   above 768px and stacked below it. */
+
+/* Desktop — legacy class .wse-atc-full-width preserved for back-compat */
+body.wse-stylesheet-enabled .wse-atc-full-width .wse-atc-button {
+	width: 100%;
+}
+body.wse-stylesheet-enabled .wse-atc-full-width .wse-qty-atc-row {
+	flex-direction: column;
+	align-items:    stretch;
+	gap:            8px;
+}
+
+/* Tablet */
+@media ( max-width: 1024px ) {
+	body.wse-stylesheet-enabled .wse-atc-fw-tablet-yes .wse-atc-button {
+		width: 100%;
+	}
+	body.wse-stylesheet-enabled .wse-atc-fw-tablet-yes .wse-qty-atc-row {
+		flex-direction: column;
+		align-items:    stretch;
+		gap:            8px;
+	}
+}
+
+/* Mobile */
+@media ( max-width: 768px ) {
+	body.wse-stylesheet-enabled .wse-atc-fw-mobile-yes .wse-atc-button {
+		width: 100%;
+	}
+	body.wse-stylesheet-enabled .wse-atc-fw-mobile-yes .wse-qty-atc-row {
+		flex-direction: column;
+		align-items:    stretch;
+		gap:            8px;
+	}
+}
+
+
+
+/* ─── v1.3.5 (F2) — Quantity stepper full-width per-device toggles ──────── */
+/* Three independent SWITCHER controls (desktop / tablet / mobile) each
+   apply the wse-qty-fullw-{d,t,m}-yes prefix-class to the OUTER widget
+   wrapper. CSS uses descendant selectors inside @media queries so each
+   breakpoint applies the full-width treatment independently. The qty
+   input grows via flex:1 to fill the space between the [-] and [+]
+   buttons (which keep their fixed size).
+
+   !important is needed to defeat the per-instance qty_stepper_total_width
+   slider which writes inline `width: …` via Elementor's selectors API
+   when the user has the SELECT mode set to 'custom'. */
+
+@media ( min-width: 1025px ) {
+	body.wse-stylesheet-enabled .wse-qty-fullw-d-yes .wse-qty-stepper {
+		width: 100% !important;
+	}
+	body.wse-stylesheet-enabled .wse-qty-fullw-d-yes .wse-qty-stepper .qty {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+}
+@media ( min-width: 769px ) and ( max-width: 1024px ) {
+	body.wse-stylesheet-enabled .wse-qty-fullw-t-yes .wse-qty-stepper {
+		width: 100% !important;
+	}
+	body.wse-stylesheet-enabled .wse-qty-fullw-t-yes .wse-qty-stepper .qty {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+}
+@media ( max-width: 768px ) {
+	body.wse-stylesheet-enabled .wse-qty-fullw-m-yes .wse-qty-stepper {
+		width: 100% !important;
+	}
+	body.wse-stylesheet-enabled .wse-qty-fullw-m-yes .wse-qty-stepper .qty {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+}
+
+
+
+/* ─── v1.4.5 — Buy Now Button ───────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-buy-now-wrap {
+	display:     flex;
+	flex-wrap:   wrap;
+	align-items: center;
+	gap:         0.5em;
+	margin-top:  10px;
+	width:       100%;
+}
+
+body.wse-stylesheet-enabled .wse-buy-now-btn {
+	display:         inline-flex;
+	align-items:     center;
+	justify-content: center;
+	cursor:          pointer;
+	text-decoration: none;
+	font-weight:     600;
+	line-height:     1.2;
+	padding:         0.7em 1.5em;
+	border:          2px solid #9500a5;
+	background:      transparent;
+	color:           #9500a5;
+	border-radius:   6px;
+	transition:      background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+body.wse-stylesheet-enabled .wse-buy-now-btn:hover,
+body.wse-stylesheet-enabled .wse-buy-now-btn:focus-visible {
+	background-color: #9500a5;
+	color:            #ffffff;
+	border-color:     #9500a5;
+}
+
+body.wse-stylesheet-enabled .wse-buy-now-btn:focus-visible {
+	outline:        2px solid currentColor;
+	outline-offset: 2px;
+}
+
+/* Full width variant */
+body.wse-stylesheet-enabled .wse-buy-now-btn.wse-buy-now-full-width {
+	width: 100%;
+}
+
+/* Disabled / needs-options state */
+body.wse-stylesheet-enabled .wse-buy-now-btn[disabled],
+body.wse-stylesheet-enabled .wse-buy-now-btn.wse-buy-now-disabled {
+	opacity:        0.5;
+	cursor:         not-allowed;
+	pointer-events: auto;
+}
+
+/* Loading state */
+body.wse-stylesheet-enabled .wse-buy-now-btn.wse-buy-now-loading {
+	position:       relative;
+	pointer-events: none;
+	opacity:        0.8;
+}
+
+body.wse-stylesheet-enabled .wse-buy-now-btn.wse-buy-now-loading::after {
+	content:             "";
+	width:               1em;
+	height:              1em;
+	margin-left:         0.5em;
+	border:              2px solid currentColor;
+	border-right-color:  transparent;
+	border-radius:       50%;
+	display:             inline-block;
+	animation:           wse-bnw-spin 0.7s linear infinite;
+	vertical-align:      middle;
+}
+
+@keyframes wse-bnw-spin {
+	to { transform: rotate(360deg); }
+}
+
+/* Message under the button */
+body.wse-stylesheet-enabled .wse-buy-now-message {
+	font-size:  0.85em;
+	flex-basis: 100%;
+	min-height: 1.2em;
+}
+
+body.wse-stylesheet-enabled .wse-buy-now-message.wse-bnw-msg-error {
+	color: #b32d2e;
+}
+
+body.wse-stylesheet-enabled .wse-buy-now-message.wse-bnw-msg-success {
+	color: #1e8e3e;
+}

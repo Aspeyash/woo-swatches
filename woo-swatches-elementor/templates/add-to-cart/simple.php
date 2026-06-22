@@ -82,6 +82,35 @@ $button_text  = ! empty( $settings['button_text'] )
 
 	<?php do_action( 'woocommerce_after_add_to_cart_button' ); ?>
 
+	<?php
+	/**
+	 * v1.4.5 — Buy Now button (after Add to Cart button).
+	 * Renders only when the "Show Buy Now Button" toggle is ON.
+	 */
+	$_show_buy_now = ( $settings['show_buy_now'] ?? 'no' ) === 'yes';
+	if ( $_show_buy_now ) :
+		$_buy_now_text = ! empty( $settings['buy_now_text'] )
+			? esc_html( $settings['buy_now_text'] )
+			: esc_html__( 'Buy Now', 'woo-swatches-elementor' );
+		$_buy_now_fw   = ( $settings['buy_now_full_width'] ?? 'yes' ) === 'yes';
+		$_buy_now_cls  = 'wse-buy-now-btn button';
+		if ( $_buy_now_fw ) {
+			$_buy_now_cls .= ' wse-buy-now-full-width';
+		}
+	?>
+	<div class="wse-buy-now-wrap">
+		<button type="button"
+			class="<?php echo esc_attr( $_buy_now_cls ); ?>"
+			data-product-id="<?php echo absint( $product_id ); ?>"
+			data-product-type="simple"
+			data-quantity="<?php echo absint( $default_qty ); ?>"
+			data-default-text="<?php echo esc_attr( $_buy_now_text ); ?>">
+			<span class="wse-buy-now-text"><?php echo $_buy_now_text; // phpcs:ignore ?></span>
+		</button>
+		<span class="wse-buy-now-message" role="status" aria-live="polite"></span>
+	</div>
+	<?php endif; ?>
+
 </form><!-- .wse-simple-cart -->
 
 <?php do_action( 'woocommerce_after_add_to_cart_form' ); ?>

@@ -896,11 +896,218 @@
 	function initAll() {
 		init();
 		initQtyStepper();
+		initBuyNow();
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// v1.4.5 — Buy Now button logic
+	//
+	// Handles:
+	//  - Variation form integration (enable/disable on found_variation/reset_data)
+	//  - Quantity input syncing from the page's qty input
+	//  - AJAX request to store product in session + redirect to checkout
+	//
+	// The existing cart is NEVER modified on the client — the server swaps
+	// it temporarily on the checkout page and restores it after purchase.
+	// ─────────────────────────────────────────────────────────────────────
+
+	var BUY_NOW_BTN = '.wse-buy-now-btn';
+
+	function initBuyNow() {
+		// Skip if no Buy Now buttons on the page.
+		if ( ! $( BUY_NOW_BTN ).length ) {
+			return;
+		}
+
+		bindBuyNowVariationForms();
+
+		// Delegate click (idempotent — .off then .on).
+		$( document.body )
+			.off( 'click.wseBuyNow', BUY_NOW_BTN )
+			.on( 'click.wseBuyNow', BUY_NOW_BTN, onBuyNowClick );
+	}
+
+	function bindBuyNowVariationForms() {
+		$( 'form.variations_form' ).each( function () {
+			var $form = $( this );
+			if ( $form.data( 'wse-bnw-bound' ) ) {
+				return;
+			}
+			$form.data( 'wse-bnw-bound', true );
+
+			var productId = $form.data( 'product_id' ) || $form.attr( 'data-product_id' );
+
+			$form
+				.on( 'found_variation.wseBuyNow', function ( e, variation ) {
+					updateBuyNowButtons( productId, {
+						variationId: variation.variation_id,
+						purchasable: variation.is_purchasable && variation.is_in_stock,
+						attributes:  collectBuyNowAttributes( $form )
+					} );
+				} )
+				.on( 'reset_data.wseBuyNow hide_variation.wseBuyNow', function () {
+					updateBuyNowButtons( productId, {
+						variationId: 0,
+						purchasable: false,
+						attributes:  {}
+					} );
+				} );
+		} );
+	}
+
+	function collectBuyNowAttributes( $form ) {
+		var attrs = {};
+		$form.find( '.variations select, select[data-attribute_name]' ).each( function () {
+			var name = $( this ).data( 'attribute_name' ) || $( this ).attr( 'name' );
+			if ( name ) {
+				attrs[ name ] = $( this ).val() || '';
+			}
+		} );
+		return attrs;
+	}
+
+	function updateBuyNowButtons( productId, state ) {
+		$( BUY_NOW_BTN + '[data-product-id="' + productId + '"]' ).each( function () {
+			var $btn = $( this );
+			$btn.data( 'variation-id', state.variationId || 0 );
+			$btn.data( 'variation-attrs', state.attributes || {} );
+
+			if ( state.variationId && state.purchasable ) {
+				$btn.prop( 'disabled', false )
+					.removeAttr( 'disabled' )
+					.removeAttr( 'aria-disabled' )
+					.removeClass( 'wse-buy-now-disabled' );
+			} else if ( $btn.attr( 'data-needs-options' ) ) {
+				$btn.prop( 'disabled', true )
+					.attr( 'aria-disabled', 'true' )
+					.addClass( 'wse-buy-now-disabled' );
+			}
+		} );
+	}
+
+	function onBuyNowClick( e ) {
+		e.preventDefault();
+		e.stopPropagation();
+
+		var $btn = $( this );
+		if ( $btn.prop( 'disabled' ) || $btn.hasClass( 'wse-buy-now-loading' ) ) {
+			return;
+		}
+
+		var bnwParams = ( window.WSEParams && window.WSEParams.buy_now ) || {};
+		var i18n      = bnwParams.i18n || {};
+		var nonce     = bnwParams.nonce || '';
+		var ajaxUrl   = ( window.WSEParams && window.WSEParams.ajax_url ) || '';
+
+		if ( ! ajaxUrl || ! nonce ) {
+			return;
+		}
+
+		var productId   = parseInt( $btn.data( 'product-id' ), 10 ) || 0;
+		var productType = $btn.data( 'product-type' ) || 'simple';
+		var variationId = parseInt( $btn.data( 'variation-id' ), 10 ) || 0;
+		var attributes  = $btn.data( 'variation-attrs' ) || {};
+		var quantity    = parseInt( $btn.data( 'quantity' ), 10 ) || 1;
+
+		if ( ! productId ) {
+			showBuyNowMessage( $btn, i18n.error || 'Error', 'error' );
+			return;
+		}
+
+		// Sync with the page's quantity input.
+		var $qtyInput = findBuyNowQtyInput( $btn );
+		if ( $qtyInput.length && $qtyInput.val() ) {
+			quantity = Math.max( 1, parseInt( $qtyInput.val(), 10 ) || 1 );
+		}
+
+		// Variable product but no variation selected.
+		if ( productType === 'variable' && ! variationId ) {
+			showBuyNowMessage( $btn, i18n.select_options || 'Please select options', 'error' );
+			return;
+		}
+
+		setBuyNowLoading( $btn, true, i18n );
+		clearBuyNowMessage( $btn );
+
+		$.ajax( {
+			url:      ajaxUrl,
+			type:     'POST',
+			dataType: 'json',
+			data: {
+				action:       'wse_buy_now',
+				nonce:        nonce,
+				product_id:   productId,
+				variation_id: variationId,
+				variation:    attributes,
+				quantity:     quantity
+			}
+		} )
+		.done( function ( response ) {
+			if ( response && response.success && response.data && response.data.redirect ) {
+				$( document.body ).trigger( 'wse_buy_now_before_redirect', [ response, $btn ] );
+				window.location.href = response.data.redirect;
+				return;
+			}
+			var msg = ( response && response.data && response.data.message ) || i18n.error || 'Error';
+			showBuyNowMessage( $btn, msg, 'error' );
+			setBuyNowLoading( $btn, false, i18n );
+		} )
+		.fail( function () {
+			showBuyNowMessage( $btn, i18n.error || 'Error', 'error' );
+			setBuyNowLoading( $btn, false, i18n );
+		} );
+	}
+
+	function findBuyNowQtyInput( $btn ) {
+		// Look for the quantity input in the same widget / form context.
+		var $widget = $btn.closest( '.wse-widget-add-to-cart' );
+		if ( $widget.length ) {
+			var $input = $widget.find( 'input.qty' ).first();
+			if ( $input.length ) {
+				return $input;
+			}
+		}
+		// Fallback: any qty input on the page.
+		return $( 'form.cart input.qty, form.variations_form input.qty' ).first();
+	}
+
+	function setBuyNowLoading( $btn, loading, i18n ) {
+		if ( loading ) {
+			$btn.addClass( 'wse-buy-now-loading' ).prop( 'disabled', true );
+			$btn.find( '.wse-buy-now-text' ).text( i18n.processing || 'Processing...' );
+		} else {
+			$btn.removeClass( 'wse-buy-now-loading' );
+			if ( $btn.attr( 'data-needs-options' ) && ! parseInt( $btn.data( 'variation-id' ), 10 ) ) {
+				$btn.prop( 'disabled', true );
+			} else {
+				$btn.prop( 'disabled', false );
+			}
+			var defaultText = $btn.attr( 'data-default-text' );
+			if ( defaultText ) {
+				$btn.find( '.wse-buy-now-text' ).text( defaultText );
+			}
+		}
+	}
+
+	function showBuyNowMessage( $btn, text, type ) {
+		var $msg = $btn.closest( '.wse-buy-now-wrap' ).find( '.wse-buy-now-message' );
+		$msg.removeClass( 'wse-bnw-msg-error wse-bnw-msg-success' )
+			.addClass( 'wse-bnw-msg-' + ( type || 'info' ) )
+			.text( text );
+	}
+
+	function clearBuyNowMessage( $btn ) {
+		$btn.closest( '.wse-buy-now-wrap' ).find( '.wse-buy-now-message' ).text( '' );
 	}
 
 	$( document ).ready( initAll );
 
 	// Reinit hooks (every binding above is .off()-then-.on() idempotent).
 	$( document.body ).on( 'wse:reinit elementor/popup/show', initAll );
+
+	// If a variation form is added later (Elementor editor, AJAX load).
+	$( document.body ).on( 'wc_variation_form', function () {
+		bindBuyNowVariationForms();
+	} );
 
 } )( jQuery, window, document );

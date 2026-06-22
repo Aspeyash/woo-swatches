@@ -482,6 +482,51 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 		);
 
 		$this->end_controls_section();
+
+		// ── v1.4.5 — Buy Now Button section ──────────────────────────────
+		$this->start_controls_section(
+			'section_buy_now',
+			array(
+				'label' => esc_html__( 'Buy Now Button', 'woo-swatches-elementor' ),
+				'tab'   => \Elementor\Controls_Manager::TAB_CONTENT,
+			)
+		);
+
+		$this->add_control(
+			'show_buy_now',
+			array(
+				'label'        => esc_html__( 'Show Buy Now Button', 'woo-swatches-elementor' ),
+				'description'  => esc_html__( 'Adds a "Buy Now" button after the Add to Cart button that skips the cart and takes the customer directly to checkout.', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'return_value' => 'yes',
+				'default'      => 'no',
+			)
+		);
+
+		$this->add_control(
+			'buy_now_text',
+			array(
+				'label'       => esc_html__( 'Button Text', 'woo-swatches-elementor' ),
+				'type'        => \Elementor\Controls_Manager::TEXT,
+				'default'     => esc_html__( 'Buy Now', 'woo-swatches-elementor' ),
+				'placeholder' => esc_html__( 'Buy Now', 'woo-swatches-elementor' ),
+				'dynamic'     => array( 'active' => true ),
+				'condition'   => array( 'show_buy_now' => 'yes' ),
+			)
+		);
+
+		$this->add_control(
+			'buy_now_full_width',
+			array(
+				'label'        => esc_html__( 'Full Width', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'return_value' => 'yes',
+				'default'      => 'yes',
+				'condition'    => array( 'show_buy_now' => 'yes' ),
+			)
+		);
+
+		$this->end_controls_section();
 	}
 
 	// ── Style ─────────────────────────────────────────────────────────────
@@ -893,6 +938,128 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 				'size_units' => array( 'px', '%' ),
 				'selectors'  => array(
 					'{{WRAPPER}} .wse-qty-btn' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->end_controls_section();
+
+		// ── v1.4.5 — Buy Now Button style ─────────────────────────────────
+		$this->start_controls_section(
+			'section_style_buy_now',
+			array(
+				'label'     => esc_html__( 'Buy Now Button', 'woo-swatches-elementor' ),
+				'tab'       => \Elementor\Controls_Manager::TAB_STYLE,
+				'condition' => array( 'show_buy_now' => 'yes' ),
+			)
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'buy_now_typography',
+				'selector' => '{{WRAPPER}} .wse-buy-now-btn',
+			)
+		);
+
+		$this->start_controls_tabs( 'tabs_buy_now_style' );
+
+		$this->start_controls_tab(
+			'tab_buy_now_normal',
+			array( 'label' => esc_html__( 'Normal', 'woo-swatches-elementor' ) )
+		);
+		$this->add_control(
+			'buy_now_text_color',
+			array(
+				'label'     => esc_html__( 'Text Color', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .wse-buy-now-btn' => 'color: {{VALUE}};',
+				),
+			)
+		);
+		$this->add_control(
+			'buy_now_bg_color',
+			array(
+				'label'     => esc_html__( 'Background', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .wse-buy-now-btn' => 'background-color: {{VALUE}};',
+				),
+			)
+		);
+		$this->end_controls_tab();
+
+		$this->start_controls_tab(
+			'tab_buy_now_hover',
+			array( 'label' => esc_html__( 'Hover', 'woo-swatches-elementor' ) )
+		);
+		$this->add_control(
+			'buy_now_text_color_hover',
+			array(
+				'label'     => esc_html__( 'Text Color', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .wse-buy-now-btn:hover' => 'color: {{VALUE}};',
+				),
+			)
+		);
+		$this->add_control(
+			'buy_now_bg_color_hover',
+			array(
+				'label'     => esc_html__( 'Background', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .wse-buy-now-btn:hover' => 'background-color: {{VALUE}};',
+				),
+			)
+		);
+		$this->end_controls_tab();
+
+		$this->end_controls_tabs();
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Border::get_type(),
+			array(
+				'name'     => 'buy_now_border',
+				'selector' => '{{WRAPPER}} .wse-buy-now-btn',
+			)
+		);
+
+		$this->add_responsive_control(
+			'buy_now_border_radius',
+			array(
+				'label'      => esc_html__( 'Border Radius', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%', 'em' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-buy-now-btn' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'buy_now_padding',
+			array(
+				'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-buy-now-btn' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'buy_now_margin_top',
+			array(
+				'label'      => esc_html__( 'Spacing Above', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 60 ) ),
+				'default'    => array( 'unit' => 'px', 'size' => 10 ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-buy-now-wrap' => 'margin-top: {{SIZE}}{{UNIT}};',
 				),
 			)
 		);

@@ -758,3 +758,96 @@ body.wse-stylesheet-enabled .wse-atc-full-width .wse-qty-atc-row {
 		min-width: 0;
 	}
 }
+
+
+
+/* ─── v1.4.5 — Buy Now Button ───────────────────────────────────────────── */
+
+body.wse-stylesheet-enabled .wse-buy-now-wrap {
+	display:     flex;
+	flex-wrap:   wrap;
+	align-items: center;
+	gap:         0.5em;
+	margin-top:  10px;
+	width:       100%;
+}
+
+body.wse-stylesheet-enabled .wse-buy-now-btn {
+	display:         inline-flex;
+	align-items:     center;
+	justify-content: center;
+	cursor:          pointer;
+	text-decoration: none;
+	font-weight:     600;
+	line-height:     1.2;
+	padding:         0.7em 1.5em;
+	border:          2px solid #9500a5;
+	background:      transparent;
+	color:           #9500a5;
+	border-radius:   6px;
+	transition:      background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+body.wse-stylesheet-enabled .wse-buy-now-btn:hover,
+body.wse-stylesheet-enabled .wse-buy-now-btn:focus-visible {
+	background-color: #9500a5;
+	color:            #ffffff;
+	border-color:     #9500a5;
+}
+
+body.wse-stylesheet-enabled .wse-buy-now-btn:focus-visible {
+	outline:        2px solid currentColor;
+	outline-offset: 2px;
+}
+
+/* Full width variant */
+body.wse-stylesheet-enabled .wse-buy-now-btn.wse-buy-now-full-width {
+	width: 100%;
+}
+
+/* Disabled / needs-options state */
+body.wse-stylesheet-enabled .wse-buy-now-btn[disabled],
+body.wse-stylesheet-enabled .wse-buy-now-btn.wse-buy-now-disabled {
+	opacity:        0.5;
+	cursor:         not-allowed;
+	pointer-events: auto;
+}
+
+/* Loading state */
+body.wse-stylesheet-enabled .wse-buy-now-btn.wse-buy-now-loading {
+	position:       relative;
+	pointer-events: none;
+	opacity:        0.8;
+}
+
+body.wse-stylesheet-enabled .wse-buy-now-btn.wse-buy-now-loading::after {
+	content:             "";
+	width:               1em;
+	height:              1em;
+	margin-left:         0.5em;
+	border:              2px solid currentColor;
+	border-right-color:  transparent;
+	border-radius:       50%;
+	display:             inline-block;
+	animation:           wse-bnw-spin 0.7s linear infinite;
+	vertical-align:      middle;
+}
+
+@keyframes wse-bnw-spin {
+	to { transform: rotate(360deg); }
+}
+
+/* Message under the button */
+body.wse-stylesheet-enabled .wse-buy-now-message {
+	font-size:  0.85em;
+	flex-basis: 100%;
+	min-height: 1.2em;
+}
+
+body.wse-stylesheet-enabled .wse-buy-now-message.wse-bnw-msg-error {
+	color: #b32d2e;
+}
+
+body.wse-stylesheet-enabled .wse-buy-now-message.wse-bnw-msg-success {
+	color: #1e8e3e;
+}

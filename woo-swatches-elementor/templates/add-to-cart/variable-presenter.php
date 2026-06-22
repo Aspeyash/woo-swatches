@@ -74,3 +74,34 @@ $button_text  = ! empty( $settings['button_text'] )
 	</button>
 
 </div>
+
+<?php
+/**
+ * v1.4.5 — Buy Now button (presenter mode).
+ */
+$_show_buy_now = ( $settings['show_buy_now'] ?? 'no' ) === 'yes';
+if ( $_show_buy_now ) :
+	$_buy_now_text = ! empty( $settings['buy_now_text'] )
+		? esc_html( $settings['buy_now_text'] )
+		: esc_html__( 'Buy Now', 'woo-swatches-elementor' );
+	$_buy_now_fw   = ( $settings['buy_now_full_width'] ?? 'yes' ) === 'yes';
+	$_buy_now_cls  = 'wse-buy-now-btn button';
+	if ( $_buy_now_fw ) {
+		$_buy_now_cls .= ' wse-buy-now-full-width';
+	}
+?>
+<div class="wse-buy-now-wrap">
+	<button type="button"
+		class="<?php echo esc_attr( $_buy_now_cls ); ?>"
+		data-product-id="<?php echo absint( $product_id ); ?>"
+		data-product-type="variable"
+		data-quantity="1"
+		data-default-text="<?php echo esc_attr( $_buy_now_text ); ?>"
+		disabled="disabled"
+		aria-disabled="true"
+		data-needs-options="1">
+		<span class="wse-buy-now-text"><?php echo $_buy_now_text; // phpcs:ignore ?></span>
+	</button>
+	<span class="wse-buy-now-message" role="status" aria-live="polite"></span>
+</div>
+<?php endif; ?>

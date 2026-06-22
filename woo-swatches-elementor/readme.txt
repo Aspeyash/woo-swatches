@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.4.4
+Stable tag: 1.4.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,58 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.4.5 =
+**Feature: Buy Now button integrated into the Add to Cart widget.**
+
+Adds a "Buy Now" button to Widget 2 (ZYMARG Add to Cart) that skips the cart and takes the customer directly to checkout. The customer's existing cart is preserved — never modified — and restored after purchase or abandonment.
+
+**How it works**
+
+1. Enable via Widget 2 → Content → Buy Now Button → Show Buy Now Button = Yes
+2. Button renders after the quantity stepper + Add to Cart button
+3. On click: AJAX saves existing cart → swaps with Buy Now product → redirects to checkout
+4. After order: original cart is restored automatically
+5. If customer navigates away from checkout: both the Buy Now product AND existing cart items are kept
+
+**Variation support**
+
+- Button starts disabled on variable products until a variation is selected
+- Syncs with WooCommerce's `found_variation` / `reset_data` events
+- Reads the page's quantity input automatically
+
+**Elementor controls (Content tab)**
+
+- Show Buy Now Button (toggle)
+- Button Text (editable, default: "Buy Now")
+- Full Width (toggle, default: Yes)
+
+**Elementor controls (Style tab)**
+
+- Typography
+- Text Color / Background (Normal + Hover tabs)
+- Border + Border Radius
+- Padding
+- Spacing Above
+
+**Files added/changed**
+
+* `includes/class-buy-now.php` — NEW: AJAX handler + session management + isolated checkout
+* `includes/class-plugin.php` — Registers WSE_Buy_Now
+* `widgets/class-widget-add-to-cart.php` — Buy Now content + style controls
+* `templates/add-to-cart/variable.php` — Buy Now button rendering
+* `templates/add-to-cart/simple.php` — Buy Now button rendering
+* `templates/add-to-cart/variable-presenter.php` — Buy Now button rendering
+* `assets/js/add-to-cart.js` — Buy Now JS logic (variation sync, click handler, AJAX)
+* `assets/js/add-to-cart.min.js` — minified
+* `assets/css/add-to-cart.css` — Buy Now styles
+* `assets/css/add-to-cart.min.css` — minified
+* `woo-swatches-elementor.php` — Version 1.4.5
+* `readme.txt` — Stable tag, Changelog
+
+**Migration**
+
+Drop-in replacement for v1.4.4. After install: hard-refresh (Ctrl+F5) + Hostinger Cache Manager → Purge All. The Buy Now button is OFF by default — enable it per-widget when ready. No conflict with the standalone Buy Now Widgets plugin (different AJAX action name + session keys).
 
 = 1.4.4 =
 **Enhancement: hover-to-preview now works on ALL thumbnails (not just variation thumbnails).**
