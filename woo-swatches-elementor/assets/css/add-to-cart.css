@@ -1062,34 +1062,25 @@ body.wse-stylesheet-enabled .wse-sticky-active .woocommerce-variation-descriptio
 	height:     0 !important;
 }
 
-/* v1.4.10 — Neutralize empty <p> elements injected into the canonical
-   form by themes or other plugins.
+/* v1.4.11 — Neutralize empty <p> elements injected into the add-to-cart
+   widget by themes or other plugins, across ALL product-type templates.
 
-   The customer's DevTools inspection on production identified a
-   <p class="warranty_info"></p> sitting between .wse-canonical-attrs and
-   .single_variation_wrap inside the form. The <p> itself was zero-height
-   but carried the browser's user-agent default
-       margin-block-start: 1em; margin-block-end: 1em;
-   which produced ~32px of empty vertical space between the swatches
-   strip and the qty/ATC row.
+   v1.4.10 scoped this rule too narrowly. It targeted ONLY
+   .wse-canonical-form, which is the variable-product form class. Simple,
+   grouped, and external products use different classes
+   (.wse-cart-form .wse-simple-cart / .wse-grouped-cart, and a non-form
+   .wse-external-product div). The customer's DevTools inspection on a
+   simple product ("Hoodie with Logo") proved the gap persisted there
+   because the empty <p class="warranty_info"></p> sat inside the
+   simple-cart form which the v1.4.10 selector never matched.
 
-   `warranty_info` is NOT emitted by this plugin (confirmed via codebase
-   search) — it's injected by Astra, Dokan, or another plugin via one of
-   WooCommerce's variation-form action hooks. We can't remove the <p>
-   from outside this plugin, but we can neutralize its visible impact.
-
-   Scoped to .wse-sticky-active per ZYMARG product decision: the empty
-   <p> stays visible in normal-flow mode (where it preserves theme/3rd-
-   party layout assumptions) and is collapsed ONLY when the sticky bar
-   is active — so the compact sticky UI doesn't inherit themed gap
-   spacing meant for the full-page layout.
-
-   The `:empty` predicate keeps the rule safe: any <p> that legitimately
-   contains content (real warranty text, a third-party message) stays
-   visible. Only paragraphs with no children, no text, no whitespace get
-   collapsed. */
-body.wse-stylesheet-enabled .wse-sticky-active .wse-canonical-form p:empty,
-body.wse-stylesheet-enabled .wse-sticky-active.wse-canonical-form p:empty {
+   v1.4.11 scopes the rule to the widget root itself
+   (.wse-widget-add-to-cart.wse-sticky-active) so it covers ALL four
+   product-type templates the plugin emits. The :empty predicate is
+   preserved so paragraphs with real content remain visible. Strictly
+   sticky-only per ZYMARG product decision — non-sticky mode is
+   untouched on every product type. */
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active p:empty {
 	display: none !important;
 	margin:  0 !important;
 	padding: 0 !important;

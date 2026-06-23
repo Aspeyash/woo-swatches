@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.4.10
+Stable tag: 1.4.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,32 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.4.11 =
+**Fix: Empty-<p> sticky-bar gap on simple, grouped, and external products.**
+
+v1.4.10 scoped its empty-<p> neutralizer to `.wse-canonical-form`, which
+is the form class for VARIABLE products only. Customer testing on a
+simple product ("Hoodie with Logo") confirmed the gap persisted there —
+because the plugin emits THREE other product-type form/wrapper classes
+that v1.4.10's selector never matched:
+
+* Simple   — `<form class="cart wse-cart-form wse-simple-cart">`
+* Grouped  — `<form class="cart wse-cart-form wse-grouped-cart">`
+* External — `<div class="wse-external-product">` (no form at all)
+
+v1.4.11 rescopes the rule to the widget root
+`.wse-widget-add-to-cart.wse-sticky-active`, which is the parent of all
+four product-type templates. The empty-<p> neutralizer now applies
+uniformly across simple, variable, grouped, and external products —
+the gap closes the same way on every product type.
+
+Still strictly sticky-only per ZYMARG product decision: non-sticky mode
+is byte-identical to v1.4.10 across all product types. The `:empty`
+predicate is preserved so paragraphs with real content stay visible.
+
+CSS-only patch. No PHP, JS, template, DB schema, or settings changes.
+Drop-in replacement for v1.4.10.
 
 = 1.4.10 =
 **Fix: True root cause of empty vertical gap inside the sticky bar.**

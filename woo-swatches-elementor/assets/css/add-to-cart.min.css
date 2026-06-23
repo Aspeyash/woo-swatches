@@ -1062,16 +1062,13 @@ body.wse-stylesheet-enabled .wse-sticky-active .woocommerce-variation-descriptio
 	height:     0 !important;
 }
 
-/* v1.4.10 — Neutralize empty <p> elements injected into the canonical
-   form by themes or other plugins (e.g. <p class="warranty_info"></p>
-   confirmed via DevTools on production). The <p> itself is zero-height
-   but carries the browser's user-agent default 1em top/bottom margin,
-   producing ~32px of empty vertical space. Scoped to .wse-sticky-active
-   per ZYMARG product decision — non-sticky mode keeps the existing
-   layout untouched. The :empty predicate keeps the rule safe: paragraphs
-   with real content stay visible. */
-body.wse-stylesheet-enabled .wse-sticky-active .wse-canonical-form p:empty,
-body.wse-stylesheet-enabled .wse-sticky-active.wse-canonical-form p:empty {
+/* v1.4.11 — Neutralize empty <p> in the sticky bar across ALL product-
+   type templates. v1.4.10 only targeted .wse-canonical-form (variable
+   products); simple/grouped/external used different classes and still
+   showed the gap. Scoping to the widget root .wse-widget-add-to-cart
+   covers every template. Strictly sticky-only; :empty keeps paragraphs
+   with real content visible. */
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active p:empty {
 	display: none !important;
 	margin:  0 !important;
 	padding: 0 !important;
