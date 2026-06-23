@@ -1062,6 +1062,21 @@ body.wse-stylesheet-enabled .wse-sticky-active .woocommerce-variation-descriptio
 	height:     0 !important;
 }
 
+/* v1.4.10 — Neutralize empty <p> elements injected into the canonical
+   form by themes or other plugins (e.g. <p class="warranty_info"></p>
+   confirmed via DevTools on production). The <p> itself is zero-height
+   but carries the browser's user-agent default 1em top/bottom margin,
+   producing ~32px of empty vertical space. Scoped to .wse-sticky-active
+   per ZYMARG product decision — non-sticky mode keeps the existing
+   layout untouched. The :empty predicate keeps the rule safe: paragraphs
+   with real content stay visible. */
+body.wse-stylesheet-enabled .wse-sticky-active .wse-canonical-form p:empty,
+body.wse-stylesheet-enabled .wse-sticky-active.wse-canonical-form p:empty {
+	display: none !important;
+	margin:  0 !important;
+	padding: 0 !important;
+}
+
 /* Sticky active state base — premium compact bar */
 body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active {
 	position:    fixed;
@@ -1071,7 +1086,11 @@ body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active {
 	z-index:     9999;
 	background:  #ffffff;
 	box-shadow:  0 -2px 16px rgba(0, 0, 0, .1);
-	padding:     10px 12px;
+	/* v1.4.10 — Padding updated from "10px 12px" to "0 16px 10px 16px"
+	   per ZYMARG design. The 0 top padding closes the small gap at the
+	   top of the sticky bar; horizontal padding raised slightly to 16px;
+	   bottom padding unchanged at 10px. */
+	padding:     0 16px 10px 16px;
 	box-sizing:  border-box;
 	border-top:  1px solid rgba(0, 0, 0, .06);
 	/* v1.4.7 — Smooth slide-in animation when scroll-trigger reveals it */
