@@ -1,5 +1,42 @@
 /**
- * WooSwatches for Elementor — Frontend Swatches Engine (v1.1.0)
+ * WooSwatches for Elementor — Frontend Swatches Engine (v1.4.8)
+ *
+ * v1.4.8 — Multi-attribute selected-value label sync fix.
+ *
+ *   On a multi-attribute product (e.g. Color + Size), clicking the FIRST
+ *   attribute used to lose its `.wse-attr-selected-val` text and (in some
+ *   cases) its `.selected` swatch border. The root cause was a chain
+ *   reaction in two parts:
+ *
+ *     (a) WooCommerce fires `reset_data` on EVERY partial selection — not
+ *         only on no_matching_variations and explicit Clear. swatches.js
+ *         bound `reset_data` to `_onResetData`, which unconditionally
+ *         wiped every swatch's `.selected` class and every label's text.
+ *
+ *     (b) The cross-widget click sync in `bindCrossWidgetSync` also fired
+ *         on every click — even when the same Widget 1 was already wired
+ *         as the form's scope by Step 3. `_selectSwatch` had ALREADY done
+ *         `.val(value).trigger('change')`; the cross-sync then did it a
+ *         SECOND time, which re-ran WC's onChange → reset_data and ran
+ *         `_onResetData` a second time — racing with the label-text set
+ *         inside `_selectSwatch`.
+ *
+ *   v1.4.8 fixes both:
+ *
+ *     • `_onResetData` now SYNCS the UI from the canonical form's hidden
+ *       `<select>` values instead of unconditionally clearing. If the
+ *       form still holds a value for an attribute, the matching swatch
+ *       gets `.selected` back, the reset link stays visible, and the
+ *       `.wse-attr-selected-val` text is restored from `title` (or value
+ *       as fallback). If the form value is empty, the wrap is fully
+ *       cleared for that attribute. The UI now stays in lockstep with
+ *       form state regardless of who fired reset_data.
+ *
+ *     • `bindCrossWidgetSync` short-circuits when the form has an active
+ *       `WSE_Swatches` instance whose `.$scope` is the same widget the
+ *       click came from. In that case `_selectSwatch` already mirrored
+ *       the click into the form; re-mirroring it triggers an unwanted
+ *       second WC change → reset_data → _onResetData cycle.
  *
  * v1.1.0 (B3) — Single-canonical-form architecture.
  *
@@ -538,18 +575,91 @@
 		},
 
 		_onResetData: function () {
-			this.$scope.find( '.wse-swatch' )
-				.removeClass( 'selected' )
-				.attr( 'aria-checked', 'false' )
-				.attr( 'tabindex', '-1' );
+			var self = this;
 
-			this.$scope.find( '.wse-swatch-wrap' ).each( function () {
-				$( this ).find( '.wse-swatch:not(.disabled)' ).first().attr( 'tabindex', '0' );
+			// v1.4.8 — Sync UI from canonical form state instead of
+			// unconditionally wiping it. WC fires reset_data on partial
+			// selections too (not just on explicit Clear), which previously
+			// caused mid-selection swatches to lose their .selected class
+			// and `.wse-attr-selected-val` text even though the form's
+			// hidden <select> still held the value. By driving the UI from
+			// form state here, the visual stays in lockstep with reality
+			// regardless of whether reset_data was fired by partial-
+			// selection, no_matching_variations, or an explicit Clear click.
+			this.$scope.find( '.wse-swatch-wrap[data-attribute]' ).each( function () {
+				var $wrap     = $( this );
+				var attribute = $wrap.data( 'attribute' );
+				var $select   = self.$form.find(
+					'select[name="attribute_' + attribute + '"]'
+				);
+				var value     = String( $select.val() || '' );
+				var $swatches = $wrap.find( '.wse-swatch' );
+
+				// Clear current visual state in this wrap before re-applying.
+				$swatches
+					.removeClass( 'selected' )
+					.attr( 'aria-checked', 'false' )
+					.attr( 'tabindex', '-1' );
+
+				var $selectedVal = self.$scope.find(
+					'.wse-attr-selected-val[data-attribute="' + attribute + '"]'
+				);
+
+				if ( value ) {
+					// Form still holds a value for this attribute —
+					// re-apply visual selection state for the matching
+					// swatch.
+					var $match = $swatches.filter(
+						'[data-value="' + value + '"]'
+					).first();
+
+					if ( $match.length ) {
+						$match
+							.addClass( 'selected' )
+							.attr( 'aria-checked', 'true' )
+							.attr( 'tabindex', '0' );
+					} else {
+						// Edge case: no swatch matches the form value
+						// (e.g. swatch removed by filter). First
+						// non-disabled swatch keeps roving focus.
+						$swatches
+							.filter( ':not(.disabled)' )
+							.first()
+							.attr( 'tabindex', '0' );
+					}
+
+					$wrap.find( '.wse-reset-link' ).show();
+
+					if ( $selectedVal.length ) {
+						$selectedVal.text(
+							$match.length
+								? ( $match.attr( 'title' ) || value )
+								: value
+						);
+					}
+				} else {
+					// Form value is empty — clear everything for this
+					// attribute's wrap. Roving focus falls back to the
+					// first non-disabled swatch (WCAG 2.2 keyboard).
+					$swatches
+						.filter( ':not(.disabled)' )
+						.first()
+						.attr( 'tabindex', '0' );
+					$wrap.find( '.wse-reset-link' ).hide();
+					if ( $selectedVal.length ) {
+						$selectedVal.text( '' );
+					}
+				}
 			} );
 
-			this.$scope.find( '.wse-reset-link' ).hide();
-			this.$scope.find( '.wse-attr-selected-val' ).text( '' );
-			this._restoreGallery();
+			// v1.4.8 — Only restore the gallery to the parent image when
+			// NO attribute still has a value. If any attribute is still
+			// selected, WC's own `found_variation` / `hide_variation`
+			// flow owns the gallery state — we'd otherwise fight it.
+			var anySelected = this.$scope.find( '.wse-swatch.selected' ).length > 0;
+			if ( ! anySelected ) {
+				this._restoreGallery();
+			}
 
 			$( document.body ).trigger( 'wse:swatchReset', [ { $form: this.$form } ] );
 		},
@@ -654,6 +764,18 @@
 	 * wrapper that has a canonical form somewhere on the page, this handler
 	 * mirrors the value into the canonical form's hidden select. Idempotent
 	 * — safe to call repeatedly via wse:reinit.
+	 *
+	 * v1.4.8 — Short-circuit when the form's registered WSE_Swatches
+	 * instance has this same widget as its scope. In that arrangement the
+	 * Step 3 _selectSwatch handler (delegated to the widget element) has
+	 * already fired and run `.val(value).trigger('change')` against the
+	 * canonical form. Re-running it here causes a second WC onChange →
+	 * onCheckVariations cycle. On partial selections that second cycle
+	 * fires `reset_data` and _onResetData runs again — which previously
+	 * (pre-v1.4.8) wiped the just-set swatch state. With v1.4.8's
+	 * _onResetData syncing from form state it's safe, but skipping the
+	 * redundant work keeps the architecture clean and avoids a wasted
+	 * full WC variation-matching pass per click.
 	 */
 	function bindCrossWidgetSync() {
 		$( document.body )
@@ -668,6 +790,14 @@
 				var $form      = formId ? $( '#' + formId ) : $();
 				if ( ! $form.length ) {
 					return; // canonical form will be wired by Step 3 alone
+				}
+				// v1.4.8 — Skip when the form's WSE_Swatches instance is
+				// already scoped to this exact widget. _selectSwatch
+				// already mirrored the click into the form's hidden
+				// select.
+				var inst = $form.data( 'wse-swatches' );
+				if ( inst && inst.$scope && inst.$scope.is( $widget1 ) ) {
+					return;
 				}
 				var attribute  = $swatch.data( 'attribute' );
 				var value      = String( $swatch.data( 'value' ) || '' );
