@@ -1041,9 +1041,25 @@ body.wse-stylesheet-enabled .wse-sticky-active .wse-buy-now-message {
 	display: none !important;
 }
 
-/* Hide WC variation price/availability/description in sticky — keep compact */
-body.wse-stylesheet-enabled .wse-sticky-active .single_variation_wrap .woocommerce-variation {
-	display: none;
+/* Hide WC variation price/availability/description in sticky — keep compact.
+   v1.4.9 — Added !important and explicit child-slot targeting. WC's
+   wc-add-to-cart-variation.js calls $(.woocommerce-variation).show() on
+   init and on selection events, writing inline style="display: block"
+   that previously defeated this rule. The three empty child slots then
+   asserted their default WC core margins (~10-15px each), producing the
+   ~30-40px empty space the customer reported between the swatches strip
+   and the qty/ATC row inside the sticky bar. The four-selector rule below
+   ensures every slot is hidden AND zero-sized regardless of what WC's JS
+   tries to set inline. */
+body.wse-stylesheet-enabled .wse-sticky-active .single_variation_wrap .woocommerce-variation,
+body.wse-stylesheet-enabled .wse-sticky-active .woocommerce-variation-price,
+body.wse-stylesheet-enabled .wse-sticky-active .woocommerce-variation-availability,
+body.wse-stylesheet-enabled .wse-sticky-active .woocommerce-variation-description {
+	display:    none !important;
+	margin:     0 !important;
+	padding:    0 !important;
+	min-height: 0 !important;
+	height:     0 !important;
 }
 
 /* Sticky active state base — premium compact bar */

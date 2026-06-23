@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.4.8
+Stable tag: 1.4.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,29 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.4.9 =
+**Fix: Empty vertical gap inside the sticky Add-to-Cart bar.**
+
+When the sticky Add-to-Cart bar was active, a ~30-40px empty white space
+appeared between the swatches strip and the qty / Add-to-Cart / Buy Now
+row. The space came from WooCommerce's `.woocommerce-variation` slot
+group inside `.single_variation_wrap` — three empty child divs
+(`.woocommerce-variation-price`, `-availability`, `-description`) that
+WC's `wc-add-to-cart-variation.js` calls `.show()` on at init, writing
+inline `style="display: block"` that defeated the previous non-
+`!important` hide rule. Each empty slot then asserted its default WC
+core margin (~10-15px), totalling the visible ~30-40px gap.
+
+v1.4.9 makes the sticky-mode hide rule `!important`, explicitly targets
+each of the three child slots individually (defense in depth in case WC
+ever changes its DOM), and zeros their `margin`, `padding`, `min-height`,
+and `height` so they contribute zero vertical space inside the sticky bar
+regardless of what WC's JS sets inline. Non-sticky mode behavior is
+unchanged — those slots still display in the page proper as before.
+
+CSS-only patch. No PHP, JS, template, DB schema, or settings changes.
+Drop-in replacement for v1.4.8.
 
 = 1.4.8 =
 **Fix: Multi-attribute selected-value label and swatch-state sync.**
