@@ -90,6 +90,35 @@ class WSE_Attribute_Types {
 		);
 
 		/**
+		 * v1.4.12 — Render WC's standard term-selection UI for our custom
+		 * swatch types on the product editor's Attributes panel.
+		 *
+		 * WC's html-product-attribute.php view only renders the term
+		 * multi-select + Select all / Select none / Create value buttons
+		 * for the built-in 'select' type. For any other type it falls
+		 * through to do_action( 'woocommerce_product_option_terms', ... )
+		 * expecting a third-party plugin to render its own UI.
+		 *
+		 * Pre-v1.4.12 this plugin registered Color/Image/Label/Button as
+		 * custom types but never hooked into woocommerce_product_option_
+		 * terms — so on every product that used one of those attribute
+		 * types the Value(s) section was rendered EMPTY: no select2
+		 * dropdown, no "Select all"/"Select none"/"Create value" buttons,
+		 * and the merchant could not pick existing terms or add new ones
+		 * to the product. The only workaround was to deactivate the
+		 * plugin, set the attribute type back to "Select", edit the
+		 * product, then re-activate.
+		 *
+		 * @see render_term_selector_for_custom_types() for the rendering.
+		 */
+		add_action(
+			'woocommerce_product_option_terms',
+			array( $this, 'render_term_selector_for_custom_types' ),
+			10,
+			3
+		);
+
+		/**
 		 * Clear the in-memory type cache when a WC attribute taxonomy is
 		 * saved — so the next request reads fresh data from the DB.
 		 * This covers both "Add Attribute" and "Edit Attribute" in admin.
@@ -115,6 +144,109 @@ class WSE_Attribute_Types {
 		$types['label']  = esc_html__( 'Label',  'woo-swatches-elementor' );
 		$types['button'] = esc_html__( 'Button', 'woo-swatches-elementor' );
 		return $types;
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// v1.4.12 — Product-editor term selector for custom swatch types
+	// ─────────────────────────────────────────────────────────────────────
+
+	/**
+	 * Renders the Value(s) UI inside WC's product-editor Attributes panel
+	 * when the attribute's stored type is one of our custom swatch types
+	 * (color/image/label/button).
+	 *
+	 * The output reproduces WC's standard `select` UI from
+	 * woocommerce/includes/admin/meta-boxes/views/html-product-attribute.php
+	 * byte-for-byte so WC's own admin JS continues to work unchanged:
+	 *
+	 *   - The <select class="multiselect attribute_values wc-taxonomy-term-search">
+	 *     element is the exact selector that meta-boxes-product.js initializes
+	 *     with Select2 on tab open, and that WC's AJAX term-search uses to
+	 *     query candidate terms.
+	 *   - data-taxonomy / data-return_id / data-placeholder / data-minimum_input_length
+	 *     / data-limit are the exact attribute names WC's term-search handler reads.
+	 *   - The form field name attribute_values[$i][] is the exact name WC's
+	 *     product-save logic reads to persist selected term IDs.
+	 *   - The .select_all_attributes / .select_no_attributes / .add_new_attribute
+	 *     button classes are the exact selectors WC's click handlers bind to.
+	 *
+	 * Because every selector and form field name matches WC's defaults, all of
+	 * the following continue to work without any additional plugin JS:
+	 *   - Select2 term picker with AJAX search
+	 *   - "Select all" / "Select none" buttons
+	 *   - "Create value" inline-create button (WC's AJAX endpoint creates the
+	 *     new term, returns the ID, prepends a selected <option> to this <select>)
+	 *   - Saving the product, which writes the picked term IDs to the WC product
+	 *     attribute store
+	 *
+	 * Only fires for global (taxonomy) attributes whose stored attribute_type
+	 * is in SUPPORTED_TYPES. Local (per-product) attributes never hit this
+	 * code path — they're handled by WC's textarea fallback inside the same
+	 * html-product-attribute.php view.
+	 *
+	 * @param object|null            $attribute_taxonomy The taxonomy row from
+	 *                                                   wp_woocommerce_attribute_taxonomies
+	 *                                                   (carries attribute_name + attribute_type).
+	 * @param int                    $i                  Loop index of this attribute in
+	 *                                                   the product, used in field names.
+	 * @param \WC_Product_Attribute  $attribute          The product attribute object.
+	 * @return void
+	 */
+	public function render_term_selector_for_custom_types( $attribute_taxonomy, $i, $attribute ): void {
+
+		// Only global (taxonomy) attributes — local attributes don't have
+		// an attribute_taxonomy row, and WC renders a textarea for them.
+		if ( empty( $attribute_taxonomy ) || ! isset( $attribute_taxonomy->attribute_type ) ) {
+			return;
+		}
+
+		// Only for our custom swatch types. WC's built-in `select` type
+		// already renders its UI directly inside html-product-attribute.php
+		// before this action fires, so we never run for it. `text` falls
+		// through to a textarea inside WC's view too.
+		if ( ! in_array( $attribute_taxonomy->attribute_type, self::SUPPORTED_TYPES, true ) ) {
+			return;
+		}
+
+		// The taxonomy slug WC's JS expects, e.g. "pa_color".
+		$taxonomy_name = is_object( $attribute ) && method_exists( $attribute, 'get_name' )
+			? $attribute->get_name()
+			: 'pa_' . $attribute_taxonomy->attribute_name;
+
+		// Currently-selected terms on this product, if any.
+		$selected_terms = array();
+		if ( is_object( $attribute ) && method_exists( $attribute, 'get_terms' ) ) {
+			$terms = $attribute->get_terms();
+			if ( is_array( $terms ) ) {
+				$selected_terms = $terms;
+			}
+		}
+
+		// Output: byte-for-byte mirror of WC's html-product-attribute.php
+		// select-type block. The `woocommerce` text domain is intentional
+		// so WC's own translations apply.
+		?>
+		<select multiple="multiple"
+			data-minimum_input_length="0"
+			data-limit="50"
+			data-return_id="id"
+			data-placeholder="<?php esc_attr_e( 'Select terms', 'woocommerce' ); ?>"
+			class="multiselect attribute_values wc-taxonomy-term-search"
+			name="attribute_values[<?php echo esc_attr( (string) $i ); ?>][]"
+			data-taxonomy="<?php echo esc_attr( $taxonomy_name ); ?>">
+			<?php foreach ( $selected_terms as $term ) : ?>
+				<?php if ( ! is_object( $term ) || ! isset( $term->term_id, $term->name ) ) { continue; } ?>
+				<option value="<?php echo esc_attr( $term->term_id ); ?>" selected="selected">
+					<?php echo esc_html(
+						apply_filters( 'woocommerce_product_attribute_term_name', $term->name, $term )
+					); ?>
+				</option>
+			<?php endforeach; ?>
+		</select>
+		<button class="button plus select_all_attributes"><?php esc_html_e( 'Select all', 'woocommerce' ); ?></button>
+		<button class="button minus select_no_attributes"><?php esc_html_e( 'Select none', 'woocommerce' ); ?></button>
+		<button class="button fr plus add_new_attribute"><?php esc_html_e( 'Create value', 'woocommerce' ); ?></button>
+		<?php
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
