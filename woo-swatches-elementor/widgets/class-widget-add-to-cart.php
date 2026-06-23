@@ -526,6 +526,21 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			)
 		);
 
+		$this->add_control(
+			'buy_now_position',
+			array(
+				'label'       => esc_html__( 'Button Position', 'woo-swatches-elementor' ),
+				'description' => esc_html__( 'Choose whether the Buy Now button appears above or below the Add to Cart button.', 'woo-swatches-elementor' ),
+				'type'        => \Elementor\Controls_Manager::SELECT,
+				'default'     => 'below',
+				'options'     => array(
+					'below' => esc_html__( 'Add to Cart above, Buy Now below (default)', 'woo-swatches-elementor' ),
+					'above' => esc_html__( 'Buy Now above, Add to Cart below', 'woo-swatches-elementor' ),
+				),
+				'condition'   => array( 'show_buy_now' => 'yes' ),
+			)
+		);
+
 		$this->end_controls_section();
 	}
 

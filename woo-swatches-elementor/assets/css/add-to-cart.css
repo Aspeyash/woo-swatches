@@ -111,14 +111,15 @@
 	align-items:   center;
 	justify-content: center;
 	gap:           6px;
-	padding:       10px 22px;
+	/* v1.4.6 — Match Buy Now button's padding and border design */
+	padding:       0.7em 1.5em;
 	font-size:     .9375rem;
 	font-weight:   600;
 	line-height:   1.4;
-	border:        none;
-	border-radius: 4px;
+	border:        2px solid currentColor;
+	border-radius: 6px;
 	cursor:        pointer;
-	transition:    background .2s ease, opacity .2s ease, transform .1s ease;
+	transition:    background .2s ease, opacity .2s ease, transform .1s ease, border-color .2s ease;
 	white-space:   nowrap;
 	text-decoration: none;
 }
@@ -488,6 +489,14 @@ body.wse-stylesheet-enabled .wse-qty-stepper {
 	gap:             var(--wse-qty-gap);
 	vertical-align:  middle;
 	box-sizing:      border-box;
+
+	/* v1.4.6 — Unified single-box stepper: one outer border wraps the
+	   entire [-] input [+] assembly. Individual children lose their borders
+	   so there's no double-border at the junctions. Matches the Buy Now
+	   button's clean outlined design. */
+	border:          2px solid rgba(0, 0, 0, .15);
+	border-radius:   6px;
+	overflow:        hidden;
 }
 
 /* Strip the native number-spin arrows so the stepper buttons are the
@@ -497,11 +506,19 @@ body.wse-stylesheet-enabled .wse-qty-stepper .qty {
 	text-align:      center;
 	min-width:       0;
 	box-sizing:      border-box;
+	/* v1.4.6 — Remove individual border; parent container provides it. */
+	border:          none;
+	border-radius:   0;
+	padding:         0.7em 0.5em;
 }
 body.wse-stylesheet-enabled .wse-qty-stepper .qty::-webkit-inner-spin-button,
 body.wse-stylesheet-enabled .wse-qty-stepper .qty::-webkit-outer-spin-button {
 	-webkit-appearance: none;
 	margin: 0;
+}
+body.wse-stylesheet-enabled .wse-qty-stepper .qty:focus {
+	outline:    none;
+	box-shadow: none;
 }
 
 /* Buttons */
@@ -510,9 +527,11 @@ body.wse-stylesheet-enabled .wse-qty-btn {
 	align-items:     center;
 	justify-content: center;
 	width:           var(--wse-qty-btn-size);
-	height:          var(--wse-qty-btn-size);
+	height:          auto;
 	padding:         0;
-	border:          1px solid rgba(0, 0, 0, .15);
+	/* v1.4.6 — Remove individual border; use subtle divider instead. */
+	border:          none;
+	border-radius:   0;
 	background:      #fafafa;
 	color:           #131b2e;             /* ZYMARG Text Body */
 	cursor:          pointer;
@@ -521,6 +540,14 @@ body.wse-stylesheet-enabled .wse-qty-btn {
 	transition:      background .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;
 	flex-shrink:     0;
 	line-height:     1;
+}
+
+/* v1.4.6 — Subtle internal dividers between buttons and input */
+body.wse-stylesheet-enabled .wse-qty-stepper .wse-qty-btn--minus {
+	border-right: 1px solid rgba(0, 0, 0, .1);
+}
+body.wse-stylesheet-enabled .wse-qty-stepper .wse-qty-btn--plus {
+	border-left: 1px solid rgba(0, 0, 0, .1);
 }
 
 body.wse-stylesheet-enabled .wse-qty-btn:hover:not(:disabled) {
@@ -550,10 +577,8 @@ body.wse-stylesheet-enabled .wse-qty-btn i {
 	line-height: 1;
 }
 
-/* When buttons sit flush against the input (default gap = 0), tighten
-   the corners so the three elements read as a single unified stepper. */
-body.wse-stylesheet-enabled .wse-qty-stepper .wse-qty-btn--minus { border-right-width: 0; }
-body.wse-stylesheet-enabled .wse-qty-stepper .wse-qty-btn--plus  { border-left-width:  0; }
+/* v1.4.6 — Internal dividers handled above; these legacy flush rules
+   are no longer needed since the container provides the single outer border. */
 
 /* When the user disables the buttons via the show_qty_stepper_buttons
    toggle, only the bare input renders. Reset the container to behave

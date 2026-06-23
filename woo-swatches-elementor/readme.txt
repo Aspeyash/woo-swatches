@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.4.5
+Stable tag: 1.4.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,46 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.4.6 =
+**Enhancement: Buy Now position control + unified quantity stepper + matched button design.**
+
+Drop-in replacement for v1.4.5. CSS + PHP template changes. No DB / JS logic changes.
+
+**1. Buy Now button position control**
+
+New dropdown in Widget 2 → Content → Buy Now Button → "Button Position":
+- "Add to Cart above, Buy Now below" (default — same as v1.4.5)
+- "Buy Now above, Add to Cart below"
+
+Works on all product types (simple, variable, presenter).
+
+**2. Unified quantity stepper (no double borders)**
+
+Previously the [-] button, quantity input, and [+] button each had their own individual borders, creating a "double border" look at the junctions. v1.4.6 puts a single 2px outer border with 6px radius on the `.wse-qty-stepper` container and removes all individual child borders. The [-] and [+] buttons now use subtle 1px internal dividers instead. The result is a clean single-box stepper that matches the Buy Now button's design.
+
+**3. Matched Add to Cart button design**
+
+The Add to Cart button now uses the same border/radius/padding as the Buy Now button:
+- 2px border (uses `currentColor` so existing color settings are preserved)
+- 6px border radius (rounded corners)
+- 0.7em vertical / 1.5em horizontal padding (comfortable tap target)
+
+Colors are NOT changed — they remain whatever the user has set in the Elementor Style controls.
+
+**Files changed**
+
+* `widgets/class-widget-add-to-cart.php` — Buy Now position dropdown control
+* `templates/add-to-cart/variable.php` — Position-aware Buy Now rendering
+* `templates/add-to-cart/simple.php` — Position-aware Buy Now rendering
+* `assets/css/add-to-cart.css` — Unified stepper + matched ATC button design
+* `assets/css/add-to-cart.min.css` — minified
+* `woo-swatches-elementor.php` — Version 1.4.6
+* `readme.txt` — Stable tag, Changelog
+
+**Migration**
+
+Drop-in replacement for v1.4.5. After install: hard-refresh (Ctrl+F5) + Hostinger Cache Manager → Purge All to load the new CSS. Existing Elementor style overrides (border color, radius, padding set via widget controls) will cascade on top of these defaults as before.
 
 = 1.4.5 =
 **Feature: Buy Now button integrated into the Add to Cart widget.**
