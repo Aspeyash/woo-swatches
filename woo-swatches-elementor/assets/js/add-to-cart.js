@@ -703,16 +703,24 @@
 
 			if ( ! breakpointMatches ) {
 				$el.removeClass( 'wse-sticky-active' );
+				// v1.4.7 — Remove the parent-collapse class from Elementor wrapper.
+				$el.closest( '.elementor-widget' ).removeClass( 'wse-has-sticky-active' );
 				return;
 			}
 
 			// Scroll-trigger gate.
 			if ( ! shouldStickyBeVisible( $el ) ) {
 				$el.removeClass( 'wse-sticky-active' );
+				$el.closest( '.elementor-widget' ).removeClass( 'wse-has-sticky-active' );
 				return;
 			}
 
 			$el.addClass( 'wse-sticky-active' );
+			// v1.4.7 — Mark the Elementor wrapper so CSS can collapse its
+			// padding/min-height/margin. Without this, the original in-flow
+			// position retains empty space even though .wse-widget-add-to-cart
+			// itself is position:fixed (removed from flow).
+			$el.closest( '.elementor-widget' ).addClass( 'wse-has-sticky-active' );
 			total = Math.max( total, $el.outerHeight( true ) || 0 );
 		} );
 

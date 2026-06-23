@@ -1080,3 +1080,27 @@ body.wse-stylesheet-enabled .wse-widget-add-to-cart .woocommerce-variation-add-t
 body.wse-stylesheet-enabled .wse-widget-add-to-cart form.cart {
 	margin-bottom: 0;
 }
+
+/* v1.4.7 — Collapse the Elementor parent wrappers when our widget is
+   sticky-active. The .wse-widget-add-to-cart goes position:fixed (removed
+   from flow), but its Elementor wrappers (.elementor-widget,
+   .elementor-widget-container) retain their padding/min-height/margin
+   from Elementor settings. JS adds .wse-has-sticky-active to the closest
+   .elementor-widget so we can target it here. */
+body.wse-stylesheet-enabled .elementor-widget.wse-has-sticky-active,
+body.wse-stylesheet-enabled .elementor-widget.wse-has-sticky-active > .elementor-widget-container {
+	min-height:    0 !important;
+	height:        auto !important;
+	padding-top:   0 !important;
+	padding-bottom: 0 !important;
+	margin-top:    0 !important;
+	margin-bottom: 0 !important;
+}
+
+/* The widget itself when sticky takes 0 in-flow space, so the wrapper
+   should collapse completely. */
+body.wse-stylesheet-enabled .elementor-widget.wse-has-sticky-active {
+	display: block;
+	height:  0 !important;
+	overflow: visible; /* sticky bar is position:fixed; allow it to render outside */
+}
