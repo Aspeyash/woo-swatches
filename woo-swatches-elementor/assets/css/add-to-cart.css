@@ -1062,6 +1062,39 @@ body.wse-stylesheet-enabled .wse-sticky-active .woocommerce-variation-descriptio
 	height:     0 !important;
 }
 
+/* v1.4.10 — Neutralize empty <p> elements injected into the canonical
+   form by themes or other plugins.
+
+   The customer's DevTools inspection on production identified a
+   <p class="warranty_info"></p> sitting between .wse-canonical-attrs and
+   .single_variation_wrap inside the form. The <p> itself was zero-height
+   but carried the browser's user-agent default
+       margin-block-start: 1em; margin-block-end: 1em;
+   which produced ~32px of empty vertical space between the swatches
+   strip and the qty/ATC row.
+
+   `warranty_info` is NOT emitted by this plugin (confirmed via codebase
+   search) — it's injected by Astra, Dokan, or another plugin via one of
+   WooCommerce's variation-form action hooks. We can't remove the <p>
+   from outside this plugin, but we can neutralize its visible impact.
+
+   Scoped to .wse-sticky-active per ZYMARG product decision: the empty
+   <p> stays visible in normal-flow mode (where it preserves theme/3rd-
+   party layout assumptions) and is collapsed ONLY when the sticky bar
+   is active — so the compact sticky UI doesn't inherit themed gap
+   spacing meant for the full-page layout.
+
+   The `:empty` predicate keeps the rule safe: any <p> that legitimately
+   contains content (real warranty text, a third-party message) stays
+   visible. Only paragraphs with no children, no text, no whitespace get
+   collapsed. */
+body.wse-stylesheet-enabled .wse-sticky-active .wse-canonical-form p:empty,
+body.wse-stylesheet-enabled .wse-sticky-active.wse-canonical-form p:empty {
+	display: none !important;
+	margin:  0 !important;
+	padding: 0 !important;
+}
+
 /* Sticky active state base — premium compact bar */
 body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active {
 	position:    fixed;
@@ -1071,7 +1104,11 @@ body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active {
 	z-index:     9999;
 	background:  #ffffff;
 	box-shadow:  0 -2px 16px rgba(0, 0, 0, .1);
-	padding:     10px 12px;
+	/* v1.4.10 — Padding updated from "10px 12px" to "0 16px 10px 16px"
+	   per ZYMARG design. The 0 top padding closes the small gap at the
+	   top of the sticky bar; horizontal padding raised slightly to 16px;
+	   bottom padding unchanged at 10px. */
+	padding:     0 16px 10px 16px;
 	box-sizing:  border-box;
 	border-top:  1px solid rgba(0, 0, 0, .06);
 	/* v1.4.7 — Smooth slide-in animation when scroll-trigger reveals it */

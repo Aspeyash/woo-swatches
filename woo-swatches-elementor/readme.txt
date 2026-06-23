@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.4.9
+Stable tag: 1.4.10
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,39 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.4.10 =
+**Fix: True root cause of empty vertical gap inside the sticky bar.**
+
+The empty space between the swatches strip and the qty/ATC row was
+*not* coming from WooCommerce's `.woocommerce-variation` slots (the
+v1.4.9 guess) — DevTools inspection on production revealed an empty
+`<p class="warranty_info"></p>` injected into the canonical form by
+the theme (Astra) or another plugin via one of WooCommerce's variation-
+form action hooks.
+
+The `<p>` itself was zero-height, but it carried the browser's user-
+agent default `margin-block-start: 1em; margin-block-end: 1em;` — about
+32px of vertical space — and that produced the visible gap in both
+sticky and non-sticky modes.
+
+v1.4.10 neutralises any empty `<p>` inside `.wse-canonical-form` **only
+when the sticky bar is active** (`.wse-sticky-active`). Non-sticky mode
+keeps the existing layout completely untouched, so themed/3rd-party
+spacing in the page-level form is preserved. The `:empty` predicate
+keeps the rule safe: paragraphs with real content (legitimate warranty
+messages, third-party announcements) stay visible. Only truly empty
+paragraphs collapse, and only inside the compact sticky UI.
+
+**Design polish:** Sticky bar default padding updated from `10px 12px`
+to `0 16px 10px 16px` per ZYMARG design feedback. Top padding removed
+(closes a small visual gap at the top of the bar); horizontal padding
+raised slightly to 16px; bottom padding unchanged at 10px. Users who
+were applying this as a per-instance Elementor Custom CSS override can
+now remove that override.
+
+CSS-only patch. No PHP, JS, template, DB schema, or settings changes.
+Drop-in replacement for v1.4.9.
 
 = 1.4.9 =
 **Fix: Empty vertical gap inside the sticky Add-to-Cart bar.**
