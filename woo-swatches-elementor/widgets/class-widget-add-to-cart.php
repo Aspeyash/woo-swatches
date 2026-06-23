@@ -896,6 +896,21 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			)
 		);
 
+		$this->add_responsive_control(
+			'button_margin_top',
+			array(
+				'label'      => esc_html__( 'Spacing Above', 'woo-swatches-elementor' ),
+				'description' => esc_html__( 'Controls the space above the Add to Cart button. Useful when the Buy Now button is positioned above.', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 60 ) ),
+				'default'    => array( 'unit' => 'px', 'size' => 0 ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-atc-button' => 'margin-top: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
 		$this->end_controls_section();
 
 		// ── Quantity input style ───────────────────────────────────────────
