@@ -866,7 +866,11 @@ body.wse-stylesheet-enabled .wse-buy-now-btn.wse-buy-now-loading::after {
 body.wse-stylesheet-enabled .wse-buy-now-message {
 	font-size:  0.85em;
 	flex-basis: 100%;
-	min-height: 1.2em;
+}
+
+/* Only show min-height when message has content */
+body.wse-stylesheet-enabled .wse-buy-now-message:empty {
+	display:    none;
 }
 
 body.wse-stylesheet-enabled .wse-buy-now-message.wse-bnw-msg-error {
