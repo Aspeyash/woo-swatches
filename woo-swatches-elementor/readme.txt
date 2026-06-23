@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.4.6
+Stable tag: 1.4.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,74 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.4.7 =
+**Feature: Button gap control, widget background, sticky compact layout with full customization.**
+
+Drop-in replacement for v1.4.6. No DB schema changes.
+
+**1. Button Gap Control (Style → Widget Container → Gap Between Buttons)**
+
+Responsive slider to adjust the space between the quantity stepper, Add to Cart button, and Buy Now button. Default: 10px (matches v1.4.6 behavior). Set to 0 for a flush look, or increase for more breathing room.
+
+**2. Widget Background + Container Controls (Style → Widget Container)**
+
+New style section with:
+- Background Color
+- Padding (responsive)
+- Border Radius (responsive)
+- Border (full group control)
+- Box Shadow
+
+These style the widget's outer `.wse-widget-add-to-cart` wrapper in its normal (non-sticky) state.
+
+**3. Sticky Compact Single-Row Layout (Content → Sticky Layout)**
+
+When the sticky bar is active (fixed to viewport bottom):
+- "Compact single-row layout" toggle (default: ON)
+- Forces QS + ATC + BN into one horizontal row
+- Quantity stepper: 30% width
+- ATC + BN: split remaining 70% evenly (flex: 1 1 0)
+- Minimal padding for a sleek mobile-friendly bar
+- Buy Now message hidden in sticky mode to save space
+
+**4. Sticky Button Order Control**
+
+Dropdown to choose element order inside the sticky bar:
+- "QS + Add to Cart + Buy Now" (default)
+- "QS + Buy Now + Add to Cart"
+
+Uses CSS `order` property so the DOM order stays consistent for accessibility.
+
+**5. Sticky Bar Full Customization (Style → Sticky Bar)**
+
+Dedicated style section that ONLY applies when the widget is in sticky mode:
+- Background Color (default: #ffffff)
+- Padding (responsive, default: 10px 16px)
+- Margin (responsive)
+- Width (responsive, default: 100%)
+- Border (full group control)
+- Border Radius (responsive)
+- Box Shadow (default: subtle upward shadow)
+- Gap Between Elements (default: 8px)
+
+**6. JS Update — wse-sticky-active class**
+
+The sticky JS logic now adds/removes `wse-sticky-active` class on all `.wse-widget-add-to-cart` elements (not just presenters) based on the current breakpoint. This class gates all sticky-specific CSS rules so normal and sticky states are completely independent.
+
+**Files changed**
+
+* `widgets/class-widget-add-to-cart.php` — Sticky Layout content section + Widget Container style section + Sticky Bar style section + compact/order classes in render()
+* `assets/js/add-to-cart.js` — Updated getActiveStickyHeight() to add/remove wse-sticky-active class on all widgets
+* `assets/js/add-to-cart.min.js` — minified
+* `assets/css/add-to-cart.css` — Sticky compact layout CSS + sticky-active base styles
+* `assets/css/add-to-cart.min.css` — minified
+* `woo-swatches-elementor.php` — Version 1.4.7
+* `readme.txt` — Stable tag, Changelog
+
+**Migration**
+
+Drop-in replacement for v1.4.6. After install: hard-refresh (Ctrl+F5) + Hostinger Cache Manager → Purge All. The sticky compact layout is ON by default — if you prefer the old stacked sticky look, set "Compact single-row layout" to No in Content → Sticky Layout.
 
 = 1.4.6 =
 **Enhancement: Buy Now position control + unified quantity stepper + matched button design.**

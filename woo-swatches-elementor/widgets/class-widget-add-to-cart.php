@@ -542,11 +542,251 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 		);
 
 		$this->end_controls_section();
+
+		// ── v1.4.7 — Sticky Add to Cart Layout section ───────────────────
+		$this->start_controls_section(
+			'section_sticky_layout',
+			array(
+				'label' => esc_html__( 'Sticky Layout', 'woo-swatches-elementor' ),
+				'tab'   => \Elementor\Controls_Manager::TAB_CONTENT,
+			)
+		);
+
+		$this->add_control(
+			'sticky_layout_intro',
+			array(
+				'type' => \Elementor\Controls_Manager::RAW_HTML,
+				'raw'  => '<div style="font-size:11px;color:#475569;line-height:1.5;">'
+					. esc_html__( 'These controls apply ONLY when the sticky Add to Cart bar is active (fixed to the bottom of the viewport). The normal/inline layout is unaffected.', 'woo-swatches-elementor' )
+					. '</div>',
+			)
+		);
+
+		$this->add_control(
+			'sticky_compact_layout',
+			array(
+				'label'        => esc_html__( 'Compact single-row layout', 'woo-swatches-elementor' ),
+				'description'  => esc_html__( 'When ON: sticky bar shows QS + ATC + BN in one horizontal row (30% / 35% / 35% width split). Minimal padding for a sleek mobile bar.', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'return_value' => 'yes',
+				'default'      => 'yes',
+			)
+		);
+
+		$this->add_control(
+			'sticky_button_order',
+			array(
+				'label'   => esc_html__( 'Button order in sticky bar', 'woo-swatches-elementor' ),
+				'type'    => \Elementor\Controls_Manager::SELECT,
+				'default' => 'atc_bn',
+				'options' => array(
+					'atc_bn' => esc_html__( 'QS + Add to Cart + Buy Now', 'woo-swatches-elementor' ),
+					'bn_atc' => esc_html__( 'QS + Buy Now + Add to Cart', 'woo-swatches-elementor' ),
+				),
+				'condition' => array( 'sticky_compact_layout' => 'yes' ),
+			)
+		);
+
+		$this->end_controls_section();
 	}
 
 	// ── Style ─────────────────────────────────────────────────────────────
 
 	private function register_style_controls(): void {
+
+		// ── v1.4.7 — Widget Background + Spacing ──────────────────────────
+		$this->start_controls_section(
+			'section_style_widget',
+			array(
+				'label' => esc_html__( 'Widget Container', 'woo-swatches-elementor' ),
+				'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		$this->add_control(
+			'widget_background_color',
+			array(
+				'label'     => esc_html__( 'Background Color', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'selectors' => array(
+					'{{WRAPPER}} .wse-widget-add-to-cart' => 'background-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'widget_padding',
+			array(
+				'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', '%' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-widget-add-to-cart' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'widget_border_radius',
+			array(
+				'label'      => esc_html__( 'Border Radius', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-widget-add-to-cart' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Border::get_type(),
+			array(
+				'name'     => 'widget_border',
+				'selector' => '{{WRAPPER}} .wse-widget-add-to-cart',
+			)
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Box_Shadow::get_type(),
+			array(
+				'name'     => 'widget_box_shadow',
+				'selector' => '{{WRAPPER}} .wse-widget-add-to-cart',
+			)
+		);
+
+		$this->add_responsive_control(
+			'button_gap',
+			array(
+				'label'      => esc_html__( 'Gap Between Buttons', 'woo-swatches-elementor' ),
+				'description' => esc_html__( 'Space between Add to Cart and Buy Now buttons. Also applies between quantity stepper and buttons.', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'em' ),
+				'range'      => array(
+					'px' => array( 'min' => 0, 'max' => 40 ),
+					'em' => array( 'min' => 0, 'max' => 3 ),
+				),
+				'default'    => array( 'unit' => 'px', 'size' => 10 ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-qty-atc-row' => 'gap: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->end_controls_section();
+
+		// ── v1.4.7 — Sticky Bar Style ─────────────────────────────────────
+		$this->start_controls_section(
+			'section_style_sticky',
+			array(
+				'label' => esc_html__( 'Sticky Bar', 'woo-swatches-elementor' ),
+				'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		$this->add_control(
+			'sticky_bg_color',
+			array(
+				'label'     => esc_html__( 'Background Color', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::COLOR,
+				'default'   => '#ffffff',
+				'selectors' => array(
+					'{{WRAPPER}} .wse-widget-add-to-cart.wse-sticky-active' => 'background-color: {{VALUE}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'sticky_padding',
+			array(
+				'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em' ),
+				'default'    => array(
+					'top'    => '10',
+					'right'  => '16',
+					'bottom' => '10',
+					'left'   => '16',
+					'unit'   => 'px',
+				),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-widget-add-to-cart.wse-sticky-active' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'sticky_margin',
+			array(
+				'label'      => esc_html__( 'Margin', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-widget-add-to-cart.wse-sticky-active' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'sticky_width',
+			array(
+				'label'      => esc_html__( 'Width', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::SLIDER,
+				'size_units' => array( '%', 'px', 'vw' ),
+				'range'      => array(
+					'%'  => array( 'min' => 50, 'max' => 100 ),
+					'px' => array( 'min' => 200, 'max' => 1400 ),
+					'vw' => array( 'min' => 50, 'max' => 100 ),
+				),
+				'default'    => array( 'unit' => '%', 'size' => 100 ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-widget-add-to-cart.wse-sticky-active' => 'width: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Border::get_type(),
+			array(
+				'name'     => 'sticky_border',
+				'selector' => '{{WRAPPER}} .wse-widget-add-to-cart.wse-sticky-active',
+			)
+		);
+
+		$this->add_responsive_control(
+			'sticky_border_radius',
+			array(
+				'label'      => esc_html__( 'Border Radius', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', '%' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-widget-add-to-cart.wse-sticky-active' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Box_Shadow::get_type(),
+			array(
+				'name'     => 'sticky_box_shadow',
+				'selector' => '{{WRAPPER}} .wse-widget-add-to-cart.wse-sticky-active',
+			)
+		);
+
+		$this->add_responsive_control(
+			'sticky_gap',
+			array(
+				'label'      => esc_html__( 'Gap Between Elements', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::SLIDER,
+				'size_units' => array( 'px' ),
+				'range'      => array( 'px' => array( 'min' => 0, 'max' => 30 ) ),
+				'default'    => array( 'unit' => 'px', 'size' => 8 ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-widget-add-to-cart.wse-sticky-active .wse-qty-atc-row' => 'gap: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->end_controls_section();
 
 		// ── Button style ──────────────────────────────────────────────────
 		$this->start_controls_section(
@@ -1183,6 +1423,15 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 		}
 		if ( 'yes' === get_option( 'wse_sticky_mobile', 'yes' ) ) {
 			$wrapper_class .= ' wse-sticky-mobile';
+		}
+
+		// v1.4.7 — Sticky compact layout + button order classes.
+		if ( ( $settings['sticky_compact_layout'] ?? 'yes' ) === 'yes' ) {
+			$wrapper_class .= ' wse-sticky-compact';
+		}
+		$sticky_btn_order = $settings['sticky_button_order'] ?? 'atc_bn';
+		if ( 'bn_atc' === $sticky_btn_order ) {
+			$wrapper_class .= ' wse-sticky-order-bn-atc';
 		}
 
 		$this->add_render_attribute( 'wrapper', array(

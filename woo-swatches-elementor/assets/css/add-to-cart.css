@@ -876,3 +876,75 @@ body.wse-stylesheet-enabled .wse-buy-now-message.wse-bnw-msg-error {
 body.wse-stylesheet-enabled .wse-buy-now-message.wse-bnw-msg-success {
 	color: #1e8e3e;
 }
+
+
+
+/* ─── v1.4.7 — Sticky Compact Single-Row Layout ─────────────────────────── */
+/* When the sticky bar is active AND compact layout is ON, force all elements
+   into a single horizontal row: QS (30%) + ATC (35%) + BN (35%).
+   The .wse-sticky-active class is added by JS when the widget enters sticky
+   mode (fixed to viewport bottom). These rules only apply when both
+   .wse-sticky-active AND .wse-sticky-compact are present. */
+
+body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-atc-row {
+	flex-wrap:   nowrap;
+	align-items: stretch;
+}
+
+body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-wrap {
+	flex:        0 0 30%;
+	max-width:   30%;
+}
+
+body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-stepper {
+	width: 100%;
+}
+
+body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-stepper .qty {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-atc-button {
+	flex:      1 1 0;
+	min-width: 0;
+	order:     2;
+}
+
+body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-buy-now-wrap {
+	flex:       1 1 0;
+	min-width:  0;
+	margin-top: 0;
+	order:      3;
+}
+
+body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-buy-now-btn {
+	width: 100%;
+}
+
+/* v1.4.7 — Button order swap: QS + BN + ATC */
+body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-order-bn-atc.wse-sticky-active .wse-atc-button {
+	order: 3;
+}
+body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-order-bn-atc.wse-sticky-active .wse-buy-now-wrap {
+	order: 2;
+}
+
+/* Hide the Buy Now message in sticky mode to keep the bar compact */
+body.wse-stylesheet-enabled .wse-sticky-active .wse-buy-now-message {
+	display: none;
+}
+
+/* Sticky active state base — these work as defaults; Elementor controls
+   override via more specific {{WRAPPER}} selectors. */
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active {
+	position:   fixed;
+	bottom:     0;
+	left:       0;
+	right:      0;
+	z-index:    9999;
+	background: #ffffff;
+	box-shadow: 0 -2px 12px rgba(0, 0, 0, .08);
+	padding:    10px 16px;
+	box-sizing: border-box;
+}

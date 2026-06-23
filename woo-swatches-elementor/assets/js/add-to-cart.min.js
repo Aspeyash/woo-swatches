@@ -598,7 +598,7 @@
 	function getActiveStickyHeight() {
 		var total = 0;
 
-		$( '.wse-presenter' ).each( function () {
+		$( '.wse-widget-add-to-cart' ).each( function () {
 			var $el = $( this );
 			if ( ! $el.is( ':visible' ) ) {
 				return;
@@ -610,7 +610,10 @@
 				|| ( $el.hasClass( 'wse-sticky-mobile'  ) && window.matchMedia( STICKY_BREAKPOINTS.mobile  ).matches );
 
 			if ( matchesActive ) {
+				$el.addClass( 'wse-sticky-active' );
 				total = Math.max( total, $el.outerHeight( true ) || 0 );
+			} else {
+				$el.removeClass( 'wse-sticky-active' );
 			}
 		} );
 
