@@ -909,24 +909,28 @@ body.wse-stylesheet-enabled .wse-sticky-active .wse-canonical-form {
 	margin-bottom: 0;
 }
 
-/* Quantity wrap — 25% width, visible and compact */
+/* Quantity wrap — auto-size based on content with sensible bounds */
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-wrap {
-	flex:        0 0 25%;
-	max-width:   25%;
-	width:       25% !important;
+	flex:        0 0 auto;
+	max-width:   140px;
+	width:       auto !important;
+	min-width:   110px;
 }
 
 /* Quantity stepper — fit within the wrap, show the input field */
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-stepper {
 	width:         100%;
+	max-width:     140px;
+	min-width:     110px;
 	height:        40px;
 	border-width:  1px;
 	border-radius: 4px;
+	overflow:      visible;
 }
 
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-stepper .qty {
 	flex:        1 1 auto;
-	min-width:   32px;
+	min-width:   28px;
 	width:       auto !important;
 	padding:     4px 2px;
 	font-size:   0.875rem;
@@ -935,9 +939,26 @@ body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-stepp
 }
 
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-btn {
-	width:      28px;
-	height:     100%;
+	width:       32px;
+	min-width:   32px;
+	height:      100%;
 	flex-shrink: 0;
+	flex-grow:   0;
+	flex-basis:  32px;
+}
+
+/* On very small screens (< 360px), tighten further */
+@media ( max-width: 359px ) {
+	body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-wrap,
+	body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-stepper {
+		min-width: 96px;
+		max-width: 110px;
+	}
+	body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-btn {
+		width:      28px;
+		min-width:  28px;
+		flex-basis: 28px;
+	}
 }
 
 /* ATC button — takes equal share of remaining space */
