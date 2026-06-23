@@ -793,7 +793,7 @@ body.wse-stylesheet-enabled .wse-buy-now-wrap {
 	flex-wrap:   wrap;
 	align-items: center;
 	gap:         0.5em;
-	margin-top:  10px;
+	margin-top:  0;
 	width:       100%;
 }
 

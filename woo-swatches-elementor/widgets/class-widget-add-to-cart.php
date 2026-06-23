@@ -1312,7 +1312,7 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 				'type'       => \Elementor\Controls_Manager::SLIDER,
 				'size_units' => array( 'px', 'em' ),
 				'range'      => array( 'px' => array( 'min' => 0, 'max' => 60 ) ),
-				'default'    => array( 'unit' => 'px', 'size' => 10 ),
+				'default'    => array( 'unit' => 'px', 'size' => 0 ),
 				'selectors'  => array(
 					'{{WRAPPER}} .wse-buy-now-wrap' => 'margin-top: {{SIZE}}{{UNIT}};',
 				),
