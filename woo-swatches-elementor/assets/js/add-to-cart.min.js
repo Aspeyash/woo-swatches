@@ -582,7 +582,7 @@
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
-	// 6. Sticky presenter — body-padding management
+	// 6. Sticky presenter — body-padding management + scroll-trigger (v1.4.7)
 	// ─────────────────────────────────────────────────────────────────────
 
 	var STICKY_BREAKPOINTS = {
@@ -592,8 +592,100 @@
 	};
 
 	/**
-	 * Returns the height in px contributed by visible sticky presenters
-	 * for the current viewport.
+	 * v1.4.7 — Returns true if scroll-triggered sticky is enabled for the
+	 * current viewport breakpoint. Reads WSEParams.sticky_scroll_trigger
+	 * which is set per-device from WC settings.
+	 */
+	function isScrollTriggerActive() {
+		var params = ( window.WSEParams && window.WSEParams.sticky_scroll_trigger ) || {};
+		if ( window.matchMedia( STICKY_BREAKPOINTS.desktop ).matches ) {
+			return !! params.desktop;
+		}
+		if ( window.matchMedia( STICKY_BREAKPOINTS.tablet ).matches ) {
+			return !! params.tablet;
+		}
+		if ( window.matchMedia( STICKY_BREAKPOINTS.mobile ).matches ) {
+			return !! params.mobile;
+		}
+		return false;
+	}
+
+	/**
+	 * v1.4.7 — For scroll-trigger mode, returns true if the customer has
+	 * scrolled past the original ATC widget (so the sticky bar should now
+	 * appear). The "original" widget is the first non-presenter
+	 * .wse-widget-add-to-cart on the page that is NOT itself sticky-active.
+	 *
+	 * For non-scroll-trigger mode (always-on sticky), this returns true
+	 * unconditionally.
+	 */
+	function shouldStickyBeVisible( $stickyEl ) {
+		if ( ! isScrollTriggerActive() ) {
+			return true;   // always-on mode
+		}
+
+		// Find the canonical (non-sticky-positioned) reference element.
+		// Strategy: the original widget is the first .wse-widget-add-to-cart
+		// on the page. If a presenter sticky-bar is what we're checking,
+		// use the canonical form's container. Otherwise we look for ANY
+		// other ATC widget that exists on the page in normal position.
+		var $reference = null;
+
+		// Look for a non-presenter ATC widget elsewhere on the page.
+		$( '.wse-widget-add-to-cart' ).each( function () {
+			var $w = $( this );
+			if ( $w[0] === $stickyEl[0] ) { return; }
+			if ( $w.hasClass( 'wse-presenter' ) ) { return; }
+			$reference = $w;
+			return false; // break
+		} );
+
+		// If no separate reference widget exists, use the sticky widget
+		// itself's natural position (the spot it would occupy if it
+		// weren't fixed). We track this by reading data-original-top
+		// captured at first init.
+		if ( ! $reference ) {
+			var origTop = parseFloat( $stickyEl.attr( 'data-wse-original-top' ) );
+			if ( isNaN( origTop ) ) {
+				return true; // can't determine; fail-open to always-on
+			}
+			var viewportH = window.innerHeight || document.documentElement.clientHeight;
+			return ( window.scrollY + viewportH ) >= origTop;
+		}
+
+		// Reference widget exists — show sticky once user scrolls past its
+		// bottom edge.
+		var refRect = $reference[0].getBoundingClientRect();
+		var refBottomDocY = refRect.bottom + window.scrollY;
+		var viewportH2 = window.innerHeight || document.documentElement.clientHeight;
+		return ( window.scrollY + viewportH2 ) > refBottomDocY;
+	}
+
+	/**
+	 * Captures the original (natural) top position of each sticky-eligible
+	 * widget BEFORE we apply any sticky class. Called once on init.
+	 */
+	function captureOriginalPositions() {
+		$( '.wse-widget-add-to-cart' ).each( function () {
+			var $el = $( this );
+			if ( $el.attr( 'data-wse-original-top' ) ) { return; }
+			// Only capture if widget could ever be sticky.
+			var canBeSticky =
+				   $el.hasClass( 'wse-sticky-desktop' )
+				|| $el.hasClass( 'wse-sticky-tablet' )
+				|| $el.hasClass( 'wse-sticky-mobile' );
+			if ( ! canBeSticky ) { return; }
+			var rect = $el[0].getBoundingClientRect();
+			$el.attr( 'data-wse-original-top', String( rect.top + window.scrollY ) );
+		} );
+	}
+
+	/**
+	 * Returns the height in px contributed by visible sticky widgets for
+	 * the current viewport. ALSO updates .wse-sticky-active class on each
+	 * widget based on:
+	 *   1. Whether the breakpoint matches (existing logic)
+	 *   2. Whether scroll-trigger conditions are met (v1.4.7)
 	 */
 	function getActiveStickyHeight() {
 		var total = 0;
@@ -604,17 +696,24 @@
 				return;
 			}
 
-			var matchesActive =
+			var breakpointMatches =
 				   ( $el.hasClass( 'wse-sticky-desktop' ) && window.matchMedia( STICKY_BREAKPOINTS.desktop ).matches )
 				|| ( $el.hasClass( 'wse-sticky-tablet'  ) && window.matchMedia( STICKY_BREAKPOINTS.tablet  ).matches )
 				|| ( $el.hasClass( 'wse-sticky-mobile'  ) && window.matchMedia( STICKY_BREAKPOINTS.mobile  ).matches );
 
-			if ( matchesActive ) {
-				$el.addClass( 'wse-sticky-active' );
-				total = Math.max( total, $el.outerHeight( true ) || 0 );
-			} else {
+			if ( ! breakpointMatches ) {
 				$el.removeClass( 'wse-sticky-active' );
+				return;
 			}
+
+			// Scroll-trigger gate.
+			if ( ! shouldStickyBeVisible( $el ) ) {
+				$el.removeClass( 'wse-sticky-active' );
+				return;
+			}
+
+			$el.addClass( 'wse-sticky-active' );
+			total = Math.max( total, $el.outerHeight( true ) || 0 );
 		} );
 
 		return total;
@@ -632,6 +731,10 @@
 	}
 
 	function initStickyBodyPadding() {
+		// v1.4.7 — Capture original positions before any sticky class is
+		// applied, so scroll-trigger logic has a reference.
+		captureOriginalPositions();
+
 		updateStickyBodyPadding();
 
 		// Resize / orientation change
@@ -641,7 +744,21 @@
 				if ( resizeTimeout ) {
 					clearTimeout( resizeTimeout );
 				}
-				resizeTimeout = setTimeout( updateStickyBodyPadding, 100 );
+				resizeTimeout = setTimeout( function () {
+					captureOriginalPositions();
+					updateStickyBodyPadding();
+				}, 100 );
+			} );
+
+		// v1.4.7 — Scroll handler (throttled via rAF) for scroll-trigger mode.
+		var scrollRaf = null;
+		$( window ).off( 'scroll.wse-sticky' )
+			.on( 'scroll.wse-sticky', function () {
+				if ( scrollRaf ) { return; }
+				scrollRaf = window.requestAnimationFrame( function () {
+					scrollRaf = null;
+					updateStickyBodyPadding();
+				} );
 			} );
 
 		// matchMedia change events for breakpoint crossings

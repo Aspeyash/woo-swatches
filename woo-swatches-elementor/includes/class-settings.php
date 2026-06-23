@@ -211,6 +211,38 @@ class WSE_Settings extends WC_Settings_Page {
 				'default' => 'yes',
 				'desc'    => esc_html__( 'Recommended ON. Mobile shoppers benefit most from a persistently visible Add to Cart.', 'woo-swatches-elementor' ),
 			),
+
+			// ── v1.4.7 — Scroll-triggered sticky behavior ─────────────────
+			array(
+				'title' => esc_html__( 'Scroll-triggered visibility', 'woo-swatches-elementor' ),
+				'type'  => 'title',
+				'desc'  => esc_html__( 'When enabled for a breakpoint, the sticky Add to Cart bar will only appear AFTER the customer scrolls past the original Add to Cart widget. While the original widget is visible, the sticky bar stays hidden so it does not cover product content. Industry-standard pattern used by Amazon, Nike, ASOS.', 'woo-swatches-elementor' ),
+				'id'    => 'wse_sticky_scroll_section',
+			),
+			array(
+				'title'   => esc_html__( 'Scroll-trigger on Desktop', 'woo-swatches-elementor' ),
+				'id'      => 'wse_sticky_scroll_trigger_desktop',
+				'type'    => 'checkbox',
+				'default' => 'no',
+				'desc'    => esc_html__( 'Only show the sticky bar after customer scrolls past the original Add to Cart widget.', 'woo-swatches-elementor' ),
+			),
+			array(
+				'title'   => esc_html__( 'Scroll-trigger on Tablet', 'woo-swatches-elementor' ),
+				'id'      => 'wse_sticky_scroll_trigger_tablet',
+				'type'    => 'checkbox',
+				'default' => 'no',
+			),
+			array(
+				'title'   => esc_html__( 'Scroll-trigger on Mobile', 'woo-swatches-elementor' ),
+				'id'      => 'wse_sticky_scroll_trigger_mobile',
+				'type'    => 'checkbox',
+				'default' => 'no',
+			),
+			array(
+				'type' => 'sectionend',
+				'id'   => 'wse_sticky_scroll_section',
+			),
+
 			array(
 				'type' => 'sectionend',
 				'id'   => 'wse_sticky_section',

@@ -1003,6 +1003,21 @@ body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active {
 	padding:     10px 12px;
 	box-sizing:  border-box;
 	border-top:  1px solid rgba(0, 0, 0, .06);
+	/* v1.4.7 — Smooth slide-in animation when scroll-trigger reveals it */
+	animation:   wse-sticky-slide-in 0.25s ease-out;
+	transition:  transform 0.25s ease-out, opacity 0.25s ease-out;
+}
+
+/* v1.4.7 — Slide-up animation when the sticky bar appears */
+@keyframes wse-sticky-slide-in {
+	from {
+		transform: translateY(100%);
+		opacity:   0;
+	}
+	to {
+		transform: translateY(0);
+		opacity:   1;
+	}
 }
 
 /* Remove WC default form margin-bottom globally in our widget */
