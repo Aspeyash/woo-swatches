@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.4.7
+Stable tag: 1.4.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,37 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.4.8 =
+**Fix: Multi-attribute selected-value label and swatch-state sync.**
+
+On products with two or more variation attributes (e.g. Color + Size), the
+first attribute clicked could lose its visible `selected-value` text and,
+in some flows, its swatch border — even though the underlying form value
+was correct and Add to Cart picked the right variation.
+
+Two compounding causes were addressed:
+
+* `_onResetData` (bound to WC's `reset_data` event) unconditionally wiped
+  every swatch's `.selected` class and `.wse-attr-selected-val` text. WC
+  fires `reset_data` on EVERY partial selection — not only on explicit
+  Clear / no_matching_variations — so any mid-selection click ran this
+  handler. v1.4.8 rewrites `_onResetData` to SYNC the UI from the
+  canonical form's hidden `<select>` values. If a select still holds a
+  value, the matching swatch keeps its `.selected` class, its reset link
+  stays visible, and its label text is restored from `title` (or value as
+  a fallback). The UI now stays in lockstep with form state regardless
+  of who fired `reset_data`.
+
+* `bindCrossWidgetSync` always re-triggered `select.val(value).trigger('change')`
+  on every click, even when the form's `WSE_Swatches` instance was
+  already scoped to the same widget. `_selectSwatch` had already done
+  the mirror, so the cross-sync caused a second WC onChange →
+  onCheckVariations cycle — which on partial selections fired
+  `reset_data` a second time. v1.4.8 short-circuits the cross-sync when
+  the form's wired scope matches the click's source widget.
+
+Drop-in replacement for v1.4.7. No DB schema changes.
 
 = 1.4.7 =
 **Feature: Button gap control, widget background, sticky compact layout with full customization.**
