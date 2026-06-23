@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.4.11
+Stable tag: 1.4.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,41 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.4.12 =
+**Fix: Empty Value(s) section in the product editor for swatch-typed attributes.**
+
+When the plugin was active and the merchant added a global attribute
+whose Type had been set to Color / Image / Label / Button on
+Products → Attributes, the Value(s) section in the product editor's
+Attributes panel was completely empty — no multi-select for picking
+existing terms, no "Select all" / "Select none" / "Create value"
+buttons. Deactivating the plugin made the UI reappear instantly.
+
+Root cause: WooCommerce's html-product-attribute.php view renders the
+term-selection UI inline only for the built-in `select` and `text`
+types. For every other type it fires
+`do_action( 'woocommerce_product_option_terms', $taxonomy, $i, $attr )`
+expecting a third-party plugin to render its own UI. This plugin
+registered Color / Image / Label / Button as custom types via
+`product_attributes_type_selector` but never hooked into
+`woocommerce_product_option_terms`, so the panel rendered nothing.
+
+v1.4.12 hooks `WSE_Attribute_Types::render_term_selector_for_custom_
+types()` into `woocommerce_product_option_terms` and outputs the same
+multi-select + Select all / Select none / Create value UI that WC
+renders for the `select` type — byte-for-byte matching DOM classes,
+data attributes, and form field names. Because every selector matches
+WC's defaults, all of WC's existing admin JS (Select2 term picker,
+AJAX term-search, Select all / none handlers, Create value AJAX
+endpoint) and the product-save logic continue to work without any
+additional plugin JS or PHP. Merchants can now pick existing terms
+and create new ones for swatch-typed attributes exactly as they do
+for built-in select attributes.
+
+PHP-only patch (~80 lines added to `class-attribute-types.php`). No
+JS, CSS, template, DB schema, or settings changes. Drop-in
+replacement for v1.4.11.
 
 = 1.4.11 =
 **Fix: Empty-<p> sticky-bar gap on simple, grouped, and external products.**
