@@ -963,7 +963,7 @@ body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-btn {
 
 /* ATC button — takes equal share of remaining space */
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-atc-button {
-	flex:          1 1 0;
+	flex:          1 1 0 !important;
 	min-width:     0;
 	width:         auto !important;
 	order:         2;
@@ -974,24 +974,32 @@ body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-atc-butto
 	border-radius: 4px;
 	white-space:   nowrap;
 	margin-top:    0 !important;
+	box-sizing:    border-box;
 }
 
-/* Buy Now wrap — takes equal share of remaining space */
+/* Buy Now wrap — takes equal share of remaining space (matches ATC) */
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-buy-now-wrap {
-	flex:        1 1 0;
+	flex:        1 1 0 !important;
 	min-width:   0;
+	width:       auto !important;
+	max-width:   none;
 	margin-top:  0 !important;
 	order:       3;
+	display:     flex;
+	flex-wrap:   nowrap;
+	gap:         0;
 }
 
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-buy-now-btn {
-	width:         100%;
+	flex:          1 1 100%;
+	width:         100% !important;
 	height:        40px;
 	padding:       0 12px;
 	font-size:     0.8125rem;
 	font-weight:   600;
 	border-radius: 4px;
 	white-space:   nowrap;
+	box-sizing:    border-box;
 }
 
 /* v1.4.7 — Button order swap: QS + BN + ATC */
