@@ -906,7 +906,29 @@ body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-atc-r
 /* Override form margin in sticky */
 body.wse-stylesheet-enabled .wse-sticky-active form.cart,
 body.wse-stylesheet-enabled .wse-sticky-active .wse-canonical-form {
-	margin-bottom: 0;
+	margin:  0 !important;
+	padding: 0 !important;
+}
+
+/* v1.4.7 — Zero out all intermediate wrapper margins/paddings in sticky.
+   These wrappers (canonical-attrs holds hidden selects, single_variation_wrap
+   holds WC variation slots, woocommerce-variation-add-to-cart holds the
+   button row) accumulate vertical space from WC + theme defaults. The
+   sticky bar should ONLY show the qty-atc-row — nothing else. */
+body.wse-stylesheet-enabled .wse-sticky-active .wse-canonical-attrs {
+	display: none !important;
+}
+
+body.wse-stylesheet-enabled .wse-sticky-active .single_variation_wrap,
+body.wse-stylesheet-enabled .wse-sticky-active .woocommerce-variation-add-to-cart,
+body.wse-stylesheet-enabled .wse-sticky-active .variations_button {
+	margin:  0 !important;
+	padding: 0 !important;
+	border:  0 !important;
+}
+
+body.wse-stylesheet-enabled .wse-sticky-active .wse-qty-atc-row {
+	margin: 0 !important;
 }
 
 /* Quantity wrap — sized by grid column (28% max, 80px min) */
