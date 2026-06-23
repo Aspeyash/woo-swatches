@@ -888,42 +888,89 @@ body.wse-stylesheet-enabled .wse-buy-now-message.wse-bnw-msg-success {
    into a single horizontal row: QS (30%) + ATC (35%) + BN (35%).
    The .wse-sticky-active class is added by JS when the widget enters sticky
    mode (fixed to viewport bottom). These rules only apply when both
-   .wse-sticky-active AND .wse-sticky-compact are present. */
+   .wse-sticky-active AND .wse-sticky-compact are present.
 
+   IMPORTANT: These rules OVERRIDE the full-width stacked layout so the
+   sticky bar always renders as a single compact row regardless of the
+   desktop full-width setting. */
+
+/* Override full-width stacking — force single row in sticky */
+body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active.wse-atc-full-width .wse-qty-atc-row,
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-atc-row {
-	flex-wrap:   nowrap;
-	align-items: stretch;
+	flex-wrap:    nowrap !important;
+	flex-direction: row !important;
+	align-items:  center;
+	gap:          8px;
 }
 
+/* Override form margin in sticky */
+body.wse-stylesheet-enabled .wse-sticky-active form.cart,
+body.wse-stylesheet-enabled .wse-sticky-active .wse-canonical-form {
+	margin-bottom: 0;
+}
+
+/* Quantity wrap — 25% width, visible and compact */
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-wrap {
-	flex:        0 0 30%;
-	max-width:   30%;
+	flex:        0 0 25%;
+	max-width:   25%;
+	width:       25% !important;
 }
 
+/* Quantity stepper — fit within the wrap, show the input field */
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-stepper {
-	width: 100%;
+	width:         100%;
+	height:        40px;
+	border-width:  1px;
+	border-radius: 4px;
 }
 
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-stepper .qty {
-	flex: 1 1 auto;
-	min-width: 0;
+	flex:        1 1 auto;
+	min-width:   32px;
+	width:       auto !important;
+	padding:     4px 2px;
+	font-size:   0.875rem;
+	text-align:  center;
+	-moz-appearance: textfield;
 }
 
+body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-qty-btn {
+	width:      28px;
+	height:     100%;
+	flex-shrink: 0;
+}
+
+/* ATC button — takes equal share of remaining space */
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-atc-button {
-	flex:      1 1 0;
-	min-width: 0;
-	order:     2;
+	flex:          1 1 0;
+	min-width:     0;
+	width:         auto !important;
+	order:         2;
+	height:        40px;
+	padding:       0 12px;
+	font-size:     0.8125rem;
+	font-weight:   600;
+	border-radius: 4px;
+	white-space:   nowrap;
+	margin-top:    0 !important;
 }
 
+/* Buy Now wrap — takes equal share of remaining space */
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-buy-now-wrap {
-	flex:       1 1 0;
-	min-width:  0;
-	margin-top: 0;
-	order:      3;
+	flex:        1 1 0;
+	min-width:   0;
+	margin-top:  0 !important;
+	order:       3;
 }
 
 body.wse-stylesheet-enabled .wse-sticky-compact.wse-sticky-active .wse-buy-now-btn {
-	width: 100%;
+	width:         100%;
+	height:        40px;
+	padding:       0 12px;
+	font-size:     0.8125rem;
+	font-weight:   600;
+	border-radius: 4px;
+	white-space:   nowrap;
 }
 
 /* v1.4.7 — Button order swap: QS + BN + ATC */
@@ -939,16 +986,27 @@ body.wse-stylesheet-enabled .wse-sticky-active .wse-buy-now-message {
 	display: none;
 }
 
-/* Sticky active state base — these work as defaults; Elementor controls
-   override via more specific {{WRAPPER}} selectors. */
+/* Hide WC variation price/availability/description in sticky — keep compact */
+body.wse-stylesheet-enabled .wse-sticky-active .single_variation_wrap .woocommerce-variation {
+	display: none;
+}
+
+/* Sticky active state base — premium compact bar */
 body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active {
-	position:   fixed;
-	bottom:     0;
-	left:       0;
-	right:      0;
-	z-index:    9999;
-	background: #ffffff;
-	box-shadow: 0 -2px 12px rgba(0, 0, 0, .08);
-	padding:    10px 16px;
-	box-sizing: border-box;
+	position:    fixed;
+	bottom:      0;
+	left:        0;
+	right:       0;
+	z-index:     9999;
+	background:  #ffffff;
+	box-shadow:  0 -2px 16px rgba(0, 0, 0, .1);
+	padding:     10px 12px;
+	box-sizing:  border-box;
+	border-top:  1px solid rgba(0, 0, 0, .06);
+}
+
+/* Remove WC default form margin-bottom globally in our widget */
+body.wse-stylesheet-enabled .wse-widget-add-to-cart .woocommerce-variation-add-to-cart,
+body.wse-stylesheet-enabled .wse-widget-add-to-cart form.cart {
+	margin-bottom: 0;
 }
