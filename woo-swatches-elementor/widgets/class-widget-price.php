@@ -485,10 +485,31 @@ class WSE_Widget_Price extends \Elementor\Widget_Base {
 			)
 		);
 
+		// v1.5.0 (C1) — Price change animation.
+		// Controls how the price block animates when the customer picks a
+		// variation (via Widget 1) and price.js re-renders the price in
+		// place. "fade" is the default — subtle and CLS-safe. "slide" adds
+		// a small upward motion. "none" disables motion entirely. All
+		// options additionally respect the OS-level prefers-reduced-motion
+		// setting (the CSS forces animation:none under reduced-motion
+		// regardless of this control).
+		$this->add_control(
+			'price_anim',
+			array(
+				'label'       => esc_html__( 'Price change animation', 'woo-swatches-elementor' ),
+				'description' => esc_html__( 'How the price animates when a variation is selected. Respects the visitor\'s "reduce motion" OS setting automatically.', 'woo-swatches-elementor' ),
+				'type'        => \Elementor\Controls_Manager::SELECT,
+				'default'     => 'fade',
+				'options'     => array(
+					'fade'  => esc_html__( 'Fade in (default)', 'woo-swatches-elementor' ),
+					'slide' => esc_html__( 'Slide up + fade',   'woo-swatches-elementor' ),
+					'none'  => esc_html__( 'No animation',       'woo-swatches-elementor' ),
+				),
+			)
+		);
+
 		$this->end_controls_section();
 	}
-
-	// ── v1.2.1 (P10) — Smart Heading ────────────────────────────────────
 
 	private function register_content_smart_heading(): void {
 
@@ -807,6 +828,9 @@ class WSE_Widget_Price extends \Elementor\Widget_Base {
 			'skeleton_show'     => ( $settings['skeleton_show'] ?? 'no' ) === 'yes',
 			'badge_position'    => sanitize_key( $settings['badge_position'] ?? 'inline_after' ),
 			'badge_content'     => sanitize_key( $settings['badge_content']  ?? 'text_only' ),
+
+			// v1.5.0 (C1) — Price-change animation mode (fade|slide|none).
+			'price_anim'        => sanitize_key( $settings['price_anim'] ?? 'fade' ),
 		);
 
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped

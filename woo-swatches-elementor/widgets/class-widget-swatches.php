@@ -311,6 +311,23 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 			'default'      => 'no',
 		) );
 
+		// v1.5.0 (C2') — Per-swatch savings / percent-off pill.
+		// When ON, swatches whose term is on sale show a small "-N%"
+		// corner pill (N = the highest discount among that term's in-stock
+		// variations). Works for color, image, label, and button swatch
+		// types. The pill markup is always rendered server-side when a
+		// discount exists; this toggle adds .wse-show-savings-pill to
+		// .wse-attr-block, which is what CSS uses to reveal it.
+		$this->add_control( 'show_savings_pill', array(
+			'label'        => esc_html__( 'Show Savings Pill (% off) on Swatches', 'woo-swatches-elementor' ),
+			'description'  => esc_html__( 'Display a small "-N%" discount badge on the corner of each swatch whose variation is on sale.', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'label_on'     => esc_html__( 'Yes', 'woo-swatches-elementor' ),
+			'label_off'    => esc_html__( 'No',  'woo-swatches-elementor' ),
+			'return_value' => 'yes',
+			'default'      => 'no',
+		) );
+
 		$this->add_control( 'oos_behavior', array(
 			'label'   => esc_html__( 'Out-of-Stock Display', 'woo-swatches-elementor' ),
 			'type'    => \Elementor\Controls_Manager::SELECT,
@@ -961,6 +978,13 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 				// per-swatch price <span> that's always rendered in image.php.
 				if ( 'image' === $swatch_type && 'yes' === ( $settings['show_price'] ?? 'no' ) ) {
 					$attr_block_classes[] = 'wse-show-image-price';
+				}
+				// v1.5.0 (C2') — Show savings pill on swatches (all types).
+				// When ON, .wse-show-savings-pill on .wse-attr-block reveals
+				// the per-swatch "-N%" pill that's always rendered (when the
+				// term is on sale) in color.php / image.php / label.php.
+				if ( 'yes' === ( $settings['show_savings_pill'] ?? 'no' ) ) {
+					$attr_block_classes[] = 'wse-show-savings-pill';
 				}
 				?>
 

@@ -78,4 +78,17 @@ $tabindex           = ( $is_selected || $is_first_focusable ) ? '0' : '-1';
 		</svg>
 	</span>
 
+	<?php
+	/**
+	 * v1.5.0 (C2') — Per-swatch savings pill. Always rendered into the DOM
+	 * when this term has a discount; CSS hides it by default and reveals it
+	 * only when the parent .wse-attr-block carries .wse-show-savings-pill
+	 * (set by the Swatches widget's "Show Savings Pill" toggle).
+	 */
+	$_savings_percent = (int) ( $swatch['savings_percent'] ?? 0 );
+	if ( $_savings_percent > 0 ) :
+	?>
+	<span class="wse-swatch-savings-pill" aria-hidden="true">-<?php echo esc_html( (string) $_savings_percent ); ?>%</span>
+	<?php endif; ?>
+
 </li>

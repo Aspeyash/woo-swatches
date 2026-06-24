@@ -404,6 +404,15 @@ class WSE_Swatch_Renderer {
 			// integrations that want to opt back in via a filter on the
 			// returned swatch data array.
 			'is_on_sale'   => false,
+			// v1.5.0 (C2') — Per-swatch savings percent. The highest
+			// discount % among in-stock variations matching this term
+			// value (0 when not on sale). Always computed (cheap — reuses
+			// the request-scoped variation cache); rendered into the DOM by
+			// the swatch templates as a "-N%" pill whose visibility is
+			// gated by the .wse-show-savings-pill class the Swatches widget
+			// adds to .wse-attr-block when the "Show Savings Pill" toggle
+			// is on. Mirrors the existing per-swatch image-price pattern.
+			'savings_percent' => $this->get_term_savings_percent( $product, $attribute, $option_value ),
 		);
 
 		// ── Type-specific data ────────────────────────────────────────────
@@ -681,6 +690,62 @@ class WSE_Swatch_Renderer {
 		}
 
 		return false;
+	}
+
+	/**
+	 * v1.5.0 (C2') — Returns the per-term savings percentage.
+	 *
+	 * Computes the HIGHEST discount percentage among all in-stock
+	 * variations whose attribute value matches $value. Returning the max
+	 * (rather than the lowest-priced variation's percent) makes the pill
+	 * as compelling as possible — e.g. if "Red / S" is 10% off but
+	 * "Red / L" is 30% off, the Red swatch shows "-30%".
+	 *
+	 * Empty-string ("any") attribute values are skipped because they apply
+	 * equally to every option and so don't represent a value-specific
+	 * discount.
+	 *
+	 * @param  \WC_Product $product   Product.
+	 * @param  string      $attribute Attribute name e.g. 'pa_color'.
+	 * @param  string      $value     Term slug or option value.
+	 * @return int                    Discount percent 0–100 (0 = not on sale).
+	 */
+	private function get_term_savings_percent(
+		\WC_Product $product,
+		string $attribute,
+		string $value
+	): int {
+
+		if ( ! $product instanceof \WC_Product_Variable ) {
+			return 0;
+		}
+
+		$variations = $this->get_available_variations( $product );
+		$attr_key   = 'attribute_' . sanitize_title( $attribute );
+
+		$best_percent = 0;
+
+		foreach ( $variations as $v ) {
+			$attr_val = $v['attributes'][ $attr_key ] ?? null;
+			if ( null === $attr_val || '' === $attr_val ) {
+				continue; // wildcard / unset — skip
+			}
+			if ( $attr_val !== $value ) {
+				continue;
+			}
+
+			$sale    = isset( $v['display_price'] ) ? (float) $v['display_price'] : 0.0;
+			$regular = isset( $v['display_regular_price'] ) ? (float) $v['display_regular_price'] : 0.0;
+
+			if ( $regular > $sale && $sale > 0 ) {
+				$percent = (int) round( ( ( $regular - $sale ) / $regular ) * 100 );
+				if ( $percent > $best_percent ) {
+					$best_percent = $percent;
+				}
+			}
+		}
+
+		return $best_percent;
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

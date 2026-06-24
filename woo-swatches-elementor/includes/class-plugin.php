@@ -126,6 +126,10 @@ class WSE_Plugin {
 		// v1.4.5 — Buy Now (AJAX handler + isolated checkout session)
 		require_once WSE_PATH . 'includes/class-buy-now.php';
 		WSE_Buy_Now::instance();
+
+		// v1.5.0 (B2) — Product-level video (admin field + URL parsing).
+		require_once WSE_PATH . 'includes/class-product-video.php';
+		WSE_Product_Video::instance();
 	}
 
 	// ─────────────────────────────────────────────────────────────────────

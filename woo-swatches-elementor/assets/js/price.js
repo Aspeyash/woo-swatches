@@ -141,8 +141,12 @@
 	 * @param {boolean} parts.showSaleBadge
 	 * @param {string} parts.saleBadgeText
 	 * @param {string} parts.savingsText     '' if disabled or no savings.
+	 * @param {boolean} [animate]            v1.5.0 (C1) — when true, the freshly
+	 *                                       inserted price elements get a one-shot
+	 *                                       animation class (fade/slide) read from
+	 *                                       the widget's data-price-anim attribute.
 	 */
-	function applyPriceState( $widget, parts ) {
+	function applyPriceState( $widget, parts, animate ) {
 
 		// 1. Remove all dynamic price-block elements that the server may
 		//    have rendered (range / current / was / from / sep) plus any
@@ -187,6 +191,19 @@
 			$newGroup = $newGroup.add( $savings );
 		}
 
+		// v1.5.0 (C1) — Apply a one-shot animation class to the freshly
+		// built elements. Because these nodes are brand-new, the CSS
+		// animation plays once on insert with no cleanup needed (the next
+		// applyPriceState call removes + recreates them, giving a fresh
+		// animation). The OS "reduce motion" setting is honoured purely in
+		// CSS, so we don't gate on it here. 'none' = no class = no motion.
+		if ( animate ) {
+			var animMode = String( $widget.data( 'price-anim' ) || 'fade' );
+			if ( 'none' !== animMode ) {
+				$newGroup.addClass( 'zymarg-price-anim-' + animMode );
+			}
+		}
+
 		// 3. Insert the group: AFTER heading if present, else at start.
 		var $heading = $widget.find( '.zymarg-price-heading' ).first();
 		if ( $heading.length ) {
@@ -219,7 +236,8 @@
 			showSaleBadge:   '1' === String( $widget.data( 'show-sale-badge' ) ),
 			saleBadgeText:   $widget.data( 'sale-badge-text' ) || 'Sale',
 			savingsText:     buildSavingsText( $widget, sale, regular ),
-		} );
+		}, true ); // v1.5.0 (C1) — a variation pick is always an explicit
+		           // user action, so animate the price change.
 
 		$widget.attr( 'data-variation-id', variation.variation_id || '' );
 	}
@@ -232,9 +250,15 @@
 	 *
 	 * v1.3.2 — Heading + shipping hint are preserved (see applyPriceState).
 	 *
-	 * @param {jQuery} $widget
+	 * @param {jQuery}  $widget
+	 * @param {boolean} [animate]  v1.5.0 (C1) — animate the revert. Passed
+	 *                             false for the init-time reset_data (which
+	 *                             WC fires during form hydration before any
+	 *                             user interaction) so the price doesn't
+	 *                             flash-animate on page load; true for a
+	 *                             user-initiated "clear selection".
 	 */
-	function restoreInitial( $widget ) {
+	function restoreInitial( $widget, animate ) {
 
 		var initialCurrent = $widget.data( 'initial-current' ) || '';
 		var initialRegular = $widget.data( 'initial-regular' ) || '';
@@ -259,7 +283,7 @@
 			showSaleBadge:   '1' === String( $widget.data( 'show-sale-badge' ) ),
 			saleBadgeText:   $widget.data( 'sale-badge-text' ) || 'Sale',
 			savingsText:     initialSavings,
-		} );
+		}, !! animate );
 
 		$widget.removeAttr( 'data-variation-id' );
 	}
@@ -333,11 +357,18 @@
 			}
 		} );
 
+		// v1.5.0 (C1) — WC fires reset_data once during form hydration
+		// (before any user interaction). We suppress the animation on that
+		// first init-time reset so the price doesn't flash-animate on page
+		// load, and animate every subsequent (user-initiated) clear.
+		var initialResetSeen = false;
+
 		$form.on( 'reset_data.wsePrice', function () {
 			if ( skeletonEnabled ) {
 				$widget.removeClass( 'zymarg-price--loading' );
 			}
-			restoreInitial( $widget );
+			restoreInitial( $widget, initialResetSeen );
+			initialResetSeen = true;
 		} );
 	}
 

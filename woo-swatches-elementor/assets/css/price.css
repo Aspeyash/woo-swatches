@@ -248,3 +248,39 @@ body.wse-stylesheet-enabled .zymarg-price.zymarg-price--loading > * {
 	0%   { background-position: 200% 0; }
 	100% { background-position: -200% 0; }
 }
+
+
+/* ─── v1.5.0 (C1) — Price-change animation ──────────────────────────────── */
+
+/* price.js adds one of these one-shot classes to the freshly-built price
+   elements when a variation is selected (data-price-anim = fade | slide).
+   The element is brand-new each time, so the animation plays exactly once
+   on insert with no JS cleanup required. "none" adds no class at all. */
+
+body.wse-stylesheet-enabled .zymarg-price-anim-fade {
+	animation: zymarg-price-fade-in 0.25s ease-out both;
+}
+
+body.wse-stylesheet-enabled .zymarg-price-anim-slide {
+	animation: zymarg-price-slide-in 0.25s ease-out both;
+}
+
+@keyframes zymarg-price-fade-in {
+	from { opacity: 0; }
+	to   { opacity: 1; }
+}
+
+@keyframes zymarg-price-slide-in {
+	from { opacity: 0; transform: translateY(6px); }
+	to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Accessibility — honour the OS-level "reduce motion" preference. When the
+   visitor has reduced motion enabled, the price updates instantly with no
+   animation regardless of the widget's animation setting. */
+@media ( prefers-reduced-motion: reduce ) {
+	body.wse-stylesheet-enabled .zymarg-price-anim-fade,
+	body.wse-stylesheet-enabled .zymarg-price-anim-slide {
+		animation: none !important;
+	}
+}

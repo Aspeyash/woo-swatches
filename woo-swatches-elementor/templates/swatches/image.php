@@ -134,6 +134,17 @@ $tabindex           = ( $is_selected || $is_first_focusable ) ? '0' : '-1';
 	<span class="wse-swatch-image-price"><?php echo wp_kses_post( $swatch['price_html'] ); ?></span>
 	<?php endif; ?>
 
+	<?php
+	/**
+	 * v1.5.0 (C2') — Per-swatch savings pill. Visibility gated by the
+	 * .wse-show-savings-pill class on the parent .wse-attr-block.
+	 */
+	$_savings_percent = (int) ( $swatch['savings_percent'] ?? 0 );
+	if ( $_savings_percent > 0 ) :
+	?>
+	<span class="wse-swatch-savings-pill" aria-hidden="true">-<?php echo esc_html( (string) $_savings_percent ); ?>%</span>
+	<?php endif; ?>
+
 	<span class="wse-checkmark" aria-hidden="true">
 		<svg width="12" height="12" viewBox="0 0 12 12" fill="none"
 		     xmlns="http://www.w3.org/2000/svg">

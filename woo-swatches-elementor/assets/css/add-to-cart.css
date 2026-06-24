@@ -1086,6 +1086,43 @@ body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active p:empty {
 	padding: 0 !important;
 }
 
+/* v1.5.0 (A1) — Proactive sticky-bar gap hardening.
+
+   The previous releases fixed themed-injected gaps reactively, one element
+   at a time (empty <p> in v1.4.10/.11). This block is a single proactive
+   sweep that collapses the other common zero-content gap sources themes /
+   plugins inject into the add-to-cart form, so we stop chasing them
+   release-by-release.
+
+   Every selector is:
+     • Scoped to .wse-widget-add-to-cart.wse-sticky-active (sticky-only),
+       so non-sticky / full-page layouts are never affected.
+     • :empty-guarded, so any element that actually contains content
+       (text, child nodes) is left completely alone.
+
+   DELIBERATELY CONSERVATIVE — we do NOT blanket-hide span:empty or
+   div:empty here, because the quantity stepper draws its +/- glyphs with
+   CSS-only (empty) <span> icons and the layout relies on some empty
+   structural wrappers; hiding those would re-introduce the v1.2.2
+   "minus icon invisible" class of bug. We only target element types the
+   plugin itself never emits inside the cart form:
+
+     1. Empty heading tags (h1–h6) left behind by section builders / themes
+        hooked onto woocommerce_before_add_to_cart_* .
+     2. WooCommerce's float-clearing <div class="clear"></div> helpers,
+        which are always empty by design and add line-box height. */
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active h1:empty,
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active h2:empty,
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active h3:empty,
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active h4:empty,
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active h5:empty,
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active h6:empty,
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active .clear:empty {
+	display: none !important;
+	margin:  0 !important;
+	padding: 0 !important;
+}
+
 /* Sticky active state base — premium compact bar */
 body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active {
 	position:    fixed;
