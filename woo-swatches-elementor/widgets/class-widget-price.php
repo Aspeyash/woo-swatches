@@ -122,17 +122,16 @@ class WSE_Widget_Price extends \Elementor\Widget_Base {
 
 	protected function register_controls(): void {
 		$this->register_content_controls();
+		WSE_Presets::register_widget_section( $this ); // v1.7.0
 		$this->register_style_container();
 		$this->register_style_current_price();
 		$this->register_style_regular_price();
-		$this->register_style_sale_badge();
 		$this->register_style_layout();
-		// v1.2.1 — new price widget enhancements
+		// v1.2.1 — new price widget enhancements (sale-badge sections removed in v1.7.0).
 		$this->register_content_smart_heading();   // P10
 		$this->register_content_savings();         // P1
 		$this->register_content_shipping_hint();   // P9
 		$this->register_content_loading_skeleton();// P4
-		$this->register_content_sale_badge_variants(); // P5
 	}
 
 	// ── STYLE TAB — Widget container box (v1.6.0) ────────────────────────
@@ -323,32 +322,6 @@ class WSE_Widget_Price extends \Elementor\Widget_Base {
 			)
 		);
 
-		$this->add_control(
-			'show_sale_badge',
-			array(
-				'label'        => esc_html__( 'Show sale badge', 'woo-swatches-elementor' ),
-				'type'         => \Elementor\Controls_Manager::SWITCHER,
-				'label_on'     => esc_html__( 'Yes', 'woo-swatches-elementor' ),
-				'label_off'    => esc_html__( 'No',  'woo-swatches-elementor' ),
-				'return_value' => 'yes',
-				'default'      => 'yes',
-				'condition'    => array( 'show_price' => 'yes' ),
-			)
-		);
-
-		$this->add_control(
-			'sale_badge_text',
-			array(
-				'label'     => esc_html__( 'Sale badge text', 'woo-swatches-elementor' ),
-				'type'      => \Elementor\Controls_Manager::TEXT,
-				'default'   => esc_html__( 'Sale', 'woo-swatches-elementor' ),
-				'condition' => array(
-					'show_price'      => 'yes',
-					'show_sale_badge' => 'yes',
-				),
-			)
-		);
-
 		$this->end_controls_section();
 	}
 
@@ -440,78 +413,6 @@ class WSE_Widget_Price extends \Elementor\Widget_Base {
 				),
 				'selectors'  => array(
 					'{{WRAPPER}} .zymarg-price' => '--zymarg-price-was-opacity: {{SIZE}};',
-				),
-			)
-		);
-
-		$this->end_controls_section();
-	}
-
-	// ── STYLE TAB — Sale Badge ───────────────────────────────────────────
-
-	private function register_style_sale_badge(): void {
-
-		$this->start_controls_section(
-			'section_style_sale_badge',
-			array(
-				'label'     => esc_html__( 'Sale Badge', 'woo-swatches-elementor' ),
-				'tab'       => \Elementor\Controls_Manager::TAB_STYLE,
-				'condition' => array( 'show_sale_badge' => 'yes' ),
-			)
-		);
-
-		$this->add_group_control(
-			\Elementor\Group_Control_Typography::get_type(),
-			array(
-				'name'     => 'sale_badge_typography',
-				'label'    => esc_html__( 'Typography', 'woo-swatches-elementor' ),
-				'selector' => '{{WRAPPER}} .zymarg-sale-badge',
-			)
-		);
-
-		$this->add_control(
-			'sale_badge_color',
-			array(
-				'label'     => esc_html__( 'Text color', 'woo-swatches-elementor' ),
-				'type'      => \Elementor\Controls_Manager::COLOR,
-				'selectors' => array(
-					'{{WRAPPER}} .zymarg-price' => '--zymarg-sale-badge-color: {{VALUE}};',
-				),
-			)
-		);
-
-		$this->add_control(
-			'sale_badge_bg',
-			array(
-				'label'     => esc_html__( 'Background', 'woo-swatches-elementor' ),
-				'type'      => \Elementor\Controls_Manager::COLOR,
-				'selectors' => array(
-					'{{WRAPPER}} .zymarg-price' => '--zymarg-sale-badge-bg: {{VALUE}};',
-				),
-			)
-		);
-
-		$this->add_responsive_control(
-			'sale_badge_padding',
-			array(
-				'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
-				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
-				'size_units' => array( 'px', 'em', 'rem' ),
-				'selectors'  => array(
-					'{{WRAPPER}} .zymarg-sale-badge' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
-				),
-			)
-		);
-
-		$this->add_control(
-			'sale_badge_radius',
-			array(
-				'label'      => esc_html__( 'Border radius', 'woo-swatches-elementor' ),
-				'type'       => \Elementor\Controls_Manager::SLIDER,
-				'size_units' => array( 'px', '%' ),
-				'range'      => array( 'px' => array( 'min' => 0, 'max' => 50 ) ),
-				'selectors'  => array(
-					'{{WRAPPER}} .zymarg-price' => '--zymarg-sale-badge-radius: {{SIZE}}{{UNIT}};',
 				),
 			)
 		);
@@ -793,46 +694,6 @@ class WSE_Widget_Price extends \Elementor\Widget_Base {
 		$this->end_controls_section();
 	}
 
-	// ── v1.2.1 (P5) — Sale badge variants ───────────────────────────────
-
-	private function register_content_sale_badge_variants(): void {
-
-		$this->start_controls_section(
-			'section_sale_badge_variants',
-			array(
-				'label' => esc_html__( 'Sale Badge — Position & Content', 'woo-swatches-elementor' ),
-				'tab'   => \Elementor\Controls_Manager::TAB_CONTENT,
-				'condition' => array( 'show_sale_badge' => 'yes' ),
-			)
-		);
-
-		$this->add_control( 'badge_position', array(
-			'label'   => esc_html__( 'Position', 'woo-swatches-elementor' ),
-			'type'    => \Elementor\Controls_Manager::SELECT,
-			'default' => 'inline_after',
-			'options' => array(
-				'inline_after'    => esc_html__( 'Inline, after price (default)', 'woo-swatches-elementor' ),
-				'inline_before'   => esc_html__( 'Inline, before price',          'woo-swatches-elementor' ),
-				'floating_corner' => esc_html__( 'Floating top-right corner',     'woo-swatches-elementor' ),
-				'block_above'     => esc_html__( 'Block, above price',            'woo-swatches-elementor' ),
-			),
-		) );
-
-		$this->add_control( 'badge_content', array(
-			'label'   => esc_html__( 'Content', 'woo-swatches-elementor' ),
-			'type'    => \Elementor\Controls_Manager::SELECT,
-			'default' => 'text_only',
-			'options' => array(
-				'text_only'    => esc_html__( 'Custom text (default — use Sale text from above)', 'woo-swatches-elementor' ),
-				'percent'      => esc_html__( '"-{percent}%"',          'woo-swatches-elementor' ),
-				'amount'       => esc_html__( '"Save {amount}"',         'woo-swatches-elementor' ),
-				'percent_text' => esc_html__( '"{percent}% off"',        'woo-swatches-elementor' ),
-			),
-		) );
-
-		$this->end_controls_section();
-	}
-
 	// ─────────────────────────────────────────────────────────────────────
 	// Render
 	// ─────────────────────────────────────────────────────────────────────
@@ -895,8 +756,6 @@ class WSE_Widget_Price extends \Elementor\Widget_Base {
 			'product'           => $product,
 			'price_data'        => $price_data,
 			'settings'          => $settings,
-			'show_sale_badge'   => 'yes' === ( $settings['show_sale_badge'] ?? 'yes' ),
-			'sale_badge_text'   => (string) ( $settings['sale_badge_text'] ?? __( 'Sale', 'woo-swatches-elementor' ) ),
 			'regular_position'  => sanitize_key( $settings['regular_price_position'] ?? 'subscript' ),
 			'default_style'     => sanitize_key( $settings['default_display_style'] ?? 'lowest' ),
 			'from_prefix'       => (string) ( $settings['from_prefix_text'] ?? __( 'From', 'woo-swatches-elementor' ) ),
@@ -911,8 +770,6 @@ class WSE_Widget_Price extends \Elementor\Widget_Base {
 			'savings_prefix'    => (string) ( $settings['savings_prefix'] ?? __( 'Save', 'woo-swatches-elementor' ) ),
 			'shipping_html'     => $shipping_html,
 			'skeleton_show'     => ( $settings['skeleton_show'] ?? 'no' ) === 'yes',
-			'badge_position'    => sanitize_key( $settings['badge_position'] ?? 'inline_after' ),
-			'badge_content'     => sanitize_key( $settings['badge_content']  ?? 'text_only' ),
 
 			// v1.5.0 (C1) — Price-change animation mode (fade|slide|none).
 			'price_anim'        => sanitize_key( $settings['price_anim'] ?? 'fade' ),

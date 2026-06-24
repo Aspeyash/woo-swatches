@@ -29,8 +29,6 @@
  * Available variables (extracted by WSE_Widget_Price::render()):
  *   @var \WC_Product_Variable $product           The variable product.
  *   @var array<string,mixed>  $price_data        Pre-computed price data.
- *   @var bool                 $show_sale_badge   Whether to render the sale badge.
- *   @var string               $sale_badge_text   Sale badge label text.
  *   @var string               $regular_position  Regular-price position.
  *   @var string               $default_style     Display style (lowest|lowest_with_from|range).
  *   @var string               $from_prefix       "From" prefix text.
@@ -63,14 +61,10 @@ $wrapper_classes[] = 'zymarg-price--style-' . sanitize_html_class( $default_styl
 	data-initial-regular="<?php echo esc_attr( $regular_html ); ?>"
 	data-initial-on-sale="<?php echo $is_on_sale ? '1' : '0'; ?>"
 	data-regular-position="<?php echo esc_attr( $regular_position ); ?>"
-	data-show-sale-badge="<?php echo $show_sale_badge ? '1' : '0'; ?>"
-	data-sale-badge-text="<?php echo esc_attr( $sale_badge_text ); ?>"
 	data-heading-state="<?php echo esc_attr( $heading_state ?? 'regular' ); ?>"
 	data-savings-show="<?php echo ( ! empty( $savings_show ) ) ? '1' : '0'; ?>"
 	data-savings-format="<?php echo esc_attr( $savings_format ?? 'amount_percent' ); ?>"
 	data-savings-prefix="<?php echo esc_attr( $savings_prefix ?? __( 'Save', 'woo-swatches-elementor' ) ); ?>"
-	data-badge-position="<?php echo esc_attr( $badge_position ?? 'inline_after' ); ?>"
-	data-badge-content="<?php echo esc_attr( $badge_content ?? 'text_only' ); ?>"
 	data-price-anim="<?php echo esc_attr( $price_anim ?? 'fade' ); ?>"
 	<?php if ( ! empty( $skeleton_show ) ) : ?>data-skeleton-enabled="1"<?php endif; ?>>
 
@@ -135,10 +129,6 @@ $wrapper_classes[] = 'zymarg-price--style-' . sanitize_html_class( $default_styl
 			)
 		);
 		?>
-	<?php endif; ?>
-
-	<?php if ( $is_on_sale && $show_sale_badge ) : ?>
-		<span class="zymarg-sale-badge"><?php echo esc_html( $sale_badge_text ); ?></span>
 	<?php endif; ?>
 
 	<?php

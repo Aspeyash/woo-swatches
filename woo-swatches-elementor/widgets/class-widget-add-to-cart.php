@@ -98,6 +98,7 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 
 	protected function register_controls(): void {
 		$this->register_content_controls();
+		WSE_Presets::register_widget_section( $this ); // v1.7.0
 		$this->register_style_controls();
 	}
 

@@ -10,11 +10,15 @@
  * No JS variation sync needed for simple products — the price is stable
  * for the lifetime of the page render.
  *
+ * v1.7.0 — The Sale Badge feature was removed entirely from the Price
+ * widget per ZYMARG product decision. The smart heading
+ * (.zymarg-price-heading) now carries any "on sale" messaging; the
+ * "you save" indicator handles the discount magnitude. The Gallery
+ * widget retains its own independent sale badge overlay.
+ *
  * Available variables (extracted by WSE_Widget_Price::render()):
  *   @var \WC_Product       $product           The simple product.
  *   @var array<string,mixed> $price_data      Pre-computed price data.
- *   @var bool              $show_sale_badge   Whether to render the sale badge.
- *   @var string            $sale_badge_text   Sale badge label text.
  *   @var string            $regular_position  Regular-price position (subscript|beside|below|hide).
  *
  * @package WooSwatchesElementor
@@ -82,25 +86,6 @@ if ( $is_on_sale ) {
 		}
 		?>
 		<span class="zymarg-price-savings"><?php echo $_savings_html; // phpcs:ignore WordPress.Security.EscapeOutput ?></span>
-	<?php endif; ?>
-
-	<?php
-	// v1.2.1 (P5) — Sale badge with position/content variants.
-	if ( $is_on_sale && $show_sale_badge ) :
-		$_pos     = $badge_position ?? 'inline_after';
-		$_content = $badge_content  ?? 'text_only';
-		$_text    = $sale_badge_text;
-
-		// Compute content based on the chosen variant.
-		if ( 'percent' === $_content && ! empty( $savings_data['percent'] ) ) {
-			$_text = sprintf( '-%d%%', (int) $savings_data['percent'] );
-		} elseif ( 'amount' === $_content && ! empty( $savings_data['amount_html'] ) ) {
-			$_text = sprintf( '%s %s', esc_html__( 'Save', 'woo-swatches-elementor' ), $savings_data['amount_html'] );
-		} elseif ( 'percent_text' === $_content && ! empty( $savings_data['percent'] ) ) {
-			$_text = sprintf( '%d%% off', (int) $savings_data['percent'] );
-		}
-		?>
-		<span class="zymarg-sale-badge zymarg-sale-badge--<?php echo esc_attr( $_pos ); ?>"><?php echo esc_html( $_text ); ?></span>
 	<?php endif; ?>
 
 	<?php if ( ! empty( $shipping_html ) ) : ?>

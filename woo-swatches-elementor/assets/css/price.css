@@ -24,12 +24,6 @@ body.wse-stylesheet-enabled .zymarg-price {
 	--zymarg-price-was-color:       #534152;   /* ZYMARG Text Muted */
 	--zymarg-price-was-size:        .8125em;
 	--zymarg-price-was-opacity:     .7;
-	--zymarg-sale-badge-bg:         #9500a5;   /* ZYMARG Primary  */
-	--zymarg-sale-badge-color:      #ffffff;   /* ZYMARG Surface Lowest */
-	--zymarg-sale-badge-padding:    2px 8px;
-	--zymarg-sale-badge-radius:     4px;
-	--zymarg-sale-badge-size:       .75em;
-	--zymarg-sale-badge-weight:     600;
 	--zymarg-price-gap:             .5em;
 	--zymarg-price-from-color:      #534152;
 }
@@ -92,23 +86,6 @@ body.wse-stylesheet-enabled .zymarg-price-was--below {
 	display:      block;
 	flex-basis:   100%;
 	margin-top:   2px;
-}
-
-/* ─── Sale badge ─────────────────────────────────────────────────────────── */
-
-body.wse-stylesheet-enabled .zymarg-sale-badge {
-	display:        inline-flex;
-	align-items:    center;
-	padding:        var(--zymarg-sale-badge-padding);
-	background:     var(--zymarg-sale-badge-bg);
-	color:          var(--zymarg-sale-badge-color);
-	border-radius:  var(--zymarg-sale-badge-radius);
-	font-size:      var(--zymarg-sale-badge-size);
-	font-weight:    var(--zymarg-sale-badge-weight);
-	line-height:    1;
-	letter-spacing: .04em;
-	text-transform: uppercase;
-	white-space:    nowrap;
 }
 
 /* ─── "From" prefix (lowest_with_from style) ────────────────────────────── */
@@ -200,28 +177,6 @@ body.wse-stylesheet-enabled .zymarg-price-shipping-hint::before {
 	content:     '\2713'; /* ✓ */
 	color:       #9500a5;
 	font-weight: 700;
-}
-
-/* ─── v1.2.1 (P5) — Sale badge variant positions ────────────────────────── */
-
-body.wse-stylesheet-enabled .zymarg-sale-badge--inline_before {
-	order: -2;                             /* before everything except heading */
-}
-body.wse-stylesheet-enabled .zymarg-sale-badge--block_above {
-	flex-basis: 100%;
-	order:      -1;                        /* same row as heading; heading wins */
-	margin-bottom: 4px;
-}
-body.wse-stylesheet-enabled .zymarg-sale-badge--floating_corner {
-	position:  absolute;
-	top:       -8px;
-	right:     -8px;
-	transform: rotate( 4deg );
-	z-index:   2;
-	box-shadow: 0 2px 6px rgba( 149, 0, 165, 0.25 );
-}
-body.wse-stylesheet-enabled .zymarg-price--has-floating-badge {
-	position: relative;
 }
 
 /* ─── v1.2.1 (P4) — Loading skeleton (shimmer) ──────────────────────────── */

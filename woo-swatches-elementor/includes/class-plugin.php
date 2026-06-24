@@ -130,6 +130,10 @@ class WSE_Plugin {
 		// v1.5.0 (B2) — Product-level video (admin field + URL parsing).
 		require_once WSE_PATH . 'includes/class-product-video.php';
 		WSE_Product_Video::instance();
+
+		// v1.7.0 — Per-widget named presets + auto-apply on insert.
+		require_once WSE_PATH . 'includes/class-presets.php';
+		WSE_Presets::instance();
 	}
 
 	// ─────────────────────────────────────────────────────────────────────
