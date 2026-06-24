@@ -59,6 +59,12 @@ class WSE_Assets {
 		// Admin: pass cache-flush nonce to any admin page that has our UI
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin' ) );
 
+		// v1.7.0 — Enqueue the presets editor JS only inside the Elementor editor.
+		// `elementor/editor/before_enqueue_scripts` fires only when Elementor
+		// is loading its own editor UI, so this hook is the cleanest gate
+		// (no need to inspect $_GET / current_screen ourselves).
+		add_action( 'elementor/editor/before_enqueue_scripts', array( $this, 'enqueue_editor' ) );
+
 		// v1.2.1 (F5) — Inject responsive per-type swatch width CSS in <head>
 		// driven by the global WSE_Settings → Swatch Sizes options. Runs at
 		// priority 100 so theme/plugin styles register first; our inline
@@ -400,6 +406,75 @@ class WSE_Assets {
 				),
 			)
 		);
+	}
+
+	/**
+	 * v1.7.0 — Enqueues the ZYMARG presets JS inside the Elementor editor.
+	 *
+	 * Hooked from `elementor/editor/before_enqueue_scripts`, which only
+	 * fires inside the editor view (NOT on the editor preview iframe and
+	 * NOT on regular admin pages), so we don't need extra screen guards.
+	 *
+	 * The script consumes `WSEPresets` (localized below): nonce + AJAX URL
+	 * + the supported widget-types list + i18n strings. It also requires
+	 * jquery (Elementor's editor depends on it anyway).
+	 */
+	public function enqueue_editor(): void {
+
+		$handle = 'wse-admin-presets';
+		$src    = WSE_URL . 'admin/admin-presets.js';
+
+		wp_register_script(
+			$handle,
+			$src,
+			array( 'jquery' ),
+			WSE_VERSION,
+			true
+		);
+
+		wp_localize_script(
+			$handle,
+			'WSEPresets',
+			array(
+				'ajax_url'  => esc_url( admin_url( 'admin-ajax.php' ) ),
+				'nonce'     => wp_create_nonce( WSE_Presets::NONCE_ACTION ),
+				'supported' => WSE_Presets::SUPPORTED_WIDGETS,
+				'i18n'      => array(
+					'choose_preset'      => esc_html__( '— Select a preset —',                                    'woo-swatches-elementor' ),
+					'no_presets'         => esc_html__( 'No saved presets yet',                                   'woo-swatches-elementor' ),
+					'auto_apply_off'     => esc_html__( '— None (off) —',                                         'woo-swatches-elementor' ),
+					'loading'            => esc_html__( 'Loading…',                                               'woo-swatches-elementor' ),
+					'saving'             => esc_html__( 'Saving…',                                                'woo-swatches-elementor' ),
+					'saved'              => esc_html__( 'Saved.',                                                 'woo-swatches-elementor' ),
+					'deleting'           => esc_html__( 'Deleting…',                                              'woo-swatches-elementor' ),
+					'deleted'            => esc_html__( 'Deleted.',                                               'woo-swatches-elementor' ),
+					'applied'            => esc_html__( 'Applied: ',                                              'woo-swatches-elementor' ),
+					'apply_failed'       => esc_html__( 'Could not apply preset.',                                'woo-swatches-elementor' ),
+					'read_failed'        => esc_html__( 'Could not read current settings.',                       'woo-swatches-elementor' ),
+					'preset_not_found'   => esc_html__( 'Preset not found.',                                      'woo-swatches-elementor' ),
+					'prompt_name'        => esc_html__( 'Preset name:',                                           'woo-swatches-elementor' ),
+					'new_preset_default' => esc_html__( 'My preset',                                              'woo-swatches-elementor' ),
+					'confirm_update'     => esc_html__( 'Overwrite this preset with the current widget settings?','woo-swatches-elementor' ),
+					'confirm_delete'     => esc_html__( 'Delete this preset?',                                    'woo-swatches-elementor' ),
+					'generic_error'      => esc_html__( 'Something went wrong.',                                  'woo-swatches-elementor' ),
+					'network_error'      => esc_html__( 'Network error.',                                         'woo-swatches-elementor' ),
+				),
+			)
+		);
+
+		wp_enqueue_script( $handle );
+
+		// v1.7.0 — Editor-only stylesheet for the preset panel + any other
+		// admin UI shown in the editor sidebar. The selectors are all
+		// .wse-* / .term-wse-* scoped so they cannot leak outside our DOM.
+		$css_handle = 'wse-admin-css';
+		wp_register_style(
+			$css_handle,
+			WSE_URL . 'admin/admin.css',
+			array(),
+			WSE_VERSION
+		);
+		wp_enqueue_style( $css_handle );
 	}
 
 	/**

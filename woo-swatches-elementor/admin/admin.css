@@ -294,3 +294,78 @@ div.term-wse-image-wrap {
     color:         #131b2e;                  /* ZYMARG Text Body */
     border-bottom-color: #d0e1fb !important; /* ZYMARG Secondary Container */
 }
+
+
+
+/* ─── v1.7.0 — ZYMARG Presets panel (Elementor editor) ───────────────── */
+
+/* The preset panel mounts inside an Elementor RAW_HTML control, so it
+   inherits the editor's narrow column. All rules here scope to
+   `.wse-presets-panel` so they cannot leak onto other admin UI. */
+
+.wse-presets-panel {
+	font-family: inherit;
+	color: #1e293b;
+}
+
+.wse-presets-panel select {
+	border: 1px solid #cbd5e1;
+	border-radius: 3px;
+	padding: 4px 6px;
+	font-size: 12px;
+	background: #ffffff;
+}
+
+.wse-presets-panel .wse-presets-actions .wse-presets-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 5px 10px;
+	border: 1px solid #cbd5e1;
+	border-radius: 3px;
+	background: #ffffff;
+	color: #1e293b;
+	font-size: 11px;
+	font-weight: 500;
+	line-height: 1.2;
+	cursor: pointer;
+	transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.wse-presets-panel .wse-presets-btn:hover:not([disabled]),
+.wse-presets-panel .wse-presets-btn:focus-visible {
+	background: #f1f5ff;
+	border-color: #9500a5;       /* ZYMARG Primary */
+	color:        #9500a5;
+	outline:      none;
+}
+
+/* Apply button — primary action, ZYMARG Primary. */
+.wse-presets-panel .wse-presets-btn--apply:not([disabled]) {
+	background: #9500a5;
+	border-color: #9500a5;
+	color: #ffffff;
+}
+.wse-presets-panel .wse-presets-btn--apply:not([disabled]):hover,
+.wse-presets-panel .wse-presets-btn--apply:not([disabled]):focus-visible {
+	background: #bd00d1;          /* ZYMARG Primary Container */
+	border-color: #bd00d1;
+	color: #ffffff;
+}
+
+/* Delete button — destructive accent. */
+.wse-presets-panel .wse-presets-btn--delete:not([disabled]):hover,
+.wse-presets-panel .wse-presets-btn--delete:not([disabled]):focus-visible {
+	background: #fee2e2;
+	border-color: #b91c1c;
+	color:        #b91c1c;
+}
+
+.wse-presets-panel .wse-presets-btn[disabled] {
+	opacity: .5;
+	cursor: not-allowed;
+}
+
+.wse-presets-panel .wse-presets-status {
+	font-style: italic;
+}

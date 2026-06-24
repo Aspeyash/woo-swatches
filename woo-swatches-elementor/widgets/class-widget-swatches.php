@@ -101,6 +101,7 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 
 	protected function register_controls(): void {
 		$this->register_content_controls();
+		WSE_Presets::register_widget_section( $this ); // v1.7.0
 		$this->register_style_container();
 		$this->register_style_swatches();
 		$this->register_style_active_state();

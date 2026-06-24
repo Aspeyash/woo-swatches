@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,59 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.7.0 =
+**Minor release — ZYMARG Presets system + Price-widget Sale Badge removed.**
+
+New feature — **ZYMARG Presets** (per-widget named presets + auto-apply
+on insert):
+
+* Every WooSwatches widget (Swatches / Add to Cart / Price / Gallery)
+  gains a **"ZYMARG Presets"** section at the top of its Style tab.
+* Save the current widget's settings as a named preset, apply a saved
+  preset to any other widget instance with one click, update an existing
+  preset in place, or delete it.
+* Pick one preset as **"Auto-apply on new widget"** — when a fresh widget
+  of that type is dragged onto the canvas, its settings are populated
+  from the preset automatically. Default is OFF (no auto-apply); the
+  feature is opt-in per widget type.
+* Storage: per-widget-type WP options (`wse_presets_{type}` and
+  `wse_preset_active_{type}`); no DB schema change. Hard cap of 25
+  presets per widget type to keep storage bounded.
+* Security: every preset AJAX endpoint requires the `wse_presets` nonce
+  AND the `manage_options` capability — only admins can save / delete /
+  configure presets.
+* Auto-apply uses Elementor 3.x's `$e.commands` event bus (with a
+  Backbone-collection fallback for older builds) and an idempotent seen-id
+  guard so duplicate / paste / template-load operations never trigger it.
+
+Removed — **Price-widget Sale Badge**:
+
+* Removed the entire Sale Badge feature from the Price widget per ZYMARG
+  product decision. This includes the "Show sale badge" toggle, "Sale
+  badge text" field, the **Style tab → Sale Badge** section (typography,
+  color, background, padding, radius), and the **Sale Badge — Position &
+  Content** content section (position + content variants).
+* Templates (`simple.php`, `variable.php`) no longer render any
+  `.zymarg-sale-badge` element. Data attributes `data-show-sale-badge`,
+  `data-sale-badge-text`, `data-badge-position`, `data-badge-content`
+  removed from the wrapper.
+* `price.css` / `.min.css`: removed the `.zymarg-sale-badge` rule, the
+  three position-variant rules, the `.zymarg-price--has-floating-badge`
+  helper, and the six `--zymarg-sale-badge-*` custom properties.
+* `price.js` / `.min.js`: removed `showSaleBadge` / `saleBadgeText` from
+  `applyPriceState`'s parts shape and from `renderVariation` /
+  `restoreInitial`. The `.zymarg-sale-badge` selector remains in the
+  defensive cleanup remove-list inside `applyPriceState` so any stale
+  badge node from a previously-saved page is silently swept on the
+  first render.
+* On-sale messaging is now carried by the smart heading
+  (`.zymarg-price-heading--sale`) and the "you save" indicator
+  (`.zymarg-price-savings`).
+* The **Gallery widget's** sale-badge overlay is unrelated and stays.
+
+PHP + JS + CSS changes; no DB schema migration. Drop-in replacement for
+v1.6.0. Hard-refresh + Regenerate CSS after install.
 
 = 1.6.0 =
 **Minor release — customization controls, sticky moved into the widget, savings-pill removed.**
@@ -1555,6 +1608,9 @@ Forward-looking items not yet scheduled to a specific release:
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.7.0 =
+ZYMARG Presets — every WooSwatches widget now has a "ZYMARG Presets" section at the top of its Style tab where you can save / apply / update / delete named presets, and pick one to auto-apply when a new widget of that type is dropped onto the canvas. REMOVED: the Price widget's Sale Badge feature is gone entirely (controls, render, CSS) — the smart heading + you-save indicator carry the on-sale messaging. Drop-in replacement for v1.6.0; no DB migration. Hard-refresh + Regenerate CSS after install.
 
 = 1.6.0 =
 IMPORTANT: Sticky Add to Cart settings have moved from WooCommerce → Settings → WooSwatches INTO the Add to Cart widget (Content → Behavior). The global panel is removed. After updating, re-enable sticky per-widget in Elementor (defaults to sticky ON for mobile only). Adds deep customization controls (container background incl. gradient, border, radius, padding, margin — all responsive) across all four widgets, plus a sticky-bar minimum-height control. Removes the v1.5.0 per-swatch savings pill. No DB migration. Hard-refresh + Regenerate CSS after install.

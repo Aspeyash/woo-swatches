@@ -138,8 +138,6 @@
 	 * @param {string} parts.regularHtml     Already-formatted regular price text ('' if no sale).
 	 * @param {boolean} parts.isOnSale
 	 * @param {string} parts.regularPosition subscript | beside | below | hide
-	 * @param {boolean} parts.showSaleBadge
-	 * @param {string} parts.saleBadgeText
 	 * @param {string} parts.savingsText     '' if disabled or no savings.
 	 * @param {boolean} [animate]            v1.5.0 (C1) — when true, the freshly
 	 *                                       inserted price elements get a one-shot
@@ -179,11 +177,6 @@
 				$was = $( '<del class="zymarg-price-was ' + posClass + '"></del>' ).text( parts.regularHtml );
 			}
 			$newGroup = $newGroup.add( $was );
-		}
-
-		if ( parts.isOnSale && parts.showSaleBadge ) {
-			var $badge = $( '<span class="zymarg-sale-badge"></span>' ).text( parts.saleBadgeText );
-			$newGroup = $newGroup.add( $badge );
 		}
 
 		if ( parts.savingsText ) {
@@ -233,8 +226,6 @@
 			regularHtml:     formatPrice( regular ),
 			isOnSale:        isOnSale,
 			regularPosition: $widget.data( 'regular-position' ) || 'subscript',
-			showSaleBadge:   '1' === String( $widget.data( 'show-sale-badge' ) ),
-			saleBadgeText:   $widget.data( 'sale-badge-text' ) || 'Sale',
 			savingsText:     buildSavingsText( $widget, sale, regular ),
 		}, true ); // v1.5.0 (C1) — a variation pick is always an explicit
 		           // user action, so animate the price change.
@@ -280,8 +271,6 @@
 			regularHtml:     initialRegular,
 			isOnSale:        initialOnSale,
 			regularPosition: $widget.data( 'regular-position' ) || 'subscript',
-			showSaleBadge:   '1' === String( $widget.data( 'show-sale-badge' ) ),
-			saleBadgeText:   $widget.data( 'sale-badge-text' ) || 'Sale',
 			savingsText:     initialSavings,
 		}, !! animate );
 

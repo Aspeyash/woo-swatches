@@ -118,6 +118,24 @@ All dimensional controls must offer Desktop / Tablet / Mobile in the Elementor c
 | 7.4 | Stylesheet toggle off | WC → Settings → WooSwatches → disable plugin stylesheet: theme CSS takes over, no fatal layout break | | ✅ |
 | 7.5 | RTL | On an RTL locale, swatches + price render right-to-left | | ✅ |
 
+## 8. Presets (v1.7.0)
+
+Test in Elementor editor on a page with one of each WooSwatches widget. Open the widget's Style tab and find the "ZYMARG Presets" section at the top.
+
+| # | Test | Expected | Smoke | Full |
+|---|------|----------|:-----:|:----:|
+| 8.1 | Section renders | "ZYMARG Presets" section appears at top of Style tab on Swatches / Add to Cart / Price / Gallery widgets | ✅ | ✅ |
+| 8.2 | Save new preset | Configure widget; click "Save current settings as new preset…"; enter a name → preset is saved and selected in the dropdown | ✅ | ✅ |
+| 8.3 | Apply preset | On a different widget instance, pick the saved preset → click "Apply selected preset" → settings transfer; preview re-renders | ✅ | ✅ |
+| 8.4 | Update current | Change a few settings, click "Update current preset" → confirms, then re-apply elsewhere shows the new state | | ✅ |
+| 8.5 | Delete preset | Click "Delete selected preset" → preset removed from dropdown across all widgets of that type | | ✅ |
+| 8.6 | Auto-apply on insert | In a widget, set "Auto-apply on new widget" to a saved preset; drag a NEW widget of that type onto the canvas → its settings match the preset | ✅ | ✅ |
+| 8.7 | Auto-apply OFF (default) | With "Auto-apply on new widget" set to "— None (off) —", new widget inserts use plugin defaults (no auto-changes) | ✅ | ✅ |
+| 8.8 | Per widget type isolation | Saving a preset on Swatches doesn't affect Price/Gallery dropdowns | | ✅ |
+| 8.9 | Capability gate | Log in as a non-admin user (e.g. shop_manager) → editor either hides the panel actions or shows a permission error in the status line | | ✅ |
+| 8.10 | Sale badge gone | Edit Price widget Style tab → no "Sale Badge" section; Content tab → no sale-badge controls | ✅ | ✅ |
+| 8.11 | Front-end no badge | On an on-sale product page, no `.zymarg-sale-badge` is rendered by the Price widget (Gallery widget's badge stays unaffected) | ✅ | ✅ |
+
 ---
 
 ## Release sign-off

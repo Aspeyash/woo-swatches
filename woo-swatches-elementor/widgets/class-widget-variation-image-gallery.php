@@ -109,6 +109,7 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 		$this->register_section_animation();
 
 		// Phase 5 — Style tab sections.
+		WSE_Presets::register_widget_section( $this ); // v1.7.0
 		$this->register_section_style_container();   // v1.6.0
 		$this->register_section_style_main_image();
 		$this->register_section_style_thumbs();
