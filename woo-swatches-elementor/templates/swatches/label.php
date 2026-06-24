@@ -78,15 +78,4 @@ if ( ! $is_available ) {
 		<?php echo esc_html( $label ); ?>
 	</span>
 
-	<?php
-	/**
-	 * v1.5.0 (C2') — Per-swatch savings pill. Visibility gated by the
-	 * .wse-show-savings-pill class on the parent .wse-attr-block.
-	 */
-	$_savings_percent = (int) ( $swatch['savings_percent'] ?? 0 );
-	if ( $_savings_percent > 0 ) :
-	?>
-	<span class="wse-swatch-savings-pill" aria-hidden="true">-<?php echo esc_html( (string) $_savings_percent ); ?>%</span>
-	<?php endif; ?>
-
 </li>

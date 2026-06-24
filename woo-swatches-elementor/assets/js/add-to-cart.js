@@ -592,20 +592,26 @@
 	};
 
 	/**
-	 * v1.4.7 — Returns true if scroll-triggered sticky is enabled for the
-	 * current viewport breakpoint. Reads WSEParams.sticky_scroll_trigger
-	 * which is set per-device from WC settings.
+	 * v1.6.0 — Returns true if scroll-triggered sticky is enabled for the
+	 * given widget at the current viewport breakpoint. Reads the per-widget
+	 * data-scroll-trigger-{d|t|m} attributes emitted by the Add to Cart
+	 * widget (replaces the old global WSEParams.sticky_scroll_trigger that
+	 * was localized from the now-removed WC settings panel).
+	 *
+	 * @param {jQuery} $el The sticky widget element.
 	 */
-	function isScrollTriggerActive() {
-		var params = ( window.WSEParams && window.WSEParams.sticky_scroll_trigger ) || {};
+	function isScrollTriggerActive( $el ) {
+		if ( ! $el || ! $el.length ) {
+			return false;
+		}
 		if ( window.matchMedia( STICKY_BREAKPOINTS.desktop ).matches ) {
-			return !! params.desktop;
+			return '1' === String( $el.attr( 'data-scroll-trigger-d' ) || '0' );
 		}
 		if ( window.matchMedia( STICKY_BREAKPOINTS.tablet ).matches ) {
-			return !! params.tablet;
+			return '1' === String( $el.attr( 'data-scroll-trigger-t' ) || '0' );
 		}
 		if ( window.matchMedia( STICKY_BREAKPOINTS.mobile ).matches ) {
-			return !! params.mobile;
+			return '1' === String( $el.attr( 'data-scroll-trigger-m' ) || '0' );
 		}
 		return false;
 	}
@@ -620,7 +626,7 @@
 	 * unconditionally.
 	 */
 	function shouldStickyBeVisible( $stickyEl ) {
-		if ( ! isScrollTriggerActive() ) {
+		if ( ! isScrollTriggerActive( $stickyEl ) ) {
 			return true;   // always-on mode
 		}
 

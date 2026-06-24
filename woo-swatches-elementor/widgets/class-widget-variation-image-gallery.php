@@ -109,6 +109,7 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 		$this->register_section_animation();
 
 		// Phase 5 — Style tab sections.
+		$this->register_section_style_container();   // v1.6.0
 		$this->register_section_style_main_image();
 		$this->register_section_style_thumbs();
 		$this->register_section_style_zoom_lens();
@@ -575,6 +576,129 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 	// ─────────────────────────────────────────────────────────────────────
 	// Phase 5 — Style tab sections
 	// ─────────────────────────────────────────────────────────────────────
+
+	/**
+	 * v1.6.0 — Style → Widget Container.
+	 *
+	 * Box styling for the gallery wrapper (.zymarg-vig) plus optional
+	 * background + padding for the thumbnail strip (.zymarg-vig-thumbs) and
+	 * the main-image wrapper (.zymarg-vig-main-wrap). All dimensional
+	 * controls are responsive (D/T/M). The existing Main Image / Thumbnails
+	 * sections continue to handle the image-level sizing, radius, and
+	 * borders; this section adds the surrounding container boxes.
+	 */
+	private function register_section_style_container(): void {
+
+		$this->start_controls_section(
+			'section_style_container',
+			array(
+				'label' => esc_html__( 'Widget Container', 'woo-swatches-elementor' ),
+				'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+			)
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Background::get_type(),
+			array(
+				'name'     => 'vig_container_background',
+				'types'    => array( 'classic', 'gradient' ),
+				'selector' => '{{WRAPPER}} .zymarg-vig',
+			)
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Border::get_type(),
+			array(
+				'name'     => 'vig_container_border',
+				'selector' => '{{WRAPPER}} .zymarg-vig',
+			)
+		);
+
+		$this->add_responsive_control( 'vig_container_radius', array(
+			'label'      => esc_html__( 'Border Radius', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', '%', 'em' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-vig' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'vig_container_padding', array(
+			'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em', '%' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-vig' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'vig_container_margin', array(
+			'label'      => esc_html__( 'Margin', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em', '%' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-vig' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Box_Shadow::get_type(),
+			array(
+				'name'     => 'vig_container_box_shadow',
+				'selector' => '{{WRAPPER}} .zymarg-vig',
+			)
+		);
+
+		// ── Thumbnail strip box ───────────────────────────────────────────
+		$this->add_control( 'vig_thumbs_heading', array(
+			'label'     => esc_html__( 'Thumbnail Strip', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::HEADING,
+			'separator' => 'before',
+		) );
+
+		$this->add_control( 'vig_thumbs_bg', array(
+			'label'     => esc_html__( 'Background Color', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::COLOR,
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-thumbs' => 'background-color: {{VALUE}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'vig_thumbs_padding', array(
+			'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-vig-thumbs' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		// ── Main image wrapper box ────────────────────────────────────────
+		$this->add_control( 'vig_main_wrap_heading', array(
+			'label'     => esc_html__( 'Main Image Area', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::HEADING,
+			'separator' => 'before',
+		) );
+
+		$this->add_control( 'vig_main_wrap_bg', array(
+			'label'     => esc_html__( 'Background Color', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::COLOR,
+			'selectors' => array(
+				'{{WRAPPER}} .zymarg-vig-main-wrap' => 'background-color: {{VALUE}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'vig_main_wrap_padding', array(
+			'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-vig-main-wrap' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->end_controls_section();
+	}
 
 	/**
 	 * Style → Main Image.

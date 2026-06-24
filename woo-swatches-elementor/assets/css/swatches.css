@@ -706,38 +706,3 @@ body.wse-stylesheet-enabled .wse-attr-block.wse-image-label-pos-hidden .wse-swat
 body.wse-stylesheet-enabled .wse-label-hidden .wse-attr-label-row {
 	display: none !important;
 }
-
-
-/* ─── v1.5.0 (C2') — Per-swatch savings / percent-off pill ──────────────── */
-
-/* The "-N%" pill is always rendered server-side (in color.php / image.php /
-   label.php) when the swatch's term is on sale. It stays hidden until the
-   Swatches widget's "Show Savings Pill" toggle adds .wse-show-savings-pill
-   to the parent .wse-attr-block. Positioned INSIDE the top-right corner so
-   the swatch's overflow:hidden doesn't clip it. */
-
-body.wse-stylesheet-enabled .wse-swatch-savings-pill {
-	display: none;
-}
-
-body.wse-stylesheet-enabled .wse-show-savings-pill .wse-swatch-savings-pill {
-	display:         inline-flex;
-	align-items:     center;
-	justify-content: center;
-	position:        absolute;
-	top:             2px;
-	right:           2px;
-	z-index:         3;
-	padding:         0 4px;
-	min-width:       18px;
-	height:          15px;
-	border-radius:   7px;
-	background:      #9500a5;   /* ZYMARG Primary */
-	color:           #ffffff;   /* ZYMARG Surface Lowest */
-	font-size:       9px;
-	font-weight:     700;
-	line-height:     1;
-	letter-spacing:  .02em;
-	pointer-events:  none;
-	box-shadow:      0 1px 3px rgba( 149, 0, 165, .35 );
-}
