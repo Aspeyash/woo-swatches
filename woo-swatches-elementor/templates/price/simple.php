@@ -37,6 +37,7 @@ if ( $is_on_sale ) {
 	data-product-id="<?php echo absint( $product->get_id() ); ?>"
 	data-product-type="simple"
 	data-heading-state="<?php echo esc_attr( $heading_state ?? 'regular' ); ?>"
+	data-price-anim="<?php echo esc_attr( $price_anim ?? 'fade' ); ?>"
 	<?php if ( ! empty( $skeleton_show ) ) : ?>data-skeleton-enabled="1"<?php endif; ?>>
 
 	<?php if ( ! empty( $heading_text ) ) : ?>

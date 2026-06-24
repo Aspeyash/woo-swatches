@@ -71,6 +71,7 @@ $wrapper_classes[] = 'zymarg-price--style-' . sanitize_html_class( $default_styl
 	data-savings-prefix="<?php echo esc_attr( $savings_prefix ?? __( 'Save', 'woo-swatches-elementor' ) ); ?>"
 	data-badge-position="<?php echo esc_attr( $badge_position ?? 'inline_after' ); ?>"
 	data-badge-content="<?php echo esc_attr( $badge_content ?? 'text_only' ); ?>"
+	data-price-anim="<?php echo esc_attr( $price_anim ?? 'fade' ); ?>"
 	<?php if ( ! empty( $skeleton_show ) ) : ?>data-skeleton-enabled="1"<?php endif; ?>>
 
 	<?php if ( ! empty( $heading_text ) ) : ?>

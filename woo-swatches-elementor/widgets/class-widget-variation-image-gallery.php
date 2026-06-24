@@ -278,6 +278,22 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 			'default'      => 'yes',
 		) );
 
+		// v1.5.0 (B2) — Product video overlay.
+		$this->add_control( 'show_product_video', array(
+			'label'        => esc_html__( 'Show product video button', 'woo-swatches-elementor' ),
+			'description'  => esc_html__( 'When the product has a "Product Video URL" set (Product data → General), show a "Watch video" button that opens a lazy-loaded overlay player. YouTube, Vimeo, and direct MP4/WebM/OGG are supported.', 'woo-swatches-elementor' ),
+			'type'         => \Elementor\Controls_Manager::SWITCHER,
+			'return_value' => 'yes',
+			'default'      => 'yes',
+		) );
+
+		$this->add_control( 'product_video_button_text', array(
+			'label'     => esc_html__( 'Video button text', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::TEXT,
+			'default'   => esc_html__( 'Watch video', 'woo-swatches-elementor' ),
+			'condition' => array( 'show_product_video' => 'yes' ),
+		) );
+
 		$this->add_control( 'show_arrows', array(
 			'label'        => esc_html__( 'Show arrows', 'woo-swatches-elementor' ),
 			'type'         => \Elementor\Controls_Manager::SWITCHER,
@@ -1351,6 +1367,50 @@ class WSE_Widget_Variation_Image_Gallery extends \Elementor\Widget_Base {
 
 			echo self::include_template( $layout_template, $layout_args ); // phpcs:ignore WordPress.Security.EscapeOutput
 			?>
+
+			<?php
+			/**
+			 * v1.5.0 (B2) — Product video overlay.
+			 *
+			 * Layout-independent: rendered as a direct child of .zymarg-vig
+			 * (which CSS makes position:relative). The trigger is a pill
+			 * button anchored bottom-left over the gallery; clicking it
+			 * reveals .zymarg-vig-video-layer (a full-cover overlay) and
+			 * gallery.js lazily builds the embed from the data-* attributes
+			 * on first open. The embed is NOT in the DOM until the customer
+			 * clicks, so there is zero extra network/JS cost on page load.
+			 */
+			$_show_video = ( $settings['show_product_video'] ?? 'yes' ) === 'yes';
+			$_video      = $_show_video
+				? WSE_Product_Video::get_product_video_data( $product->get_id() )
+				: null;
+			if ( $_video ) :
+				$_video_btn_text = (string) ( $settings['product_video_button_text'] ?? __( 'Watch video', 'woo-swatches-elementor' ) );
+				?>
+				<button type="button"
+					class="zymarg-vig-video-trigger"
+					data-video-type="<?php echo esc_attr( $_video['type'] ); ?>"
+					data-video-embed="<?php echo esc_url( $_video['embed'] ); ?>"
+					aria-label="<?php echo esc_attr( $_video_btn_text ); ?>">
+					<span class="zymarg-vig-video-trigger-icon" aria-hidden="true">
+						<svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<path d="M4 2.5v11l9-5.5-9-5.5z" fill="currentColor"/>
+						</svg>
+					</span>
+					<span class="zymarg-vig-video-trigger-text"><?php echo esc_html( $_video_btn_text ); ?></span>
+				</button>
+
+				<div class="zymarg-vig-video-layer" hidden aria-hidden="true">
+					<button type="button"
+						class="zymarg-vig-video-close"
+						aria-label="<?php esc_attr_e( 'Close video', 'woo-swatches-elementor' ); ?>">
+						<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+						</svg>
+					</button>
+					<div class="zymarg-vig-video-mount"></div>
+				</div>
+			<?php endif; ?>
 
 		</div><!-- .zymarg-vig -->
 		<?php

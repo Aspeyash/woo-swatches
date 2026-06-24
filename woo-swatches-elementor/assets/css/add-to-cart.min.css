@@ -1074,6 +1074,23 @@ body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active p:empty {
 	padding: 0 !important;
 }
 
+/* v1.5.0 (A1) — Proactive sticky-bar gap hardening. Sticky-only, :empty-
+   guarded. Conservative: only element types the plugin never emits in the
+   cart form (empty headings + WC's float-clear divs). We deliberately skip
+   span:empty / div:empty so the stepper's CSS-glyph icon spans and empty
+   structural wrappers aren't hidden. */
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active h1:empty,
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active h2:empty,
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active h3:empty,
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active h4:empty,
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active h5:empty,
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active h6:empty,
+body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active .clear:empty {
+	display: none !important;
+	margin:  0 !important;
+	padding: 0 !important;
+}
+
 /* Sticky active state base — premium compact bar */
 body.wse-stylesheet-enabled .wse-widget-add-to-cart.wse-sticky-active {
 	position:    fixed;

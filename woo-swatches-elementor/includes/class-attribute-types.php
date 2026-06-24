@@ -194,14 +194,39 @@ class WSE_Attribute_Types {
 	 */
 	public function render_term_selector_for_custom_types( $attribute_taxonomy, $i, $attribute ): void {
 
-		// Only global (taxonomy) attributes — local attributes don't have
-		// an attribute_taxonomy row, and WC renders a textarea for them.
+		// ── A4 (v1.5.0) — Local-attribute safety, verified + hardened ──────
+		//
+		// WooCommerce fires `woocommerce_product_option_terms` ONLY inside
+		// the `$attribute->is_taxonomy()` branch of its admin view
+		// (includes/admin/meta-boxes/views/html-product-attribute.php).
+		// For LOCAL (per-product, non-taxonomy) attributes WC renders a
+		// plain <textarea> for pipe-separated values and never fires this
+		// action — so this method can never legitimately run for a local
+		// attribute. The three guards below make that contract explicit and
+		// defend against any third-party / future-WC code that might fire
+		// the action with an unexpected payload:
+		//
+		//   1. is_taxonomy() — if the product attribute is local, bail. This
+		//      is the primary hardening guard: even if the action were fired
+		//      for a local attribute, we must NOT emit a taxonomy term-select
+		//      (it would collide with WC's textarea and corrupt the save).
+		//   2. empty( $attribute_taxonomy ) — local attrs have no taxonomy row.
+		//   3. attribute_type in SUPPORTED_TYPES — only our swatch types.
+
+		// Guard 1 — must be a global (taxonomy) attribute.
+		if ( is_object( $attribute )
+			&& method_exists( $attribute, 'is_taxonomy' )
+			&& ! $attribute->is_taxonomy() ) {
+			return;
+		}
+
+		// Guard 2 — only global (taxonomy) attributes have a taxonomy row.
 		if ( empty( $attribute_taxonomy ) || ! isset( $attribute_taxonomy->attribute_type ) ) {
 			return;
 		}
 
-		// Only for our custom swatch types. WC's built-in `select` type
-		// already renders its UI directly inside html-product-attribute.php
+		// Guard 3 — only for our custom swatch types. WC's built-in `select`
+		// type renders its UI directly inside html-product-attribute.php
 		// before this action fires, so we never run for it. `text` falls
 		// through to a textarea inside WC's view too.
 		if ( ! in_array( $attribute_taxonomy->attribute_type, self::SUPPORTED_TYPES, true ) ) {

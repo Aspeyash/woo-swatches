@@ -664,3 +664,117 @@ body.wse-stylesheet-enabled .zymarg-vig-counter-pos-top_left .zymarg-vig-counter
 body.wse-stylesheet-enabled .zymarg-vig-counter-pos-top_right .zymarg-vig-counter {
 	top: 12px; right: 12px; left: auto; bottom: auto;
 }
+
+
+/* ─── v1.5.0 (B2) — Product video overlay ───────────────────────────────── */
+
+/* Positioning context for the trigger pill + full-cover video layer, both
+   of which are direct children of .zymarg-vig. */
+body.wse-stylesheet-enabled .zymarg-vig {
+	position: relative;
+}
+
+/* "Watch video" trigger — a pill anchored to the bottom-left of the gallery. */
+body.wse-stylesheet-enabled .zymarg-vig-video-trigger {
+	position:        absolute;
+	left:            12px;
+	bottom:          12px;
+	z-index:         5;
+	display:         inline-flex;
+	align-items:     center;
+	gap:             6px;
+	padding:         7px 12px;
+	border:          0;
+	border-radius:   999px;
+	background:      rgba( 19, 27, 46, .78 );   /* ZYMARG Text Body @ ~78% */
+	color:           #ffffff;
+	font-size:       13px;
+	font-weight:     600;
+	line-height:     1;
+	cursor:          pointer;
+	backdrop-filter: blur( 4px );
+	box-shadow:      0 2px 10px rgba( 0, 0, 0, .25 );
+	transition:      background .15s ease, transform .15s ease;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-video-trigger:hover,
+body.wse-stylesheet-enabled .zymarg-vig-video-trigger:focus-visible {
+	background: #9500a5;   /* ZYMARG Primary */
+	transform:  translateY( -1px );
+	outline:    none;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-video-trigger-icon {
+	display:     inline-flex;
+	align-items: center;
+}
+
+/* Full-cover overlay layer. [hidden] keeps it out of the layout until JS
+   reveals it; flex centres the embed; the dark backdrop dims the gallery. */
+body.wse-stylesheet-enabled .zymarg-vig-video-layer {
+	position:        absolute;
+	inset:           0;
+	z-index:         20;
+	display:         flex;
+	align-items:     center;
+	justify-content: center;
+	padding:         24px;
+	background:      rgba( 19, 27, 46, .92 );
+	box-sizing:      border-box;
+	border-radius:   inherit;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-video-layer[hidden] {
+	display: none;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-video-close {
+	position:        absolute;
+	top:             10px;
+	right:           10px;
+	z-index:         2;
+	display:         inline-flex;
+	align-items:     center;
+	justify-content: center;
+	width:           34px;
+	height:          34px;
+	padding:         0;
+	border:          0;
+	border-radius:   50%;
+	background:      rgba( 255, 255, 255, .14 );
+	color:           #ffffff;
+	cursor:          pointer;
+	transition:      background .15s ease;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-video-close:hover,
+body.wse-stylesheet-enabled .zymarg-vig-video-close:focus-visible {
+	background: rgba( 255, 255, 255, .28 );
+	outline:    none;
+}
+
+/* Responsive 16:9 embed wrapper — caps at the layer's bounds. */
+body.wse-stylesheet-enabled .zymarg-vig-video-mount {
+	width:     100%;
+	max-width: 100%;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-video-embed {
+	position:       relative;
+	width:          100%;
+	max-width:      900px;
+	margin:         0 auto;
+	aspect-ratio:   16 / 9;
+	background:     #000000;
+	border-radius:  6px;
+	overflow:       hidden;
+}
+
+body.wse-stylesheet-enabled .zymarg-vig-video-embed iframe,
+body.wse-stylesheet-enabled .zymarg-vig-video-embed video {
+	position: absolute;
+	inset:    0;
+	width:    100%;
+	height:   100%;
+	border:   0;
+}

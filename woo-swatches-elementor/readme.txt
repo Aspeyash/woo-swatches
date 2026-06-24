@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.4.12
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,49 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.5.0 =
+**Minor release — product video, price animation, savings pill, and sticky-bar hardening.**
+
+New features:
+
+* **Product video in the gallery (B2).** Attach one video per product via
+  the new "Product Video URL" field under Product data → General (YouTube,
+  Vimeo, or a direct .mp4 / .webm / .ogg URL). The Variation Image Gallery
+  widget shows a "Watch video" button (toggle + custom text in the Display
+  section) that opens a lazy-loaded overlay player — the embed is only built
+  on first click, so there is zero extra page-load cost. Closing the overlay
+  (button / backdrop / ESC) removes the embed to stop playback reliably.
+
+* **Per-swatch savings pill (C2').** New "Show Savings Pill (% off) on
+  Swatches" toggle in the Swatches widget renders a small "-N%" corner badge
+  on each swatch whose variation is on sale, where N is the highest discount
+  among that term's in-stock variations. Works on color, image, label, and
+  button swatch types. Default off.
+
+* **Price-change animation (C1).** New "Price change animation" control in
+  the Price widget's Layout style section: Fade in (default), Slide up + fade,
+  or None. The animation plays when a variation is selected and is suppressed
+  on the initial page-load reset (no flash). Honours the visitor's OS-level
+  "reduce motion" setting automatically.
+
+Hardening & maintenance:
+
+* **Proactive sticky-bar gap hardening (A1).** Beyond the empty-`<p>` fixes
+  in v1.4.10–v1.4.11, the sticky bar now also collapses empty headings
+  (h1–h6) and WooCommerce's empty float-clear divs. All rules are sticky-only
+  and `:empty`-guarded; the quantity stepper's CSS-glyph icons are explicitly
+  preserved.
+
+* **Admin term-UI hardening (A4).** The v1.4.12 `woocommerce_product_option_terms`
+  handler now carries an explicit `is_taxonomy()` guard, documenting and
+  enforcing that it never affects local (per-product) attributes.
+
+* **Documentation.** Added a QA regression checklist (`QA-CHECKLIST.md`) and
+  cleaned up the readme's stale roadmap / duplicate upgrade-notice entries.
+
+CSS + PHP + JS changes, no DB schema migration. Drop-in replacement for
+v1.4.12. Hard-refresh + Regenerate CSS after install.
 
 = 1.4.12 =
 **Fix: Empty Value(s) section in the product editor for swatch-typed attributes.**
@@ -1458,79 +1501,14 @@ This release replaces the dual-form architecture with a single canonical form pe
 
 == Roadmap ==
 
-= 1.4.0 (planned) =
-* Multiple images per variation (currently variations expose one image; we'll wire up the `wse_variation_image_ids` filter into a first-class admin UI so vendors can attach multiple images per variation directly).
-* Video support in the gallery (per-variation YouTube/Vimeo/MP4 embeds with poster frame in the thumb strip).
-* Pinch-zoom on mobile lightbox (currently relies on the OS native pinch — we'll layer a `transform: scale()` model with bounded panning).
+Forward-looking items not yet scheduled to a specific release:
+
+* Multiple images per variation — a first-class admin UI on top of the existing `wse_variation_image_ids` filter so vendors can attach several images per variation directly.
+* Pinch-zoom on the mobile lightbox — a `transform: scale()` model with bounded panning, layered over the OS-native pinch.
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
 
-= 1.4.1 =
-Critical fix for v1.4.0 — variation thumbnails were briefly visible during page load then disappeared when load finished. Root cause: data-variation-images JSON's '0' (no-variation-matched) key held the parent-only list, so when WC's variation form fired `reset_data` during init, the gallery's reset handler replaced the server-rendered extended list with the 7-image parent gallery. Fix: PHP render() now writes the extended list to images_map['0'] when source mode != parent_only, so the JS reset path returns to the same 15-image view. Single-line PHP edit, no JS / template / DB changes. Drop-in replacement for v1.4.0. Hard-refresh + Regenerate CSS after install.
+= 1.5.0 =
+Minor release: product-level gallery video (YouTube / Vimeo / self-hosted MP4 with poster frame + play overlay), smooth price-transition animation on variation change, per-swatch savings / percent-off pill, plus sticky-bar gap hardening across all product types. Drop-in replacement for v1.4.12, no DB migration. Hard-refresh + Regenerate CSS after install.
 
-= 1.4.0 =
-Minor: variation featured images integrate into the gallery + bidirectional sync. New "Variation Sync" controls in Widget 4 (Variation Image Gallery): Gallery Image Source dropdown (Product Gallery Only / Variation Only / Both) — default "Product Gallery Only" preserves v1.3.x behavior, no visual change for existing widgets unless opted in. When set to Variation Only or Both: variation featured images appear as gallery thumbnails; clicking/swiping/keyboard-navigating to a variation's image automatically selects the matching swatch in Widget 1 — price, add-to-cart, smart heading all update in real time. Plus auto-detection of "image-bearing" attributes (S4) so multi-attribute products (color + size) only flip color on reverse-sync (Amazon/Nike pattern), preserving the customer's existing size pick. Plus desktop hover-to-preview (S6) — premium opt-in UX. Plus S5 lazy-load all variation thumbs after index 5 for mobile data efficiency. Drop-in replacement for v1.3.8, no DB migration. Hard-refresh + Regenerate CSS after install.
-
-= 1.3.8 =
-Patch + behaviour change. (B1) Arrow-key navigation in the swatches widget now auto-selects the focused variation per the WAI-ARIA radiogroup automatic-activation pattern — pre-1.3.8 the arrow keys only moved visual focus and the customer had to press Enter or click again to actually select. (B2) The mobile auto-scroll-to-Add-to-Cart behaviour (added in v1.2.1) is REMOVED — the customer now stays where they are after picking a swatch on mobile. Drop-in replacement for v1.3.7, no DB migration. Hard-refresh + Regenerate CSS after install. Note for stores that liked the v1.2.1 mobile auto-scroll: it's no longer available; happy to add a per-widget opt-in toggle in v1.3.9 if needed.
-
-= 1.3.7 =
-Critical follow-up to v1.3.6. v1.3.6 constrained the .wse-attr-block and .wse-swatches layers but left the intermediate `<fieldset class="wse-fieldset">` unconstrained. HTML5 fieldsets default to min-inline-size: min-content which made the fieldset shrink-to-fit its content (so it grew to fit all swatches in hscroll mode), and the inner ul's width:100% then resolved against that overflowing fieldset. v1.3.7 adds width:100%; max-width:100%; min-width:0; min-inline-size:0; box-sizing:border-box plus margin:0 and border:0 to normalise the fieldset. Drop-in replacement for v1.3.6, no DB migration. Hard-refresh + Regenerate CSS after install.
-
-= 1.3.6 =
-Critical CSS fix for v1.3.5's image swatches horizontal scroll feature. Pre-1.3.6 the .wse-attr-block and .wse-swatches flex container had no explicit width constraint, so on desktop/tablet the swatches row didn't wrap (overflowed the column) and on mobile the hscroll strip overflowed the screen instead of clipping internally. Added width:100%; max-width:100%; box-sizing:border-box; min-width:0 to both base rules. Single-file CSS change. Drop-in replacement for v1.3.5, no DB migration. Hard-refresh + Regenerate CSS after install.
-
-= 1.3.5 =
-Patch + features. 2 critical bug fixes: (B1) "Show Clear Button" toggle now actually hides the Clear link when off (was hardcoded-rendered in wrapper.php), (B2) image swatch label position dropdown options Above/Hover/Hidden now work (CSS specificity battle + class always-emit fix). 4 features: (F1) per-device responsive horizontal-scroll mode for image swatches with separate scrollbar visibility + auto-scroll-into-view toggles per breakpoint (9 switchers total), (F2) 3 per-device quantity-stepper full-width switchers (matching the existing Add-to-Cart full-width pattern), (F3) "Hidden" added to Label Position dropdown as third option, (F4) the 12 admin Swatch-Sizes fields under WC → Settings → WooSwatches now accept px / % / em / rem (legacy integer values still work — treated as px). Drop-in replacement for v1.3.4, no DB migration. Hard-refresh + Regenerate CSS after install.
-
-= 1.3.4 =
-Critical patch. Fixes 7 prefix_class-driven controls that were silently broken or actively misbehaving: aspect_ratio dropdown (only 1:1 worked), show_thumbs_desktop/tablet/mobile toggles (made worse by v1.3.3 — hid thumbs on every widget), sticky_main_desktop, counter_position, sale_badge_position. Root cause was Elementor's prefix_class lands on the outer widget wrapper while the CSS targeted compound selectors on the inner div. v1.3.4 mirrors the prefix-class classes onto the inner div from PHP render() so the existing CSS rules now work as intended. Drop-in replacement for v1.3.3, no DB migration. Hard-refresh + Regenerate CSS after install IS MANDATORY.
-
-= 1.3.3 =
-Patch + polish. 2 critical fixes: (B1) "Show thumbnails Desktop/Tablet/Mobile" toggles now actually work (CSS class mismatch was masking them), (B2) sale dot on swatches retired with belt-and-braces CSS override that defeats stale caches. 7 gallery polish items: bulletproof 1:1 default with CSS fallback, keyboard nav now scrolls thumb strip to keep active thumb visible, mobile main-image touch swipe works on ALL layouts (not just mobile_carousel), counter rendered inside the figure so it's always anchored to the visible image, mobile_carousel cleanup (no stacked thumbs, no dots), thumb strip width never exceeds main image width, and a layout-audit pass adding gaps to tablet vertical and mobile stacked layouts. Drop-in replacement for v1.3.2, no DB migration. Hard-refresh + Regenerate CSS after install IS MANDATORY (browser cache may serve pre-v1.3.3 CSS otherwise).
-
-= 1.3.2 =
-Patch + features. Critical fixes: smart heading + savings line no longer disappear after page load on variable on-sale products (price.js refactored to surgical DOM updates); sale dot on swatches retired (was showing despite the toggle being off). Gallery widget gets 6 new features: scoped fieldset padding, hidden scrollbar on thumb strips, "Horizontal above" added to mobile layout dropdown, REAL mobile swipe carousel (v1.3.0/v1.3.1 only had 1 image to swipe through), full keyboard nav (Up/Down + Home/End + roving tabindex), and image counter overlay with editable format string ({current} / {total}). Plus 2 UX upgrades: lightbox swipe gestures and mouse drag-to-scroll on thumbnails. Drop-in replacement for v1.3.1, no DB migration. Hard-refresh + Regenerate CSS after install.
-
-= 1.3.1 =
-Critical patch for v1.3.0 gallery widget. v1.3.0 layout templates called include_template() without echoing the returned HTML, so the gallery rendered as an empty wrapper with zero images. v1.3.1 adds `echo` to all 4 include_template() calls in vertical-thumbs.php, stacked.php, grid.php. Drop-in replacement for v1.3.0, no DB migration. Hard-refresh + Regenerate CSS after install. Update strongly recommended for anyone on v1.3.0.
-
-= 1.3.0 =
-Minor release. Adds Widget 4 — ZYMARG Variation Image Gallery: a brand-new product-image gallery widget that auto-flips to the matching variation image when a swatch is selected. 6 desktop layouts (vertical thumbs L/R, horizontal thumbs above/below, stacked, grid 2-col), mobile hybrid (swipe carousel + stacked thumbs), per-device thumb visibility, hover-zoom lens, click-to-lightbox, sale badge, sticky main, full Elementor Style tab with ~50 controls. Drop-in replacement for v1.2.3, no DB migration. Hard-refresh after install.
-
-= 1.2.3 =
-Patch release. Fixes 6 issues from live testing: simple-product stepper now responsive (max=-1 sentinel handled), F5 responsive widths now respected (specificity fixed), smart heading visible on variable on-sale products (back-compat fallback fixed), new "Show Sale Dot on Swatches" toggle (independent from tooltip). Features: Quantity input width range bumped (now supports % and em), Add to Cart Full Width is now responsive per device with the button stacked below the stepper. "Show Price Under Image Swatches" feature actually built (was scaffolding only in v1.2.2). Plus 9 new Tier 0 text controls for editable Clear/Choose-option/OOS labels and stepper aria/title attributes. Drop-in replacement for v1.2.2, no DB migration. Hard-refresh after install.
-
-= 1.2.2 =
-Patch release. Fixes 4 issues from live ZYMARG site testing: (1) minus icon invisible in quantity stepper, (2) Elementor icon picker library not loading, (3) stepper not working on simple products, (4) image swatch label not visible below image. Three of the four trace to Elementor icon-data warnings polluting our stepper output; the fourth is a CSS specificity battle against Elementor's per-widget Swatch Size control. Drop-in replacement for v1.2.1, no DB migration. After install, update Elementor + Elementor Pro to current stable, clear all caches (Elementor → Tools → Regenerate CSS, Hostinger Cache Manager → Purge All), then hard-refresh.
-
-= 1.2.1 =
-Polish release. Fixes 3 bugs (simple-product stepper, decrease icon, icon picker resilience) and adds 16 features/polish items: full-width stepper, sticky-to-admin, per-type attribute label rules, image-swatch label positions (above/below/hover/hidden), responsive per-type swatch widths, ZYMARG-branded stepper colours, sale-dot on swatches, mobile scroll-to-form, admin metabox preview polish, auto cache-flush on settings save, plus 5 Price-widget enhancements: "You save" indicator, loading skeleton, sale badge variants, free-shipping hint, and smart adaptive heading with 4 states (sale / ending-soon / regular / out-of-stock). Hard-refresh after install. No DB migration.
-
-= 1.2.0 =
-Minor release. New Widget 3 (ZYMARG Price) takes over price display with full sale-aware formatting and live updates when variations are selected via Widget 1. New touch-friendly +/- quantity stepper in Widget 2 with full Elementor styling control. Widget 2 gains a Show Inline Price toggle — defaults to ON for upgrades (back-compat) and OFF for fresh installs. Hard-refresh after install. No DB migration.
-
-= 1.1.6 =
-Patch: fixes six rendering bugs found via live ZYMARG testing. Color swatches now actually display the configured colour. Image swatches no longer show a checkmark overlay. Label/button swatches no longer turn blue when selected. Button-type swatches now render (was: empty). Dropdown-type attributes now render exactly one dropdown (was: two). Local-attribute metabox Upload button now works (was: silently inert in production). Drop-in replacement for v1.1.5. Hard-refresh after install.
-
-= 1.1.5 =
-Patch: switches the View Cart link hide from a reactive JS strip to a CSS-first approach using a body class. The CSS rule applies before WooCommerce's frontend JS runs, so there's no race condition where the link is visible. Drop-in replacement for v1.1.4. Hard-refresh after install. After this update, the manual CSS workaround in your theme's Customize → Additional CSS is no longer needed and can be removed.
-
-= 1.1.4 =
-Patch: closes the gap where WooCommerce's frontend JS injected a "View cart" link inline beside the button even when "Show View Cart Link" was toggled off. The link is now correctly hidden in all three locations (WC notice, inline next to button, toast). Drop-in replacement for v1.1.3. Hard-refresh the product page after install.
-
-= 1.1.3 =
-Patch: orphan Presenter Mode now actually works (auto-synthesised hidden form binds WC's variation engine), per-widget "Show View Cart Link" toggle in the Add to Cart widget (Inherit / Yes / No), success button text cleaned up to just "Added to cart", defensive CSS suppresses theme-injected pseudo-elements on the button. Drop-in replacement for v1.1.2.
-
-= 1.1.2 =
-CRITICAL: fixes a fatal PHP TypeError on Dokan Pro stacks with Order Min Max module enabled. v1.1.1 users on Dokan should update immediately. JS preventDefault fix + defensive PHP variation_id coercion. Drop-in replacement.
-
-= 1.1.1 =
-Hotfix: Dokan multi-vendor compatibility (no more "Something went wrong" on successful adds), single-widget sticky add-to-cart, "Added to cart" toast notification, FOUC fix for double swatches, robust AJAX payload assembly. Drop-in replacement for v1.1.0.
-
-= 1.1.0 =
-Major release: single-canonical-form architecture (B3), 23 bug fixes, Presenter Mode for sticky add-to-cart bars, and a global "View Cart" link toggle. Flush the swatch cache once after upgrade. Child-theme template overrides MUST be re-synced — an admin notice will list any stale ones.
-
-= 1.0.0 =
-Initial release — no upgrade steps required.

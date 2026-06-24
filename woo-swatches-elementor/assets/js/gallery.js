@@ -126,6 +126,7 @@
 		bindHoverPreview( state );        // v1.4.0 (S6) — desktop hover-to-preview
 		bindZoomLens( state );
 		bindLightboxOpener( state );
+		bindProductVideo( state );        // v1.5.0 (B2) — product video overlay
 
 		if ( $form.length && state.syncEnabled ) {
 			bindVariationSync( state );
@@ -1234,6 +1235,101 @@
 			.replace( /"/g, '&quot;' )
 			.replace( /</g, '&lt;'  )
 			.replace( />/g, '&gt;'  );
+	}
+
+	// ─────────────────────────────────────────────────────────────────────
+	// v1.5.0 (B2) — Product video overlay
+	//
+	// The gallery widget renders a .zymarg-vig-video-trigger pill button
+	// plus a hidden .zymarg-vig-video-layer (full-cover overlay) as direct
+	// children of .zymarg-vig. The embed (YouTube/Vimeo iframe or an MP4
+	// <video>) is built LAZILY on first open from the trigger's data-*
+	// attributes, so page load pays zero network/JS cost for the video.
+	// Closing removes the embed node, which is the most reliable way to
+	// stop playback for both iframes and <video> elements.
+	// ─────────────────────────────────────────────────────────────────────
+
+	function bindProductVideo( state ) {
+		var $widget  = state.$widget;
+		var $trigger = $widget.find( '.zymarg-vig-video-trigger' ).first();
+		var $layer   = $widget.find( '.zymarg-vig-video-layer' ).first();
+		if ( ! $trigger.length || ! $layer.length ) {
+			return; // no video configured for this product
+		}
+		var $mount = $layer.find( '.zymarg-vig-video-mount' ).first();
+		var $close = $layer.find( '.zymarg-vig-video-close' ).first();
+
+		function buildEmbed() {
+			if ( $mount.children().length ) {
+				return; // already built
+			}
+			var type  = String( $trigger.attr( 'data-video-type' )  || '' );
+			var embed = String( $trigger.attr( 'data-video-embed' ) || '' );
+			if ( ! embed ) {
+				return;
+			}
+
+			var html = '';
+			if ( 'youtube' === type || 'vimeo' === type ) {
+				var sep = embed.indexOf( '?' ) === -1 ? '?' : '&';
+				var src = embed + sep + 'autoplay=1'
+					+ ( 'youtube' === type ? '&rel=0' : '' );
+				html = '<div class="zymarg-vig-video-embed">'
+					+    '<iframe src="' + escapeAttr( src ) + '"'
+					+      ' frameborder="0"'
+					+      ' allow="autoplay; fullscreen; picture-in-picture"'
+					+      ' allowfullscreen'
+					+      ' title="Product video"></iframe>'
+					+  '</div>';
+			} else if ( 'mp4' === type ) {
+				html = '<div class="zymarg-vig-video-embed">'
+					+    '<video src="' + escapeAttr( embed ) + '"'
+					+      ' controls autoplay playsinline></video>'
+					+  '</div>';
+			}
+			$mount.html( html );
+		}
+
+		function openVideo() {
+			buildEmbed();
+			$layer.prop( 'hidden', false ).attr( 'aria-hidden', 'false' );
+			$widget.addClass( 'zymarg-vig--video-open' );
+			$close.trigger( 'focus' );
+		}
+
+		function closeVideo() {
+			$layer.prop( 'hidden', true ).attr( 'aria-hidden', 'true' );
+			$widget.removeClass( 'zymarg-vig--video-open' );
+			// Remove the embed node — reliably stops playback for both
+			// iframe (YouTube/Vimeo) and native <video>.
+			$mount.empty();
+			$trigger.trigger( 'focus' );
+		}
+
+		$trigger.off( 'click.wseVideo' ).on( 'click.wseVideo', function ( e ) {
+			e.preventDefault();
+			openVideo();
+		} );
+
+		$close.off( 'click.wseVideo' ).on( 'click.wseVideo', function ( e ) {
+			e.preventDefault();
+			closeVideo();
+		} );
+
+		// Click on the dark backdrop (the layer itself, not the embed) closes.
+		$layer.off( 'click.wseVideo' ).on( 'click.wseVideo', function ( e ) {
+			if ( e.target === $layer[0] ) {
+				closeVideo();
+			}
+		} );
+
+		// ESC closes when the overlay is open.
+		$widget.off( 'keydown.wseVideo' ).on( 'keydown.wseVideo', function ( e ) {
+			if ( ( 'Escape' === e.key || 'Esc' === e.key )
+				&& $widget.hasClass( 'zymarg-vig--video-open' ) ) {
+				closeVideo();
+			}
+		} );
 	}
 
 } )( jQuery, window.WSEParams || {} );
