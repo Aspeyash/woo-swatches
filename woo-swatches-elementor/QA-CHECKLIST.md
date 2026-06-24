@@ -51,6 +51,9 @@ elements (e.g. themed `<p class="warranty_info">`) injected into the cart form.
 | 2.5 | Bar top edge | Bar sits flush (0 top padding) — no gap at the very top of the bar | | ✅ |
 | 2.6 | Non-sticky unaffected | Scroll to top: the normal in-flow price/availability/description area still renders as before | | ✅ |
 | 2.7 | Stepper icons intact | The +/- glyphs in the sticky stepper are visible (regression guard for the A1 `:empty` rules — must NOT hide stepper icon spans) | ✅ | ✅ |
+| 2.8 | Sticky is per-widget (v1.6.0) | Sticky D/T/M + scroll-trigger are set in the Add to Cart widget → Content → Behavior (NOT in WC settings, which no longer has the panel). Toggling them per device works | ✅ | ✅ |
+| 2.9 | Scroll-trigger | With scroll-trigger ON for a device, the bar stays hidden until the customer scrolls past the in-flow Add to Cart widget | | ✅ |
+| 2.10 | Sticky min-height | Setting a sticky Minimum Height grows the bar on the chosen breakpoint | | ✅ |
 
 ## 3. Admin — attribute term UI for swatch types (v1.4.12, A4)
 
@@ -76,17 +79,19 @@ elements (e.g. themed `<p class="warranty_info">`) injected into the cart form.
 | 4.7 | No flash on load | On page load the price does NOT visibly animate (init reset is suppressed) | | ✅ |
 | 4.8 | Reduced motion | OS "reduce motion" on → no animation regardless of setting | | ✅ |
 
-## 5. Per-swatch savings / percent-off pill (C2')
+## 5. Customization / style controls (v1.6.0)
 
-Use `VARIABLE-SALE`. Enable Swatches widget → "Show Savings Pill (% off)".
+All dimensional controls must offer Desktop / Tablet / Mobile in the Elementor control.
 
 | # | Test | Expected | Smoke | Full |
 |---|------|----------|:-----:|:----:|
-| 5.1 | Pill appears on sale terms | Swatches whose variations are on sale show a "-N%" corner pill | ✅ | ✅ |
-| 5.2 | Correct percent | N = the highest discount among that term's in-stock variations | | ✅ |
-| 5.3 | No pill when toggle off | With the toggle off, no pill renders (default off) | ✅ | ✅ |
-| 5.4 | All swatch types | Works on color, image, label, and button swatches | | ✅ |
-| 5.5 | No pill on non-sale | Full-price terms show no pill | | ✅ |
+| 5.1 | Swatches → Widget Container | Background (color + gradient) is responsive D/T/M; border, radius, padding, margin, max-width, alignment all apply | ✅ | ✅ |
+| 5.2 | Swatches → Attribute Block | Background, border, radius, padding, margin apply to each `.wse-attr-block` | | ✅ |
+| 5.3 | Swatches → Swatches Container | Gap-between-swatches, padding, margin, fieldset padding, Clear-link color/typography apply | ✅ | ✅ |
+| 5.4 | Add to Cart → Widget Container | Gradient background, margin, max-width apply (plus existing controls) | | ✅ |
+| 5.5 | Price → Widget Container | Background/gradient, border, radius, padding, margin, shadow, max-width apply to `.zymarg-price` | | ✅ |
+| 5.6 | Gallery → Widget Container | Container background/border/radius/padding/margin + thumb-strip + main-area bg/padding apply | | ✅ |
+| 5.7 | Savings pill gone | No "Show Savings Pill" control anywhere; no `-N%` badge renders on any swatch | ✅ | ✅ |
 
 ## 6. Gallery + product video (v1.3.x–v1.4.x, B2)
 

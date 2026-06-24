@@ -122,6 +122,7 @@ class WSE_Widget_Price extends \Elementor\Widget_Base {
 
 	protected function register_controls(): void {
 		$this->register_content_controls();
+		$this->register_style_container();
 		$this->register_style_current_price();
 		$this->register_style_regular_price();
 		$this->register_style_sale_badge();
@@ -132,6 +133,90 @@ class WSE_Widget_Price extends \Elementor\Widget_Base {
 		$this->register_content_shipping_hint();   // P9
 		$this->register_content_loading_skeleton();// P4
 		$this->register_content_sale_badge_variants(); // P5
+	}
+
+	// ── STYLE TAB — Widget container box (v1.6.0) ────────────────────────
+
+	/**
+	 * v1.6.0 — Container box styling for the Price widget. Targets the
+	 * .zymarg-price wrapper with background (classic + gradient, responsive),
+	 * border, radius, padding, margin, box-shadow, and max-width. All
+	 * dimensional controls are responsive (D/T/M).
+	 */
+	private function register_style_container(): void {
+
+		$this->start_controls_section( 'section_style_container', array(
+			'label' => esc_html__( 'Widget Container', 'woo-swatches-elementor' ),
+			'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+		) );
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Background::get_type(),
+			array(
+				'name'     => 'price_container_background',
+				'types'    => array( 'classic', 'gradient' ),
+				'selector' => '{{WRAPPER}} .zymarg-price',
+			)
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Border::get_type(),
+			array(
+				'name'     => 'price_container_border',
+				'selector' => '{{WRAPPER}} .zymarg-price',
+			)
+		);
+
+		$this->add_responsive_control( 'price_container_radius', array(
+			'label'      => esc_html__( 'Border Radius', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', '%', 'em' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-price' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'price_container_padding', array(
+			'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em', '%' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-price' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'price_container_margin', array(
+			'label'      => esc_html__( 'Margin', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em', '%' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-price' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Box_Shadow::get_type(),
+			array(
+				'name'     => 'price_container_box_shadow',
+				'selector' => '{{WRAPPER}} .zymarg-price',
+			)
+		);
+
+		$this->add_responsive_control( 'price_container_max_width', array(
+			'label'      => esc_html__( 'Max Width', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::SLIDER,
+			'size_units' => array( 'px', '%', 'vw' ),
+			'range'      => array(
+				'px' => array( 'min' => 80, 'max' => 1000 ),
+				'%'  => array( 'min' => 10, 'max' => 100 ),
+				'vw' => array( 'min' => 10, 'max' => 100 ),
+			),
+			'selectors'  => array(
+				'{{WRAPPER}} .zymarg-price' => 'max-width: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->end_controls_section();
 	}
 
 	// ── CONTENT TAB ──────────────────────────────────────────────────────

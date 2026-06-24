@@ -280,12 +280,6 @@ class WSE_Assets {
 				'select_opt' => esc_html__( 'Please select an option before adding this product to your cart.', 'woo-swatches-elementor' ),
 			),
 			'cart_url'    => esc_url( wc_get_cart_url() ),
-			// v1.4.7 — Scroll-triggered sticky ATC flags (per-device).
-			'sticky_scroll_trigger' => array(
-				'desktop' => 'yes' === get_option( 'wse_sticky_scroll_trigger_desktop', 'no' ),
-				'tablet'  => 'yes' === get_option( 'wse_sticky_scroll_trigger_tablet',  'no' ),
-				'mobile'  => 'yes' === get_option( 'wse_sticky_scroll_trigger_mobile',  'no' ),
-			),
 		);
 		$params = (array) apply_filters( 'wse_frontend_params', $params );
 		wp_localize_script( 'wse-swatches', 'WSEParams', $params );

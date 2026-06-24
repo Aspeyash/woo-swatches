@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,53 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.6.0 =
+**Minor release — customization controls, sticky moved into the widget, savings-pill removed.**
+
+⚠️ **Action required after updating:** Sticky Add to Cart is no longer
+configured under WooCommerce → Settings → WooSwatches. Those options have
+been **removed** and replaced by per-widget controls. Re-enable sticky in
+**Elementor → edit your Add to Cart widget → Content → Behavior** (Sticky on
+Desktop / Tablet / Mobile + Scroll-trigger). Until you do, the bar uses the
+widget defaults (sticky ON for mobile only).
+
+Changes:
+
+* **Sticky is now per-widget (single source of truth).** The global admin
+  panel for Sticky Add to Cart + Scroll-triggered visibility has been
+  removed. Each Add to Cart widget now owns its own sticky rule via new
+  Behavior controls: Sticky on Desktop / Tablet / Mobile and Scroll-trigger
+  on Desktop / Tablet / Mobile. More flexible (different rules per template)
+  and no more split-brain between admin + widget. add-to-cart.js reads the
+  per-device scroll-trigger flags from the widget's data attributes.
+
+* **Sticky Bar appearance** gains a Minimum Height control (responsive),
+  alongside the existing background / padding / margin / width / border /
+  radius / shadow / gap / compact-layout / button-order controls.
+
+* **Deep customization controls across all widgets.** New container-box and
+  sub-element style sections:
+  - **Swatches:** Widget Container (background incl. gradient — responsive,
+    border, radius, padding, margin, max-width, alignment), Attribute Block
+    (background, border, radius, padding, margin), Swatches Container (gap
+    between swatches, padding, margin, fieldset padding, Clear-link color +
+    typography).
+  - **Add to Cart:** Widget Container gains gradient background, margin, and
+    max-width (on top of the existing controls).
+  - **Price:** new Widget Container section (background incl. gradient,
+    border, radius, padding, margin, shadow, max-width).
+  - **Gallery:** new Widget Container section (background, border, radius,
+    padding, margin, shadow) plus Thumbnail-strip and Main-image-area
+    background + padding.
+  All dimensional controls are responsive (desktop / tablet / mobile).
+
+* **Removed:** the v1.5.0 per-swatch savings / percent-off pill (the "Show
+  Savings Pill" toggle and its rendering) — fully reverted per product
+  decision.
+
+No DB schema migration. The only behavioural change is the sticky-settings
+relocation noted above.
 
 = 1.5.0 =
 **Minor release — product video, price animation, savings pill, and sticky-bar hardening.**
@@ -1509,6 +1556,7 @@ Forward-looking items not yet scheduled to a specific release:
 
 == Upgrade Notice ==
 
-= 1.5.0 =
-Minor release: product-level gallery video (YouTube / Vimeo / self-hosted MP4 with poster frame + play overlay), smooth price-transition animation on variation change, per-swatch savings / percent-off pill, plus sticky-bar gap hardening across all product types. Drop-in replacement for v1.4.12, no DB migration. Hard-refresh + Regenerate CSS after install.
+= 1.6.0 =
+IMPORTANT: Sticky Add to Cart settings have moved from WooCommerce → Settings → WooSwatches INTO the Add to Cart widget (Content → Behavior). The global panel is removed. After updating, re-enable sticky per-widget in Elementor (defaults to sticky ON for mobile only). Adds deep customization controls (container background incl. gradient, border, radius, padding, margin — all responsive) across all four widgets, plus a sticky-bar minimum-height control. Removes the v1.5.0 per-swatch savings pill. No DB migration. Hard-refresh + Regenerate CSS after install.
+
 

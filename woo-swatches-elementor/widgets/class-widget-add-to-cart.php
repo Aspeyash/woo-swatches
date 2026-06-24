@@ -152,22 +152,119 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			)
 		);
 
-		// v1.2.1 (F2) — Per-widget sticky toggles moved to admin.
-		// Sticky-on-mobile is a site-wide UX decision, not a per-widget
-		// one. Configured globally at WC -> Settings -> WooSwatches ->
-		// Sticky Add to Cart so every product page enforces the same
-		// rule. Existing per-widget values from v1.2.0 and earlier are
-		// silently ignored — the global option takes precedence.
+		// v1.6.0 — Per-widget sticky toggles. Sticky configuration was
+		// moved OUT of the global WC settings panel and back into the
+		// widget so each Add to Cart instance owns its own sticky rule
+		// (the widget is the single source of truth). Render() reads these
+		// settings directly and emits the wse-sticky-{device} classes;
+		// add-to-cart.js then handles the breakpoint + scroll-trigger logic.
 		$this->add_control(
 			'sticky_intro',
 			array(
 				'type' => \Elementor\Controls_Manager::RAW_HTML,
 				'raw'  => '<div style="font-size:11px;color:#475569;line-height:1.5;">'
-					. esc_html__( 'Sticky behaviour for desktop, tablet, and mobile is configured globally at:', 'woo-swatches-elementor' )
-					. '<br><strong>WooCommerce → Settings → WooSwatches → Sticky Add to Cart</strong>'
-					. '<br>'
-					. esc_html__( 'This ensures the same sticky rule applies to every product page across the store.', 'woo-swatches-elementor' )
+					. esc_html__( 'Pin this Add to Cart bar to the bottom of the screen on the breakpoints you choose. Mobile is recommended ON.', 'woo-swatches-elementor' )
 					. '</div>',
+			)
+		);
+
+		$this->add_control(
+			'sticky_desktop',
+			array(
+				'label'        => esc_html__( 'Sticky on Desktop (≥ 1025px)', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'On', 'woo-swatches-elementor' ),
+				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
+				'return_value' => 'yes',
+				'default'      => '',
+			)
+		);
+
+		$this->add_control(
+			'sticky_tablet',
+			array(
+				'label'        => esc_html__( 'Sticky on Tablet (768–1024px)', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'On', 'woo-swatches-elementor' ),
+				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
+				'return_value' => 'yes',
+				'default'      => '',
+			)
+		);
+
+		$this->add_control(
+			'sticky_mobile',
+			array(
+				'label'        => esc_html__( 'Sticky on Mobile (≤ 767px)', 'woo-swatches-elementor' ),
+				'description'  => esc_html__( 'Recommended ON. Mobile shoppers benefit most from a persistently visible Add to Cart.', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'On', 'woo-swatches-elementor' ),
+				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
+				'return_value' => 'yes',
+				'default'      => 'yes',
+			)
+		);
+
+		// v1.6.0 — Scroll-triggered visibility (per device). When ON for a
+		// breakpoint, the sticky bar only appears AFTER the customer scrolls
+		// past the original (in-flow) Add to Cart widget — the Amazon / Nike
+		// pattern. Each toggle is gated on its matching sticky toggle being
+		// ON, since scroll-trigger is meaningless without sticky.
+		$this->add_control(
+			'sticky_scroll_trigger_heading',
+			array(
+				'label'     => esc_html__( 'Scroll-triggered visibility', 'woo-swatches-elementor' ),
+				'type'      => \Elementor\Controls_Manager::HEADING,
+				'separator' => 'before',
+			)
+		);
+
+		$this->add_control(
+			'sticky_scroll_trigger_intro',
+			array(
+				'type' => \Elementor\Controls_Manager::RAW_HTML,
+				'raw'  => '<div style="font-size:11px;color:#475569;line-height:1.5;">'
+					. esc_html__( 'When ON, the sticky bar stays hidden until the customer scrolls past the original Add to Cart widget, so it never covers product content too early.', 'woo-swatches-elementor' )
+					. '</div>',
+			)
+		);
+
+		$this->add_control(
+			'sticky_scroll_trigger_desktop',
+			array(
+				'label'        => esc_html__( 'Scroll-trigger on Desktop', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'On', 'woo-swatches-elementor' ),
+				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
+				'return_value' => 'yes',
+				'default'      => '',
+				'condition'    => array( 'sticky_desktop' => 'yes' ),
+			)
+		);
+
+		$this->add_control(
+			'sticky_scroll_trigger_tablet',
+			array(
+				'label'        => esc_html__( 'Scroll-trigger on Tablet', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'On', 'woo-swatches-elementor' ),
+				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
+				'return_value' => 'yes',
+				'default'      => '',
+				'condition'    => array( 'sticky_tablet' => 'yes' ),
+			)
+		);
+
+		$this->add_control(
+			'sticky_scroll_trigger_mobile',
+			array(
+				'label'        => esc_html__( 'Scroll-trigger on Mobile', 'woo-swatches-elementor' ),
+				'type'         => \Elementor\Controls_Manager::SWITCHER,
+				'label_on'     => esc_html__( 'On', 'woo-swatches-elementor' ),
+				'label_off'    => esc_html__( 'Off', 'woo-swatches-elementor' ),
+				'return_value' => 'yes',
+				'default'      => '',
+				'condition'    => array( 'sticky_mobile' => 'yes' ),
 			)
 		);
 
@@ -614,6 +711,48 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			)
 		);
 
+		// v1.6.0 — Gradient/classic background (responsive) for parity with
+		// the other widgets' container sections. The simple color control
+		// above is kept for back-compat with existing saved values; this
+		// group control layers on top when the user picks a gradient.
+		$this->add_group_control(
+			\Elementor\Group_Control_Background::get_type(),
+			array(
+				'name'     => 'widget_background_group',
+				'types'    => array( 'classic', 'gradient' ),
+				'selector' => '{{WRAPPER}} .wse-widget-add-to-cart',
+			)
+		);
+
+		$this->add_responsive_control(
+			'widget_margin',
+			array(
+				'label'      => esc_html__( 'Margin', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+				'size_units' => array( 'px', 'em', '%' ),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-widget-add-to-cart' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+				),
+			)
+		);
+
+		$this->add_responsive_control(
+			'widget_max_width',
+			array(
+				'label'      => esc_html__( 'Max Width', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::SLIDER,
+				'size_units' => array( 'px', '%', 'vw' ),
+				'range'      => array(
+					'px' => array( 'min' => 100, 'max' => 1200 ),
+					'%'  => array( 'min' => 10,  'max' => 100 ),
+					'vw' => array( 'min' => 10,  'max' => 100 ),
+				),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-widget-add-to-cart' => 'max-width: {{SIZE}}{{UNIT}};',
+				),
+			)
+		);
+
 		$this->add_responsive_control(
 			'widget_padding',
 			array(
@@ -770,6 +909,25 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			array(
 				'name'     => 'sticky_box_shadow',
 				'selector' => '{{WRAPPER}} .wse-widget-add-to-cart.wse-sticky-active',
+			)
+		);
+
+		// v1.6.0 — Sticky bar minimum height (responsive). Lets the bar be
+		// taller (more tap-friendly) or tighter per device. Applied as
+		// min-height so content can still grow the bar if needed.
+		$this->add_responsive_control(
+			'sticky_min_height',
+			array(
+				'label'      => esc_html__( 'Minimum Height', 'woo-swatches-elementor' ),
+				'type'       => \Elementor\Controls_Manager::SLIDER,
+				'size_units' => array( 'px', 'vh' ),
+				'range'      => array(
+					'px' => array( 'min' => 40, 'max' => 160 ),
+					'vh' => array( 'min' => 5, 'max' => 30 ),
+				),
+				'selectors'  => array(
+					'{{WRAPPER}} .wse-widget-add-to-cart.wse-sticky-active' => 'min-height: {{SIZE}}{{UNIT}};',
+				),
 			)
 		);
 
@@ -1426,18 +1584,19 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 		}
 
 		// Feature B (v1.1.0) + v1.1.1 — sticky classes apply to BOTH presenter
-		// AND canonical wrappers. v1.1.0 originally scoped these to presenter
-		// only; v1.1.1 lets a single-widget canonical setup go sticky directly.
-		// v1.2.1 (F2) — sticky settings moved to global admin: WC -> Settings
-		// -> WooSwatches -> Sticky Add to Cart. Reads global option directly
-		// so every product page enforces the same store-wide sticky rule.
-		if ( 'yes' === get_option( 'wse_sticky_desktop', 'no' ) ) {
+		// AND canonical wrappers.
+		// v1.6.0 — Sticky configuration moved OUT of the global WC admin panel
+		// and into this widget (the widget is now the single source of truth).
+		// render() reads the per-device widget toggles directly; add-to-cart.js
+		// then handles the breakpoint matching + scroll-trigger logic. Existing
+		// sites must re-enable sticky here after upgrading from <= v1.5.0.
+		if ( 'yes' === ( $settings['sticky_desktop'] ?? '' ) ) {
 			$wrapper_class .= ' wse-sticky-desktop';
 		}
-		if ( 'yes' === get_option( 'wse_sticky_tablet', 'no' ) ) {
+		if ( 'yes' === ( $settings['sticky_tablet'] ?? '' ) ) {
 			$wrapper_class .= ' wse-sticky-tablet';
 		}
-		if ( 'yes' === get_option( 'wse_sticky_mobile', 'yes' ) ) {
+		if ( 'yes' === ( $settings['sticky_mobile'] ?? 'yes' ) ) {
 			$wrapper_class .= ' wse-sticky-mobile';
 		}
 
@@ -1450,6 +1609,12 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			$wrapper_class .= ' wse-sticky-order-bn-atc';
 		}
 
+		// v1.6.0 — Per-device scroll-trigger flags, read by add-to-cart.js
+		// from data attributes (replaces the old localized global params).
+		$scroll_d = ( 'yes' === ( $settings['sticky_scroll_trigger_desktop'] ?? '' ) ) ? '1' : '0';
+		$scroll_t = ( 'yes' === ( $settings['sticky_scroll_trigger_tablet'] ?? '' ) ) ? '1' : '0';
+		$scroll_m = ( 'yes' === ( $settings['sticky_scroll_trigger_mobile'] ?? '' ) ) ? '1' : '0';
+
 		$this->add_render_attribute( 'wrapper', array(
 			'class'               => $wrapper_class,
 			'data-product-id'     => absint( $product_id ),
@@ -1458,6 +1623,10 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			// shouldShowViewCart() to decide whether to strip wc-forward
 			// links from fragments, the toast, and pre-existing notices.
 			'data-show-view-cart' => sanitize_key( (string) ( $settings['show_view_cart_link'] ?? 'inherit' ) ),
+			// v1.6.0 — Per-device scroll-trigger flags (1/0).
+			'data-scroll-trigger-d' => $scroll_d,
+			'data-scroll-trigger-t' => $scroll_t,
+			'data-scroll-trigger-m' => $scroll_m,
 		) );
 
 		// Expose state to the template via in-scope variables.

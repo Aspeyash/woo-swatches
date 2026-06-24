@@ -101,6 +101,7 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 
 	protected function register_controls(): void {
 		$this->register_content_controls();
+		$this->register_style_container();
 		$this->register_style_swatches();
 		$this->register_style_active_state();
 		$this->register_style_hover();
@@ -311,23 +312,6 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 			'default'      => 'no',
 		) );
 
-		// v1.5.0 (C2') — Per-swatch savings / percent-off pill.
-		// When ON, swatches whose term is on sale show a small "-N%"
-		// corner pill (N = the highest discount among that term's in-stock
-		// variations). Works for color, image, label, and button swatch
-		// types. The pill markup is always rendered server-side when a
-		// discount exists; this toggle adds .wse-show-savings-pill to
-		// .wse-attr-block, which is what CSS uses to reveal it.
-		$this->add_control( 'show_savings_pill', array(
-			'label'        => esc_html__( 'Show Savings Pill (% off) on Swatches', 'woo-swatches-elementor' ),
-			'description'  => esc_html__( 'Display a small "-N%" discount badge on the corner of each swatch whose variation is on sale.', 'woo-swatches-elementor' ),
-			'type'         => \Elementor\Controls_Manager::SWITCHER,
-			'label_on'     => esc_html__( 'Yes', 'woo-swatches-elementor' ),
-			'label_off'    => esc_html__( 'No',  'woo-swatches-elementor' ),
-			'return_value' => 'yes',
-			'default'      => 'no',
-		) );
-
 		$this->add_control( 'oos_behavior', array(
 			'label'   => esc_html__( 'Out-of-Stock Display', 'woo-swatches-elementor' ),
 			'type'    => \Elementor\Controls_Manager::SELECT,
@@ -408,6 +392,254 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 			'type'        => \Elementor\Controls_Manager::TEXT,
 			'default'     => esc_html__( '(unavailable)', 'woo-swatches-elementor' ),
 		) );
+
+		$this->end_controls_section();
+	}
+
+	// ── STYLE TAB — Widget container + attribute/swatches containers (v1.6.0) ──
+
+	/**
+	 * v1.6.0 — Deep per-sub-element box styling for the Swatches widget.
+	 *
+	 * Adds three groups of controls, each with responsive (D/T/M) dimensional
+	 * controls where it makes sense:
+	 *
+	 *   1. Widget Container (.wse-widget-swatches) — the outer wrapper:
+	 *      background (color + gradient, responsive), border, radius, padding,
+	 *      margin, width / alignment.
+	 *   2. Attribute Block (.wse-attr-block) — the per-attribute group:
+	 *      background, border, radius, padding, margin (responsive).
+	 *   3. Swatches Container (.wse-swatches) — the row holding the swatches:
+	 *      padding, margin, gap between swatches (responsive).
+	 *
+	 * All write via `selectors` (no !important), consistent with the other
+	 * style sections. The Background group control supports both classic
+	 * colour and gradient and is responsive per Elementor's group control.
+	 */
+	private function register_style_container(): void {
+
+		// ── 1. Widget container ───────────────────────────────────────────
+		$this->start_controls_section( 'section_style_container', array(
+			'label' => esc_html__( 'Widget Container', 'woo-swatches-elementor' ),
+			'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+		) );
+
+		// Background — color + gradient, responsive D/T/M.
+		$this->add_group_control(
+			\Elementor\Group_Control_Background::get_type(),
+			array(
+				'name'     => 'container_background',
+				'types'    => array( 'classic', 'gradient' ),
+				'selector' => '{{WRAPPER}} .wse-widget-swatches',
+				'fields_options' => array(
+					'background' => array(
+						'label' => esc_html__( 'Background (responsive)', 'woo-swatches-elementor' ),
+					),
+				),
+			)
+		);
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Border::get_type(),
+			array(
+				'name'     => 'container_border',
+				'selector' => '{{WRAPPER}} .wse-widget-swatches',
+			)
+		);
+
+		$this->add_responsive_control( 'container_border_radius', array(
+			'label'      => esc_html__( 'Border Radius', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', '%', 'em' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .wse-widget-swatches' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'container_padding', array(
+			'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em', '%' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .wse-widget-swatches' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'container_margin', array(
+			'label'      => esc_html__( 'Margin', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em', '%' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .wse-widget-swatches' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Box_Shadow::get_type(),
+			array(
+				'name'     => 'container_box_shadow',
+				'selector' => '{{WRAPPER}} .wse-widget-swatches',
+			)
+		);
+
+		$this->add_responsive_control( 'container_width', array(
+			'label'      => esc_html__( 'Max Width', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::SLIDER,
+			'size_units' => array( 'px', '%', 'vw' ),
+			'range'      => array(
+				'px' => array( 'min' => 100, 'max' => 1200 ),
+				'%'  => array( 'min' => 10,  'max' => 100 ),
+				'vw' => array( 'min' => 10,  'max' => 100 ),
+			),
+			'selectors'  => array(
+				'{{WRAPPER}} .wse-widget-swatches' => 'max-width: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'container_align', array(
+			'label'   => esc_html__( 'Alignment', 'woo-swatches-elementor' ),
+			'type'    => \Elementor\Controls_Manager::CHOOSE,
+			'options' => array(
+				'flex-start' => array(
+					'title' => esc_html__( 'Left', 'woo-swatches-elementor' ),
+					'icon'  => 'eicon-text-align-left',
+				),
+				'center' => array(
+					'title' => esc_html__( 'Center', 'woo-swatches-elementor' ),
+					'icon'  => 'eicon-text-align-center',
+				),
+				'flex-end' => array(
+					'title' => esc_html__( 'Right', 'woo-swatches-elementor' ),
+					'icon'  => 'eicon-text-align-right',
+				),
+			),
+			'selectors' => array(
+				'{{WRAPPER}} .wse-swatches' => 'justify-content: {{VALUE}};',
+			),
+		) );
+
+		$this->end_controls_section();
+
+		// ── 2. Attribute block ────────────────────────────────────────────
+		$this->start_controls_section( 'section_style_attr_block', array(
+			'label' => esc_html__( 'Attribute Block', 'woo-swatches-elementor' ),
+			'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+		) );
+
+		$this->add_control( 'attr_block_bg', array(
+			'label'     => esc_html__( 'Background Color', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::COLOR,
+			'selectors' => array(
+				'{{WRAPPER}} .wse-attr-block' => 'background-color: {{VALUE}};',
+			),
+		) );
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Border::get_type(),
+			array(
+				'name'     => 'attr_block_border',
+				'selector' => '{{WRAPPER}} .wse-attr-block',
+			)
+		);
+
+		$this->add_responsive_control( 'attr_block_radius', array(
+			'label'      => esc_html__( 'Border Radius', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', '%', 'em' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .wse-attr-block' => 'border-radius: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'attr_block_padding', array(
+			'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em', '%' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .wse-attr-block' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'attr_block_margin', array(
+			'label'      => esc_html__( 'Margin (space between attributes)', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em', '%' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .wse-attr-block' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->end_controls_section();
+
+		// ── 3. Swatches container ─────────────────────────────────────────
+		$this->start_controls_section( 'section_style_swatches_container', array(
+			'label' => esc_html__( 'Swatches Container', 'woo-swatches-elementor' ),
+			'tab'   => \Elementor\Controls_Manager::TAB_STYLE,
+		) );
+
+		$this->add_responsive_control( 'swatches_container_gap', array(
+			'label'      => esc_html__( 'Gap Between Swatches', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::SLIDER,
+			'size_units' => array( 'px', 'em' ),
+			'range'      => array(
+				'px' => array( 'min' => 0, 'max' => 40 ),
+				'em' => array( 'min' => 0, 'max' => 3 ),
+			),
+			'selectors'  => array(
+				'{{WRAPPER}} .wse-swatches' => 'gap: {{SIZE}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'swatches_container_padding', array(
+			'label'      => esc_html__( 'Padding', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em', '%' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .wse-swatches' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		$this->add_responsive_control( 'swatches_container_margin', array(
+			'label'      => esc_html__( 'Margin', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em', '%' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .wse-swatches' => 'margin: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		// Fieldset wrapper (semantic group around the swatch <ul>).
+		$this->add_responsive_control( 'fieldset_padding', array(
+			'label'      => esc_html__( 'Fieldset Padding', 'woo-swatches-elementor' ),
+			'type'       => \Elementor\Controls_Manager::DIMENSIONS,
+			'size_units' => array( 'px', 'em' ),
+			'selectors'  => array(
+				'{{WRAPPER}} .wse-fieldset' => 'padding: {{TOP}}{{UNIT}} {{RIGHT}}{{UNIT}} {{BOTTOM}}{{UNIT}} {{LEFT}}{{UNIT}};',
+			),
+		) );
+
+		// Clear / reset link.
+		$this->add_control( 'clear_link_heading', array(
+			'label'     => esc_html__( 'Clear / Reset Link', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::HEADING,
+			'separator' => 'before',
+		) );
+
+		$this->add_control( 'clear_link_color', array(
+			'label'     => esc_html__( 'Link Color', 'woo-swatches-elementor' ),
+			'type'      => \Elementor\Controls_Manager::COLOR,
+			'selectors' => array(
+				'{{WRAPPER}} .wse-reset-link' => 'color: {{VALUE}};',
+			),
+		) );
+
+		$this->add_group_control(
+			\Elementor\Group_Control_Typography::get_type(),
+			array(
+				'name'     => 'clear_link_typography',
+				'selector' => '{{WRAPPER}} .wse-reset-link',
+			)
+		);
 
 		$this->end_controls_section();
 	}
@@ -978,13 +1210,6 @@ class WSE_Widget_Swatches extends \Elementor\Widget_Base {
 				// per-swatch price <span> that's always rendered in image.php.
 				if ( 'image' === $swatch_type && 'yes' === ( $settings['show_price'] ?? 'no' ) ) {
 					$attr_block_classes[] = 'wse-show-image-price';
-				}
-				// v1.5.0 (C2') — Show savings pill on swatches (all types).
-				// When ON, .wse-show-savings-pill on .wse-attr-block reveals
-				// the per-swatch "-N%" pill that's always rendered (when the
-				// term is on sale) in color.php / image.php / label.php.
-				if ( 'yes' === ( $settings['show_savings_pill'] ?? 'no' ) ) {
-					$attr_block_classes[] = 'wse-show-savings-pill';
 				}
 				?>
 
