@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.7.1
+Stable tag: 1.7.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,51 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.7.2 =
+**No-flash sticky Add to Cart on slow connections.**
+
+Customers on slow mobile networks (typical Bangladesh 4G congestion)
+previously saw the Add to Cart widget render in its in-flow "default"
+design for 1–3 seconds during page load, then snap to its compact
+sticky position at the bottom of the viewport once `add-to-cart.js`
+finished loading and `evaluateStickyVisibility()` ran. The visible jump
+was unpolished and confusing.
+
+v1.7.2 introduces a **prepaint** mechanism. When sticky is enabled for
+a device AND scroll-trigger is OFF for that device (the always-on
+sticky case), the widget wrapper now carries an extra class —
+`wse-sticky-prepaint-{desktop|tablet|mobile}` — emitted server-side
+by the Add to Cart widget renderer. The accompanying CSS mirrors every
+existing `.wse-sticky-active` rule under each prepaint class, scoped
+to the matching `@media` breakpoint. Result: the sticky bar paints in
+its FINAL compact form on the very first browser frame, before any
+JavaScript runs. When `add-to-cart.js` later adds `.wse-sticky-active`
+the visual outcome is identical, so the customer never perceives a
+transition.
+
+When scroll-trigger IS on for a device, no prepaint class is emitted
+for that device — the initial in-flow position IS the correct initial
+state, since the sticky bar is supposed to remain hidden until the
+customer scrolls past the original widget. JS handles that transition
+exactly as before.
+
+ZERO changes to JavaScript, breakpoint logic, scroll-trigger logic,
+canonical/presenter coordination, the compact-grid math
+(`minmax(80px, 28%) 1fr 1fr` and the ≤ 359px override), body
+padding-bottom management, or any widget setting / default. The
+prepaint state is a pure CSS mirror of the runtime state — additive
+only, no existing rule modified.
+
+The Elementor parent `.elementor-widget` collapse uses the modern
+`:has()` selector, well-supported by all major browsers as of 2026.
+Older browsers fall back to the existing JS-driven path with no
+regression.
+
+Two-file change (`widgets/class-widget-add-to-cart.php`,
+`assets/css/add-to-cart.css` + matching `.min.css`). Drop-in
+replacement for v1.7.1. No DB schema change. Hard-refresh +
+Regenerate CSS after install.
 
 = 1.7.1 =
 **Critical fix for v1.7.0 — ZYMARG Presets section was invisible.**
@@ -1635,6 +1680,9 @@ Forward-looking items not yet scheduled to a specific release:
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.7.2 =
+No-flash sticky Add to Cart — on slow connections, the sticky bar previously rendered in its in-flow "default" design for 1–3 seconds before snapping into compact-sticky position at the bottom of the mobile viewport. v1.7.2 adds a CSS prepaint mechanism so the bar paints in its final sticky form on the very first frame, before any JavaScript runs. ZERO changes to behavior, breakpoint logic, scroll-trigger logic, or any setting / default — purely an additive CSS mirror plus a one-class server-side hint. Drop-in replacement for v1.7.1; no DB migration. Hard-refresh + Regenerate CSS after install.
 
 = 1.7.1 =
 Critical fix for v1.7.0 — the "ZYMARG Presets" section did not appear in any widget's Style tab because the SUPPORTED_WIDGETS allowlist used incorrect widget slugs (`wse-*` instead of the actual `zymarg-*` names). v1.7.1 corrects the allowlist so the panel mounts on all four widgets and AutoApply recognises freshly-inserted widgets correctly. PHP-only one-file change. Drop-in replacement for v1.7.0; no DB migration. Hard-refresh + Regenerate CSS after install.
