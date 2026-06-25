@@ -46,15 +46,21 @@ class WSE_Presets {
 	/**
 	 * Allowlist of widget types that may have presets.
 	 *
+	 * Values match each widget's `get_name()` return value (= widget_slug),
+	 * which is what Elementor's `widgetType` model attribute carries on the
+	 * canvas. The plugin's CSS / script handle names ARE prefixed `wse-*`
+	 * (e.g. the `wse-swatches` script handle), but the WIDGET names are
+	 * `zymarg-*` — these are different namespaces.
+	 *
 	 * Anything posted via AJAX is checked against this list before any DB
 	 * write — prevents drive-by writers from poking arbitrary option names
 	 * by sending unexpected widget_type values.
 	 */
 	const SUPPORTED_WIDGETS = array(
-		'wse-swatches',
-		'wse-add-to-cart',
-		'wse-price',
-		'wse-variation-image-gallery',
+		'zymarg-variation-swatches',
+		'zymarg-add-to-cart',
+		'zymarg-price',
+		'zymarg-variation-image-gallery',
 	);
 
 	/** Hard cap on presets per widget type — keeps storage bounded. */

@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.7.0
+Stable tag: 1.7.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,33 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.7.1 =
+**Critical fix for v1.7.0 — ZYMARG Presets section was invisible.**
+
+Root cause: the `WSE_Presets::SUPPORTED_WIDGETS` allowlist used the
+plugin's CSS / script-handle namespace (`wse-swatches`, `wse-add-to-cart`,
+`wse-price`, `wse-variation-image-gallery`), but Elementor identifies
+widgets by their `get_name()` value — which on this plugin is the
+`zymarg-*` slug:
+
+* `zymarg-variation-swatches`
+* `zymarg-add-to-cart`
+* `zymarg-price`
+* `zymarg-variation-image-gallery`
+
+Every call to `WSE_Presets::register_widget_section( $this )` therefore
+short-circuited on the `is_supported()` check and never mounted the
+panel. The same mismatch also stopped the editor JS auto-apply listener
+from recognising freshly-inserted widgets.
+
+v1.7.1 corrects the allowlist constant to the actual widget slugs. The
+JS reads the same list via the localized `WSEPresets.supported` array
+in `class-assets.php::enqueue_editor()`, so this single PHP change fixes
+both the visible panel AND auto-apply on insert.
+
+PHP one-file change (`includes/class-presets.php`). No JS / template /
+CSS / DB changes. Drop-in replacement for v1.7.0.
 
 = 1.7.0 =
 **Minor release — ZYMARG Presets system + Price-widget Sale Badge removed.**
@@ -1608,6 +1635,9 @@ Forward-looking items not yet scheduled to a specific release:
 * Variation-aware Quick View modal that reuses the gallery widget.
 
 == Upgrade Notice ==
+
+= 1.7.1 =
+Critical fix for v1.7.0 — the "ZYMARG Presets" section did not appear in any widget's Style tab because the SUPPORTED_WIDGETS allowlist used incorrect widget slugs (`wse-*` instead of the actual `zymarg-*` names). v1.7.1 corrects the allowlist so the panel mounts on all four widgets and AutoApply recognises freshly-inserted widgets correctly. PHP-only one-file change. Drop-in replacement for v1.7.0; no DB migration. Hard-refresh + Regenerate CSS after install.
 
 = 1.7.0 =
 ZYMARG Presets — every WooSwatches widget now has a "ZYMARG Presets" section at the top of its Style tab where you can save / apply / update / delete named presets, and pick one to auto-apply when a new widget of that type is dropped onto the canvas. REMOVED: the Price widget's Sale Badge feature is gone entirely (controls, render, CSS) — the smart heading + you-save indicator carry the on-sale messaging. Drop-in replacement for v1.6.0; no DB migration. Hard-refresh + Regenerate CSS after install.
