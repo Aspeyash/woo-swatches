@@ -1601,6 +1601,32 @@ class WSE_Widget_Add_To_Cart extends \Elementor\Widget_Base {
 			$wrapper_class .= ' wse-sticky-mobile';
 		}
 
+		// v1.7.2 — Prepaint sticky state (no-flash on slow networks).
+		// When sticky is ON for a device AND scroll-trigger is OFF for
+		// that device, emit a prepaint class so add-to-cart.css paints
+		// the bar in its FINAL compact-sticky form from the very first
+		// browser frame — BEFORE add-to-cart.js runs
+		// evaluateStickyVisibility(). When scroll-trigger IS on, the
+		// initial in-flow position IS the correct initial state, so no
+		// prepaint class is emitted for that device.
+		//
+		// The actual sticky behaviour, breakpoint matching, and
+		// scroll-trigger logic remain 100% JS-driven via .wse-sticky-active
+		// added by add-to-cart.js. This block only fixes the first-paint
+		// flash that customers on slow connections were experiencing.
+		if ( 'yes' === ( $settings['sticky_desktop'] ?? '' )
+			&& 'yes' !== ( $settings['sticky_scroll_trigger_desktop'] ?? '' ) ) {
+			$wrapper_class .= ' wse-sticky-prepaint-desktop';
+		}
+		if ( 'yes' === ( $settings['sticky_tablet'] ?? '' )
+			&& 'yes' !== ( $settings['sticky_scroll_trigger_tablet'] ?? '' ) ) {
+			$wrapper_class .= ' wse-sticky-prepaint-tablet';
+		}
+		if ( 'yes' === ( $settings['sticky_mobile'] ?? 'yes' )
+			&& 'yes' !== ( $settings['sticky_scroll_trigger_mobile'] ?? '' ) ) {
+			$wrapper_class .= ' wse-sticky-prepaint-mobile';
+		}
+
 		// v1.4.7 — Sticky compact layout + button order classes.
 		if ( ( $settings['sticky_compact_layout'] ?? 'yes' ) === 'yes' ) {
 			$wrapper_class .= ' wse-sticky-compact';
