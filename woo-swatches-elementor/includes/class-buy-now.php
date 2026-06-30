@@ -135,6 +135,16 @@ class WSE_Buy_Now {
 			WC()->session->set_customer_session_cookie( true );
 		}
 
+		// v1.7.4: Cross-plugin Buy Now lock — refuse to start if the WC Product
+		// Grid Buy Now flow is already mid-flight for this customer. Two
+		// simultaneous Buy Now state machines operating on the same shared WC
+		// cart would corrupt each other's snapshots.
+		if ( WC()->session->get( 'zymarg_wcpg_buy_now_backup' ) || WC()->session->get( 'zymarg_buy_now_token' ) ) {
+			wp_send_json_error( array(
+				'message' => __( 'Another Buy Now checkout is already in progress. Please complete or cancel it first.', 'woo-swatches-elementor' ),
+			) );
+		}
+
 		// Save the original cart on the FIRST Buy Now click only.
 		$already_active = (bool) WC()->session->get( 'wse_bnw_active' );
 		if ( ! $already_active ) {
