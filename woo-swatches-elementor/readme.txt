@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.7.3
+Stable tag: 1.7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,23 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.7.4 =
+**Cross-plugin Buy Now lock (mutual exclusion with WC Product Grid).**
+
+If a customer has an active WC Product Grid Buy Now session in progress
+(detected via `zymarg_wcpg_buy_now_backup` or `zymarg_buy_now_token`
+session keys), tapping Buy Now on the woo-swatches sticky bar now
+returns a friendly error: "Another Buy Now checkout is already in
+progress. Please complete or cancel it first."
+
+This prevents both Buy Now state machines from operating on the same
+shared WC cart simultaneously — which would corrupt snapshots and
+lead to wrong amounts being charged or cart-data loss.
+
+Single-line guard in `ajax_buy_now()`. No behavioral change when the
+other plugin is not active or has no mid-flight session. Drop-in
+replacement for v1.7.3.
 
 = 1.7.3 =
 **Buy Now: discard on abandon (multivendor safety fix).**
