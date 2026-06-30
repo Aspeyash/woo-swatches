@@ -13,8 +13,11 @@
  *        the Buy Now product (re-syncs after WC checkout AJAX, reloads).
  *      * If on the order-received endpoint -> do nothing here;
  *        `woocommerce_thankyou` handles cart restoration.
- *      * If on ANY OTHER front-end page -> treat as abandonment: rebuild
- *        the cart as `existing items + Buy Now product` and clear flags.
+ *      * If on ANY OTHER front-end page -> treat as abandonment: restore
+ *        the original cart WITHOUT the Buy Now product and clear flags.
+ *        (v1.7.3: changed from merge-back to discard — on a multivendor
+ *        marketplace, merging the Buy Now product into the cart on abandon
+ *        risks accidental purchases during subsequent normal checkout.)
  *
  *  - On `woocommerce_thankyou` (after order is placed): restore the
  *    customer's original cart and clear the Buy Now session.
@@ -209,8 +212,13 @@ class WSE_Buy_Now {
 			return;
 		}
 
-		// Anything else = abandonment. Restore combined cart.
-		$this->restore_combined_cart();
+		// Anything else = abandonment. Discard the Buy Now product and restore
+		// the original cart exactly as it was before Buy Now was clicked.
+		// v1.7.3: Previously this called restore_combined_cart() which merged
+		// the Buy Now product back into the cart. On a multivendor marketplace
+		// this caused accidental purchases — customer forgets the item is in
+		// cart and later checks out with everything bundled together.
+		$this->restore_original_cart();
 		$this->clear_session();
 	}
 
@@ -239,7 +247,7 @@ class WSE_Buy_Now {
 		);
 
 		if ( ! $added ) {
-			$this->restore_combined_cart();
+			$this->restore_original_cart();
 			$this->clear_session();
 			wc_add_notice( __( 'The Buy Now product is no longer available. Your original cart has been restored.', 'woo-swatches-elementor' ), 'error' );
 			return;
@@ -296,6 +304,14 @@ class WSE_Buy_Now {
 		}
 	}
 
+	/**
+	 * Restore original cart + add the Buy Now product back into it.
+	 *
+	 * @deprecated 1.7.3 No longer called internally. Use restore_original_cart()
+	 *             instead. On a multivendor marketplace, merging the Buy Now product
+	 *             on abandon risked accidental purchases during subsequent checkouts.
+	 * @return void
+	 */
 	private function restore_combined_cart(): void {
 		if ( ! WC()->session || ! WC()->cart ) {
 			return;

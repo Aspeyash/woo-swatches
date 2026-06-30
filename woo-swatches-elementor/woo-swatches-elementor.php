@@ -3,7 +3,7 @@
  * Plugin Name:       ZYMARG Variation Swatches for Elementor
  * Plugin URI:        https://zymarg.com/plugins/variation-swatches-elementor
  * Description:       Professional variation swatches and add-to-cart widgets for Elementor, fully compatible with WooCommerce. Pairs cleanly with Astra and Dokan multi-vendor.
- * Version:           1.7.2
+ * Version:           1.7.3
  * Author:            ZYMARG
  * Author URI:        https://zymarg.com
  * License:           GPL-2.0-or-later

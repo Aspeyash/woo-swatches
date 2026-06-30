@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.7.2
+Stable tag: 1.7.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,39 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.7.3 =
+**Buy Now: discard on abandon (multivendor safety fix).**
+
+Previously, when a customer clicked Buy Now on the sticky bar and then
+navigated AWAY from checkout without completing payment (abandon), the
+plugin merged the Buy Now product back into their original cart. On a
+single-vendor store this was generous — "you wanted it, it stays in
+cart". But on a multivendor marketplace like ZYMARG, this creates a
+real problem:
+
+Customer taps Buy Now on a 5,000 BDT item from Vendor A, decides not
+to pay (high shipping), navigates away. The item silently enters their
+cart alongside items from Vendors B, C, D. Later the customer does a
+normal full checkout and accidentally buys the item bundled with
+everything else — triggering a refund request that costs real money.
+
+v1.7.3 changes the abandon behavior to **discard the Buy Now product**
+and restore the original cart exactly as it was before Buy Now was
+clicked. This matches the WC Product Grid Buy Now behavior (which
+already discards on abandon) and aligns with how Daraz, Shopee, and
+Lazada handle Buy Now abandonment on their multivendor platforms.
+
+The `restore_combined_cart()` method is deprecated but preserved for
+backward compatibility with any custom snippet that might call it.
+It will be removed in v2.0.0.
+
+Behavioral change:
+- Before (v1.7.2): abandon = original cart + Buy Now product (merge)
+- After (v1.7.3): abandon = original cart only (discard)
+
+Single-file change (`includes/class-buy-now.php`). Drop-in replacement
+for v1.7.2. No DB schema change. No settings change.
 
 = 1.7.2 =
 **No-flash sticky Add to Cart on slow connections.**
