@@ -6,7 +6,7 @@ Tested up to: 6.7
 Requires PHP: 8.1
 WC requires at least: 8.0
 WC tested up to: 9.4
-Stable tag: 1.7.4
+Stable tag: 1.7.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -94,6 +94,26 @@ Only if you enable **Advanced → Delete Data on Uninstall** before deleting the
 5. Shop loop with archive swatches
 
 == Changelog ==
+
+= 1.7.5 =
+**15-minute Buy Now session expiry (parity with WC Product Grid).**
+
+Every Buy Now click now stamps the WC session with `wse_bnw_expires_at =
+time() + 900` (15 minutes). If the customer opens a Buy Now checkout
+tab and leaves it sitting for over 15 minutes, the next time they touch
+the site the session is auto-expired: their original cart is restored
+and the abandoned Buy Now flow is cleared without a trace.
+
+This matches the WC Product Grid Buy Now TTL exactly, so both Buy Now
+entry points on the ZYMARG stack (sticky bar + product card grid)
+clean up abandoned sessions the same way.
+
+Backwards-compatible: sessions created before v1.7.5 have no expiry
+stamp and are treated as still valid — no in-flight customer sessions
+are yanked at upgrade time.
+
+Single-file change (`includes/class-buy-now.php`). Drop-in replacement
+for v1.7.4. No DB schema change. No settings change.
 
 = 1.7.4 =
 **Cross-plugin Buy Now lock (mutual exclusion with WC Product Grid).**

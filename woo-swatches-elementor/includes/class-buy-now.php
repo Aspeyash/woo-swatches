@@ -22,6 +22,12 @@
  *  - On `woocommerce_thankyou` (after order is placed): restore the
  *    customer's original cart and clear the Buy Now session.
  *
+ *  - v1.7.5: 15-minute session TTL. Every Buy Now click stamps
+ *    `wse_bnw_expires_at` = time() + 900. If the customer navigates back
+ *    after 15+ minutes, the session is auto-expired: original cart is
+ *    restored and Buy Now state is cleared. Matches WC Product Grid's
+ *    Buy Now TTL for consistent behaviour across the ZYMARG stack.
+ *
  * @package WooSwatchesElementor
  * @since   1.4.5
  */
@@ -29,6 +35,15 @@
 defined( 'ABSPATH' ) || exit;
 
 class WSE_Buy_Now {
+
+	/**
+	 * How long (in seconds) a Buy Now session stays valid before being
+	 * treated as abandoned and auto-cleaned. Matches WC Product Grid's
+	 * Buy Now TTL for consistent behaviour across the ZYMARG stack.
+	 *
+	 * @since 1.7.5
+	 */
+	const EXPIRY_SECONDS = 900;
 
 	protected static ?WSE_Buy_Now $instance = null;
 
@@ -145,6 +160,10 @@ class WSE_Buy_Now {
 			) );
 		}
 
+		// v1.7.5: Check if an existing Buy Now session has already expired.
+		// If so, clean it up and start fresh instead of piggybacking on stale state.
+		$this->maybe_expire_stale_session();
+
 		// Save the original cart on the FIRST Buy Now click only.
 		$already_active = (bool) WC()->session->get( 'wse_bnw_active' );
 		if ( ! $already_active ) {
@@ -161,6 +180,12 @@ class WSE_Buy_Now {
 			'variation'    => $variation,
 		) );
 		WC()->session->set( 'wse_bnw_active', true );
+
+		// v1.7.5: Stamp the session with an expiry timestamp so an abandoned
+		// Buy Now flow can be cleaned up automatically after 15 minutes.
+		// Matches WC Product Grid's Buy Now TTL for consistency across the
+		// ZYMARG stack.
+		WC()->session->set( 'wse_bnw_expires_at', time() + self::EXPIRY_SECONDS );
 
 		// Replace cart contents with the Buy Now product.
 		WC()->cart->empty_cart( false );
@@ -203,6 +228,16 @@ class WSE_Buy_Now {
 		}
 
 		if ( ! WC()->session->get( 'wse_bnw_active' ) ) {
+			return;
+		}
+
+		// v1.7.5: Check for expired session BEFORE anything else. If the
+		// customer opened the checkout tab 20 minutes ago and forgot about it,
+		// we want to restore their cart and let them start fresh — not force
+		// them to complete a Buy Now they've clearly abandoned.
+		if ( $this->is_session_expired() ) {
+			$this->restore_original_cart();
+			$this->clear_session();
 			return;
 		}
 
@@ -362,5 +397,61 @@ class WSE_Buy_Now {
 		WC()->session->set( 'wse_bnw_active', null );
 		WC()->session->set( 'wse_bnw_product', null );
 		WC()->session->set( 'wse_bnw_saved_cart', null );
+		WC()->session->set( 'wse_bnw_expires_at', null );
+	}
+
+	/* =========================================================================
+	 *  SESSION EXPIRY (v1.7.5)
+	 * ====================================================================== */
+
+	/**
+	 * Whether the current Buy Now session has passed its expiry timestamp.
+	 *
+	 * Returns false if no expiry is set (backwards-compatible with sessions
+	 * created before v1.7.5 — those simply behave as if they never expire,
+	 * which matches the pre-v1.7.5 behaviour so no existing customer sessions
+	 * are disrupted at upgrade time).
+	 *
+	 * @since 1.7.5
+	 * @return bool
+	 */
+	private function is_session_expired(): bool {
+		if ( ! WC()->session ) {
+			return false;
+		}
+		$expires_at = absint( WC()->session->get( 'wse_bnw_expires_at' ) );
+		if ( $expires_at <= 0 ) {
+			// No expiry stamp = legacy session from pre-v1.7.5. Treat as
+			// still valid so we don't yank the rug out from under a customer
+			// mid-checkout right after upgrading the plugin.
+			return false;
+		}
+		return time() >= $expires_at;
+	}
+
+	/**
+	 * Called at the start of a fresh Buy Now click. If a stale expired
+	 * session is hanging around, wipe it before we snapshot the current cart
+	 * — otherwise the "already_active" idempotency check would piggyback on
+	 * stale state and never re-snapshot the cart.
+	 *
+	 * @since 1.7.5
+	 * @return void
+	 */
+	private function maybe_expire_stale_session(): void {
+		if ( ! WC()->session ) {
+			return;
+		}
+		if ( ! WC()->session->get( 'wse_bnw_active' ) ) {
+			return;
+		}
+		if ( ! $this->is_session_expired() ) {
+			return;
+		}
+		// Session was left open past its TTL. Restore original cart to WC
+		// state (so subsequent snapshot captures the real cart, not the
+		// swapped one) and clear all Buy Now session keys.
+		$this->restore_original_cart();
+		$this->clear_session();
 	}
 }
